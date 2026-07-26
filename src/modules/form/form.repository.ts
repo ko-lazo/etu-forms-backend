@@ -1,30 +1,22 @@
-import type { Pool } from "pg";
-
 import { BaseRepository } from "../../core/repositories/base.repository.js";
 
 import { formMetadata } from "./form.metadata.js";
 
 import type { CreateFormInput, Form, UpdateFormInput } from "./form.types.js";
+import { DatabaseClient } from "../../core/database/database.client";
 
 export class FormRepository extends BaseRepository<
   Form,
   CreateFormInput,
   UpdateFormInput
 > {
-  constructor(pool: Pool) {
-    super(pool, formMetadata);
+  constructor(db: DatabaseClient) {
+    super(db, formMetadata);
   }
 
   async publish(id: string): Promise<Form> {
-    const form = await this.db.queryOne(
-      `
-        UPDATE forms
-        SET
-          published_at = NOW(),
-          updated_at = NOW()
-        WHERE id = $1
-        RETURNING *
-      `,
+    const form = await this.db.queryOne<Form>(
+      `UPDATE forms SET published_at = NOW() WHERE id = $1 RETURNING *`,
       [id],
     );
 
@@ -36,15 +28,8 @@ export class FormRepository extends BaseRepository<
   }
 
   async archive(id: string): Promise<Form> {
-    const form = await this.db.queryOne(
-      `
-        UPDATE forms
-        SET
-          archived_at = NOW(),
-          updated_at = NOW()
-        WHERE id = $1
-        RETURNING *
-      `,
+    const form = await this.db.queryOne<Form>(
+      `UPDATE forms SET archived_at = NOW() WHERE id = $1 RETURNING *`,
       [id],
     );
 

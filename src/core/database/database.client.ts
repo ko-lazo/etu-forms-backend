@@ -1,32 +1,39 @@
 import type { Pool, QueryResultRow } from "pg";
-import { RepositoryMetadata } from "../repositories/repository.metadata";
 
-export class DatabaseClient<TEntity extends QueryResultRow> {
-  constructor(
-    private readonly pool: Pool,
-    private readonly metadata: Pick<RepositoryMetadata<TEntity, object, object>, "columns">,
-  ) {}
+export class DatabaseClient {
+  constructor(private readonly pool: Pool) {}
 
-  public async query(sql: string, params: unknown[] = []): Promise<TEntity[]> {
+  public async query<T extends QueryResultRow = QueryResultRow>(
+      sql: string,
+      params: unknown[] = [],
+      columns?: Record<string, string>
+  ): Promise<T[]> {
     const result = await this.pool.query<QueryResultRow>(sql, params);
-    return result.rows.map((row) => this.mapToEntity(row));
+    return columns
+        ? result.rows.map((row) => this.mapToEntity<T>(row, columns))
+        : (result.rows as unknown as T[]);
   }
 
-  public async queryOne(sql: string, params: unknown[] = []): Promise<TEntity | null> {
+  public async queryOne<T extends QueryResultRow = QueryResultRow>(
+      sql: string,
+      params: unknown[] = [],
+      columns?: Record<string, string>
+  ): Promise<T | null> {
     const result = await this.pool.query<QueryResultRow>(sql, params);
     const row = result.rows[0];
-    return row ? this.mapToEntity(row) : null;
+    if (!row) return null;
+    return columns ? this.mapToEntity<T>(row, columns) : (row as unknown as T);
   }
 
   public async execute(sql: string, params: unknown[] = []): Promise<void> {
     await this.pool.query(sql, params);
   }
 
-  private mapToEntity(row: QueryResultRow): TEntity {
+  private mapToEntity<T>(row: QueryResultRow, columns: Record<string, string>): T {
     const entity = {} as Record<string, unknown>;
-    for (const [property, dbColumn] of Object.entries(this.metadata.columns)) {
+    for (const [property, dbColumn] of Object.entries(columns)) {
       if (dbColumn) entity[property] = row[dbColumn];
     }
-    return entity as TEntity;
+    return entity as T;
   }
 }

@@ -1,8 +1,6 @@
-import { pool } from "../../core/database/pool";
+import { dbClient } from "../../core/database/pool";
 
 import { FormController } from "./form.controller";
-
-import { formMetadata } from "./form.metadata";
 
 import { FormRepository } from "./form.repository";
 
@@ -11,7 +9,7 @@ import { createFormRoutes } from "./form.routes";
 import { FormService } from "./form.service";
 
 export function createFormModule() {
-  const repository = new FormRepository(pool);
+  const repository = new FormRepository(dbClient);
 
   const service = new FormService(repository);
 

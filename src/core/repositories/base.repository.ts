@@ -10,14 +10,14 @@ export abstract class BaseRepository<
   TUpdate extends object,
 > implements Repository<TEntity, TCreate, TUpdate> {
 
-  protected readonly db: DatabaseClient<TEntity>;
+  protected readonly db: DatabaseClient;
   private readonly queryBuilder: SqlQueryBuilder<TEntity, TCreate, TUpdate>;
 
   protected constructor(
-    pool: Pool,
+    db: DatabaseClient,
     protected readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
   ) {
-    this.db = new DatabaseClient(pool, metadata);
+    this.db = db;
     this.queryBuilder = new SqlQueryBuilder(metadata);
   }
 
@@ -34,24 +34,24 @@ export abstract class BaseRepository<
   }
 
   async findById(id: string): Promise<TEntity | null> {
-    return this.db.queryOne(
+    return this.db.queryOne<TEntity>(
       `SELECT * FROM ${this.table} WHERE ${this.col(this.metadata.primaryKey)} = $1 LIMIT 1`,
       [id],
     );
   }
 
   async findAll(): Promise<TEntity[]> {
-    return this.db.query(`SELECT * FROM ${this.table}`);
+    return this.db.query<TEntity>(`SELECT * FROM ${this.table}`);
   }
 
   async create(data: TCreate): Promise<TEntity> {
     const { sql, values } = this.queryBuilder.insert(data);
-    return (await this.db.queryOne(sql, values))!;
+    return (await this.db.queryOne<TEntity>(sql, values))!;
   }
 
   async update(id: string, data: TUpdate): Promise<TEntity> {
     const { sql, values } = this.queryBuilder.update(id, data);
-    const entity = await this.db.queryOne(sql, values);
+    const entity = await this.db.queryOne<TEntity>(sql, values);
 
     if (!entity) {
       throw new Error(`${this.table} with id ${id} not found`);
