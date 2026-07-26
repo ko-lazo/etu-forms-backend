@@ -16,7 +16,7 @@ export class FormRepository extends BaseRepository<
 
   async publish(id: string): Promise<Form> {
     const form = await this.db.queryOne<Form>(
-      `UPDATE forms SET published_at = NOW() WHERE id = $1 RETURNING *`,
+      `UPDATE forms SET ${this.col("publishedAt")} = NOW() WHERE id = $1 RETURNING *`,
       [id],
     );
 
@@ -29,7 +29,7 @@ export class FormRepository extends BaseRepository<
 
   async archive(id: string): Promise<Form> {
     const form = await this.db.queryOne<Form>(
-      `UPDATE forms SET archived_at = NOW() WHERE id = $1 RETURNING *`,
+      `UPDATE forms SET ${this.col("archivedAt")} = NOW() WHERE id = $1 RETURNING *`,
       [id],
     );
 
