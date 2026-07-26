@@ -1,5 +1,5 @@
 import type { Request } from "express";
-import { BadRequestError } from "../errors/bad-request.error";
+import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 
 export function getRouteParam(req: Request, name: string): string {
   const value = req.params[name];

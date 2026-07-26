@@ -1,7 +1,7 @@
-import { CreateUserInput, UpdateUserInput, User } from "./user.types";
-import { UserRepository } from "./user.repository";
-import { PasswordHasher } from "../../shared/security/password-hasher";
-import { BaseService } from "../../core/services/base.service";
+import { CreateUserInput, UpdateUserInput, User } from './user.types.js';
+import { UserRepository } from './user.repository.js';
+import { PasswordHasher } from '@/shared/security/password-hasher.js';
+import { BaseService } from '@/core/services/base.service.js';
 
 export class UserService extends BaseService<
   User,

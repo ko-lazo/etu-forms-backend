@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { FormController } from "./form.controller.js";
-import { validate } from "../../shared/http/middleware/validate.middleware";
+import { validate } from '@/shared/http/middleware/validate.middleware.js';
 import { createFormSchema } from "./form.validation.js";
 
 export function createFormRoutes(controller: FormController): Router {

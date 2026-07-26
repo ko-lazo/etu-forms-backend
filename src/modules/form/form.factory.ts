@@ -1,6 +1,6 @@
 import { fakerRU as faker } from "@faker-js/faker";
-import { FormSchemaDto } from "./schema/form-schema.schema";
-import { CreateFormInput } from "./form.types";
+import { FormSchemaDto } from './schema/form-schema.schema.js';
+import { CreateFormInput } from './form.types.js';
 
 type FormElement = FormSchemaDto["pages"][number]["elements"][number];
 

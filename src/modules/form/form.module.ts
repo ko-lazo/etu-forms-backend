@@ -1,12 +1,12 @@
-import { dbClient } from "../../core/database/pool";
+import { dbClient } from '@/core/database/pool.js';
 
-import { FormController } from "./form.controller";
+import { FormController } from './form.controller.js';
 
-import { FormRepository } from "./form.repository";
+import { FormRepository } from './form.repository.js';
 
-import { createFormRoutes } from "./form.routes";
+import { createFormRoutes } from './form.routes.js';
 
-import { FormService } from "./form.service";
+import { FormService } from './form.service.js';
 
 export function createFormModule() {
   const repository = new FormRepository(dbClient);

@@ -2,10 +2,9 @@ import type { Request, Response } from "express";
 
 import type { QueryResultRow } from "pg";
 
-import type { BaseService } from "../services/base.service.js";
-
-import { getRouteParam } from "../../shared/http/http.params.js";
-import { NotFoundError } from "../../shared/errors/not-found.error";
+import { getRouteParam } from "@/shared/http/http.params.js";
+import { NotFoundError } from '@/shared/errors/not-found.error.js';
+import { BaseService } from "@/core/services/base.service.js";
 
 export abstract class BaseController<
   TEntity extends QueryResultRow,

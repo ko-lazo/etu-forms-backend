@@ -1,6 +1,6 @@
 import type { ErrorRequestHandler } from "express";
 import { BaseError } from "./base-error.js";
-import { appConfig } from "../../config";
+import { appConfig } from '@/config/index.js';
 
 export const errorHandler: ErrorRequestHandler = (
   error,

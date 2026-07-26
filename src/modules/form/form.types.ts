@@ -1,4 +1,4 @@
-import { FormSchemaDto } from "./schema/form-schema.schema";
+import { FormSchemaDto } from './schema/form-schema.schema.js';
 
 export interface Form {
   readonly id: string;

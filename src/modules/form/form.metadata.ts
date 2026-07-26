@@ -1,5 +1,5 @@
-import { RepositoryMetadata } from "../../core/repositories/repository.metadata";
-import { CreateFormInput, Form, UpdateFormInput } from "./form.types";
+import { RepositoryMetadata } from '@/core/repositories/repository.metadata.js';
+import { CreateFormInput, Form, UpdateFormInput } from './form.types.js';
 
 export const formMetadata = {
   tableName: "forms",

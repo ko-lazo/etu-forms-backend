@@ -1,7 +1,7 @@
 import { makeForm } from "./form.factory.js";
 import { Form, CreateFormInput } from "./form.types.js";
-import { User } from "../user/user.types.js";
 import { createFormModule } from "./form.module.js";
+import { User } from "@/modules/user/user.types.js";
 
 export async function seedForms(users: User[]): Promise<Form[]> {
   const formModule = createFormModule();

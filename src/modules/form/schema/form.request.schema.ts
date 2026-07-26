@@ -1,4 +1,4 @@
-import { formSchemaObject } from "./form-schema.schema";
+import { formSchemaObject } from './form-schema.schema.js';
 import { z } from "zod";
 
 export const createFormRequestSchema = z.object({

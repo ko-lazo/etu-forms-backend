@@ -1,9 +1,9 @@
-import { dbClient } from "../../core/database/pool";
-import { UserRepository } from "./user.repository";
-import { UserService } from "./user.service";
-import { PasswordHasher } from "../../shared/security/password-hasher";
-import { UserController } from "./user.controller";
-import { createUserRoutes } from "./user.routes";
+import { dbClient } from '@/core/database/pool.js';
+import { UserRepository } from './user.repository.js';
+import { UserService } from './user.service.js';
+import { PasswordHasher } from '@/shared/security/password-hasher.js';
+import { UserController } from './user.controller.js';
+import { createUserRoutes } from './user.routes.js';
 
 export function createUserModule() {
   const repository = new UserRepository(dbClient);

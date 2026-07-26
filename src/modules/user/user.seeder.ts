@@ -1,6 +1,6 @@
 import { makeUsers } from "./user.factory.js";
 import { User } from "./user.types.js";
-import { createUserModule } from "./user.module";
+import { createUserModule } from './user.module.js';
 
 export async function seedUsers(count = 100): Promise<User[]> {
   const userModule = createUserModule();
