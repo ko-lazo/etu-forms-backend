@@ -1,4 +1,4 @@
-import { Repository } from '@/core/repositories/repository.interface.js';
+import { Repository } from "@/core/repositories/repository.interface.js";
 
 export abstract class BaseService<TEntity, TCreate, TUpdate> {
   protected constructor(

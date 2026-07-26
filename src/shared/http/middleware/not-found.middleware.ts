@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 
-import { NotFoundError } from '@/shared/errors/not-found.error.js';
+import { NotFoundError } from "@/shared/errors/not-found.error.js";
 
 export const notFoundMiddleware: RequestHandler = (
   request,

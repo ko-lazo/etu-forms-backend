@@ -1,8 +1,8 @@
 import express from "express";
 
 import { errorHandler } from "@/shared/errors/error-handler.js";
-import { notFoundMiddleware } from '@/shared/http/middleware/not-found.middleware.js';
-import { apiRoutes } from '@/routes/api.routes.js';
+import { notFoundMiddleware } from "@/shared/http/middleware/not-found.middleware.js";
+import { apiRoutes } from "@/routes/api.routes.js";
 
 export function createApp() {
   const app = express();

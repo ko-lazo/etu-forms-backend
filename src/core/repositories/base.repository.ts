@@ -1,7 +1,7 @@
 import type { Pool, QueryResultRow } from "pg";
-import type { Repository } from './repository.interface.js';
-import type { RepositoryMetadata } from './repository.metadata.js';
-import { SqlQueryBuilder } from './repository.sql-builder.js';
+import type { Repository } from "./repository.interface.js";
+import type { RepositoryMetadata } from "./repository.metadata.js";
+import { SqlQueryBuilder } from "./repository.sql-builder.js";
 import { DatabaseClient } from "@/core/database/database.client.js";
 
 export abstract class BaseRepository<

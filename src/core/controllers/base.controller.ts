@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import type { QueryResultRow } from "pg";
 
 import { getRouteParam } from "@/shared/http/http.params.js";
-import { NotFoundError } from '@/shared/errors/not-found.error.js';
+import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { BaseService } from "@/core/services/base.service.js";
 
 export abstract class BaseController<

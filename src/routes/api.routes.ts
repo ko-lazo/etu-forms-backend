@@ -1,6 +1,6 @@
-import { createFormModule } from '@/modules/form/form.module.js';
+import { createFormModule } from "@/modules/form/form.module.js";
 import { Router } from "express";
-import { createUserModule } from '@/modules/user/user.module.js';
+import { createUserModule } from "@/modules/user/user.module.js";
 
 const formModule = createFormModule();
 const userModule = createUserModule();
