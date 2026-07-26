@@ -1,8 +1,6 @@
 export interface Repository<TEntity, TCreate, TUpdate> {
   create(data: TCreate): Promise<TEntity>;
 
-  createMany(data: TCreate[]): Promise<TEntity[]>;
-
   findById(id: string): Promise<TEntity | null>;
 
   findAll(): Promise<TEntity[]>;

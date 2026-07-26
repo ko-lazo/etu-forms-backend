@@ -24,16 +24,5 @@ export class UserService extends BaseService<
     });
   }
 
-  async createMany(users: CreateUserInput[]): Promise<User[]> {
-    const hashedUsers = await Promise.all(
-      users.map(async (user) => ({
-        ...user,
-        password: await this.passwordHasher.hash(user.password),
-      })),
-    );
-
-    return this.repository.createMany(hashedUsers);
-  }
-
   // todo change password
 }

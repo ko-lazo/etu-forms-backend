@@ -9,10 +9,6 @@ export abstract class BaseService<TEntity, TCreate, TUpdate> {
     return this.repository.create(data);
   }
 
-  createMany(data: TCreate[]): Promise<TEntity[]> {
-    return this.repository.createMany(data);
-  }
-
   findById(id: string): Promise<TEntity | null> {
     return this.repository.findById(id);
   }
