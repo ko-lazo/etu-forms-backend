@@ -5,8 +5,8 @@ export type StringKeyOf<T> = Extract<keyof T, string>;
 
 export type RepositoryMetadata<
   TEntity extends QueryResultRow,
-  TCreate extends object,
-  TUpdate extends object,
+  TCreate extends Partial<TEntity>,
+  TUpdate extends Partial<TEntity>,
 > = {
   readonly tableName: string;
 
