@@ -1,7 +1,7 @@
 import type { Pool, QueryResultRow } from "pg";
 import type { Repository } from "./repository.interface";
 import type { RepositoryMetadata } from "./repository.metadata";
-import { SqlQueryBuilder } from "../database/sql-crud.builder";
+import { SqlQueryBuilder } from "./repository.sql-builder";
 import { DatabaseClient } from "../database/database.client";
 
 export abstract class BaseRepository<

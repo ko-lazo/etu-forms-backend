@@ -1,5 +1,5 @@
 import type { QueryResultRow } from "pg";
-import { RepositoryMetadata } from "../repositories/repository.metadata";
+import { RepositoryMetadata } from "./repository.metadata";
 
 export class SqlQueryBuilder<
   TEntity extends QueryResultRow,
