@@ -13,7 +13,7 @@ export async function seedUsers(count = 100): Promise<User[]> {
     const chunk = rawUsersInput.slice(i, i + chunkSize);
 
     const savedChunk = await Promise.all(
-      chunk.map(user => userModule.service.create(user))
+      chunk.map((user) => userModule.service.create(user)),
     );
 
     createdUsers.push(...savedChunk);

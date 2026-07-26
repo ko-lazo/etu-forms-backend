@@ -9,7 +9,6 @@ export abstract class BaseRepository<
   TCreate extends object,
   TUpdate extends object,
 > implements Repository<TEntity, TCreate, TUpdate> {
-
   protected readonly db: DatabaseClient;
   private readonly queryBuilder: SqlQueryBuilder<TEntity, TCreate, TUpdate>;
 
@@ -24,7 +23,9 @@ export abstract class BaseRepository<
   protected col(property: keyof TEntity): string {
     const column = this.metadata.columns[property];
     if (!column) {
-      throw new Error(`Column mapping not found for property "${String(property)}"`);
+      throw new Error(
+        `Column mapping not found for property "${String(property)}"`,
+      );
     }
     return column;
   }

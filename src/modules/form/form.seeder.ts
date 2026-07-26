@@ -20,7 +20,7 @@ export async function seedForms(users: User[]): Promise<Form[]> {
   for (let i = 0; i < fakeFormsInput.length; i += chunkSize) {
     const chunk = fakeFormsInput.slice(i, i + chunkSize);
     const savedChunk = await Promise.all(
-      chunk.map((form) => formModule.service.create(form))
+      chunk.map((form) => formModule.service.create(form)),
     );
     createdForms.push(...savedChunk);
   }

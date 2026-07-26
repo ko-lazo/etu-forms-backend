@@ -6,10 +6,15 @@ export class SqlQueryBuilder<
   TCreate extends object,
   TUpdate extends object,
 > {
-  constructor(private readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>) {}
+  constructor(
+    private readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
+  ) {}
 
   public insert(data: TCreate): { sql: string; values: unknown[] } {
-    const entries = this.getAllowedEntries(data, this.metadata.creatableColumns);
+    const entries = this.getAllowedEntries(
+      data,
+      this.metadata.creatableColumns,
+    );
     const columns = entries.map(([prop]) => this.getCol(prop));
     const values = entries.map(([prop, val]) => this.prepare(prop, val));
     const placeholders = values.map((_, i) => `$${i + 1}`);
@@ -21,10 +26,16 @@ export class SqlQueryBuilder<
   }
 
   public update(id: string, data: TUpdate): { sql: string; values: unknown[] } {
-    const entries = this.getAllowedEntries(data, this.metadata.updatableColumns);
-    if (entries.length === 0) throw new Error("Update data must contain at least one field");
+    const entries = this.getAllowedEntries(
+      data,
+      this.metadata.updatableColumns,
+    );
+    if (entries.length === 0)
+      throw new Error("Update data must contain at least one field");
 
-    const assignments = entries.map(([prop], i) => `${this.getCol(prop)} = $${i + 1}`);
+    const assignments = entries.map(
+      ([prop], i) => `${this.getCol(prop)} = $${i + 1}`,
+    );
     const values = entries.map(([prop, val]) => this.prepare(prop, val));
 
     return {
@@ -37,7 +48,10 @@ export class SqlQueryBuilder<
     return this.metadata.columns[property]!;
   }
 
-  private getAllowedEntries<TInput extends object>(data: TInput, allowed: readonly (keyof TEntity)[]): [keyof TEntity, unknown][] {
+  private getAllowedEntries<TInput extends object>(
+    data: TInput,
+    allowed: readonly (keyof TEntity)[],
+  ): [keyof TEntity, unknown][] {
     return Object.entries(data)
       .filter(([prop]) => allowed.includes(prop as keyof TEntity))
       .map(([prop, val]) => [prop as keyof TEntity, val]);
@@ -45,7 +59,8 @@ export class SqlQueryBuilder<
 
   private prepare(property: keyof TEntity, value: unknown): unknown {
     if (value === undefined || value === null) return null;
-    return this.metadata.jsonColumns?.includes(property) && typeof value === "object"
+    return this.metadata.jsonColumns?.includes(property) &&
+      typeof value === "object"
       ? JSON.stringify(value)
       : value;
   }

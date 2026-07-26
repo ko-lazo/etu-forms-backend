@@ -4,20 +4,20 @@ export class DatabaseClient {
   constructor(private readonly pool: Pool) {}
 
   public async query<T extends QueryResultRow = QueryResultRow>(
-      sql: string,
-      params: unknown[] = [],
-      columns?: Record<string, string>
+    sql: string,
+    params: unknown[] = [],
+    columns?: Record<string, string>,
   ): Promise<T[]> {
     const result = await this.pool.query<QueryResultRow>(sql, params);
     return columns
-        ? result.rows.map((row) => this.mapToEntity<T>(row, columns))
-        : (result.rows as unknown as T[]);
+      ? result.rows.map((row) => this.mapToEntity<T>(row, columns))
+      : (result.rows as unknown as T[]);
   }
 
   public async queryOne<T extends QueryResultRow = QueryResultRow>(
-      sql: string,
-      params: unknown[] = [],
-      columns?: Record<string, string>
+    sql: string,
+    params: unknown[] = [],
+    columns?: Record<string, string>,
   ): Promise<T | null> {
     const result = await this.pool.query<QueryResultRow>(sql, params);
     const row = result.rows[0];
@@ -29,7 +29,10 @@ export class DatabaseClient {
     await this.pool.query(sql, params);
   }
 
-  private mapToEntity<T>(row: QueryResultRow, columns: Record<string, string>): T {
+  private mapToEntity<T>(
+    row: QueryResultRow,
+    columns: Record<string, string>,
+  ): T {
     const entity = {} as Record<string, unknown>;
     for (const [property, dbColumn] of Object.entries(columns)) {
       if (dbColumn) entity[property] = row[dbColumn];
