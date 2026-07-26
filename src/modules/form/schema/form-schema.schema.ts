@@ -1,0 +1,75 @@
+import { z } from "zod";
+
+const baseFieldSchema = z.object({
+  name: z
+    .string()
+    .min(1)
+    .max(100)
+    .regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/),
+
+  label: z.string().min(1).max(500),
+
+  required: z.boolean().default(false),
+
+  placeholder: z.string().optional(),
+});
+
+const choiceOptionSchema = z.object({
+  value: z.string(),
+  text: z.string(),
+});
+
+const textValidation = z.object({
+  minLength: z.number().int().nonnegative().optional(),
+  maxLength: z.number().int().positive().optional(),
+});
+
+const numberValidation = z.object({
+  min: z.number().optional(),
+  max: z.number().optional(),
+});
+
+const fileValidation = z.object({
+  maxFileSizeMb: z.number().positive().default(5),
+  allowedMimeTypes: z.array(z.string()).min(1).optional(),
+  maxFilesCount: z.number().int().positive().default(1),
+});
+
+const textFieldSchema = baseFieldSchema.extend({
+  type: z.enum(["text", "email", "textarea"]),
+  validation: textValidation.optional(),
+});
+
+const numberFieldSchema = baseFieldSchema.extend({
+  type: z.literal("number"),
+  validation: numberValidation.optional(),
+});
+
+const selectFieldSchema = baseFieldSchema.extend({
+  type: z.enum(["dropdown", "radiogroup", "checkbox"]),
+  choices: z.array(choiceOptionSchema).min(1),
+});
+
+const fileFieldSchema = baseFieldSchema.extend({
+  type: z.literal("file"),
+  validation: fileValidation.optional(),
+});
+
+export const formElementSchema = z.discriminatedUnion("type", [
+  textFieldSchema,
+  numberFieldSchema,
+  selectFieldSchema,
+  fileFieldSchema,
+]);
+
+export const formPageSchema = z.object({
+  name: z.string().min(1).max(100),
+  title: z.string().optional(),
+  elements: z.array(formElementSchema),
+});
+
+export const formSchemaObject = z.object({
+  pages: z.array(formPageSchema).min(1),
+});
+
+export type FormSchemaDto = z.infer<typeof formSchemaObject>;
