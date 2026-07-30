@@ -12,15 +12,3 @@ export interface Form {
   readonly updatedAt: Date;
 }
 
-export interface CreateFormInput {
-  readonly userId: string;
-  readonly title: string;
-  readonly schema?: FormSchemaDto;
-  readonly settings?: Record<string, unknown>;
-}
-
-export interface UpdateFormInput {
-  readonly title?: string;
-  readonly schema?: FormSchemaDto;
-  readonly settings?: Record<string, unknown>;
-}

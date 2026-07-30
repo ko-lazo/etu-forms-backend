@@ -1,8 +1,11 @@
 import type { NextFunction, Request, Response } from "express";
-
 import type { ZodType } from "zod";
 
-export function validate(schema: ZodType) {
+/**
+ * Универсальный middleware валидации.
+ * <T> позволяет TypeScript понять, какой тип данных окажется в req.body после валидации.
+ */
+export function validate<T>(schema: ZodType<T>) {
   return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.body);
 
@@ -11,7 +14,6 @@ export function validate(schema: ZodType) {
         message: "Validation failed",
         errors: result.error.issues,
       });
-
       return;
     }
 

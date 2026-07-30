@@ -1,6 +1,6 @@
 import { fakerRU as faker } from "@faker-js/faker";
 import { FormSchemaDto } from "./schema/form-schema.schema.js";
-import { CreateFormInput } from "./form.types.js";
+import { CreateFormDto } from "@/modules/form/form.dto.js";
 
 type FormElement = FormSchemaDto["pages"][number]["elements"][number];
 
@@ -118,8 +118,8 @@ export function makeFormSchema(): FormSchemaDto {
 }
 
 export function makeForm(
-  overrides: Partial<CreateFormInput> = {},
-): CreateFormInput {
+  overrides: Partial<CreateFormDto> = {},
+): CreateFormDto {
   return {
     userId: faker.string.uuid(),
     title: faker.lorem.sentence({ min: 3, max: 10 }),
@@ -134,7 +134,7 @@ export function makeForm(
 
 export function makeForms(
   count: number,
-  overrides: Partial<CreateFormInput> = {},
-): CreateFormInput[] {
+  overrides: Partial<CreateFormDto> = {},
+): CreateFormDto[] {
   return Array.from({ length: count }, (_, index) => makeForm(overrides));
 }

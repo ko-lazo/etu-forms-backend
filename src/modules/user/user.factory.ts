@@ -1,9 +1,9 @@
-import type { CreateUserInput } from "./user.types.js";
 import { faker } from "@faker-js/faker";
+import { CreateUserDto } from "@/modules/user/user.dto.js";
 
 export function makeUser(
-  overrides: Partial<CreateUserInput> = {},
-): CreateUserInput {
+  overrides: Partial<CreateUserDto> = {},
+): CreateUserDto {
   return {
     email: faker.internet.email().toLowerCase(),
     password: "password",
@@ -13,7 +13,7 @@ export function makeUser(
 
 export function makeUsers(
   count: number,
-  overrides: Partial<CreateUserInput> = {},
-): CreateUserInput[] {
+  overrides: Partial<CreateUserDto> = {},
+): CreateUserDto[] {
   return Array.from({ length: count }, (_, index) => makeUser(overrides));
 }

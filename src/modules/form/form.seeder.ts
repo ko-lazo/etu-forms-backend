@@ -1,11 +1,12 @@
 import { makeForm } from "./form.factory.js";
-import { Form, CreateFormInput } from "./form.types.js";
+import { Form } from "./form.types.js";
 import { createFormModule } from "./form.module.js";
 import { User } from "@/modules/user/user.types.js";
+import { CreateFormDto } from "@/modules/form/form.dto.js";
 
 export async function seedForms(users: User[]): Promise<Form[]> {
   const formModule = createFormModule();
-  const fakeFormsInput: CreateFormInput[] = [];
+  const fakeFormsInput: CreateFormDto[] = [];
 
   for (const user of users) {
     const formsCount = Math.floor(Math.random() * 3) + 1;

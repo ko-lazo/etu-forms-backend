@@ -1,5 +1,6 @@
 import { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
-import { CreateUserInput, UpdateUserInput, User } from "./user.types.js";
+import { User } from "./user.types.js";
+import { CreateUserDto, UpdateUserDto } from "@/modules/user/user.dto.js";
 
 export const userMetadata = {
   tableName: "users",
@@ -17,4 +18,4 @@ export const userMetadata = {
   creatableColumns: ["email", "password"],
 
   updatableColumns: [],
-} satisfies RepositoryMetadata<User, CreateUserInput, UpdateUserInput>;
+} satisfies RepositoryMetadata<User, CreateUserDto, UpdateUserDto>;

@@ -1,5 +1,6 @@
 import { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
-import { CreateFormInput, Form, UpdateFormInput } from "./form.types.js";
+import { Form } from "./form.types.js";
+import { CreateFormDto, UpdateFormDto } from "@/modules/form/form.dto.js";
 
 export const formMetadata = {
   tableName: "forms",
@@ -23,4 +24,4 @@ export const formMetadata = {
   updatableColumns: ["title", "schema", "settings"],
 
   jsonColumns: ["schema", "settings"],
-} satisfies RepositoryMetadata<Form, CreateFormInput, UpdateFormInput>;
+} satisfies RepositoryMetadata<Form, CreateFormDto, UpdateFormDto>;
