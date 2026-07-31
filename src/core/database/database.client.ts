@@ -6,7 +6,7 @@ export class DatabaseClient {
   public async query<T extends QueryResultRow = QueryResultRow>(
     sql: string,
     params: unknown[] = [],
-    columns?: Record<string, string>,
+    columns?: Record<string, string | undefined>,
   ): Promise<T[]> {
     const result = await this.pool.query<QueryResultRow>(sql, params);
     return columns
@@ -17,7 +17,7 @@ export class DatabaseClient {
   public async queryOne<T extends QueryResultRow = QueryResultRow>(
     sql: string,
     params: unknown[] = [],
-    columns?: Record<string, string>,
+    columns?: Record<string, string | undefined>,
   ): Promise<T | null> {
     const result = await this.pool.query<QueryResultRow>(sql, params);
     const row = result.rows[0];
@@ -31,7 +31,7 @@ export class DatabaseClient {
 
   private mapToEntity<T>(
     row: QueryResultRow,
-    columns: Record<string, string>,
+    columns: Record<string, string | undefined>,
   ): T {
     const entity = {} as Record<string, unknown>;
     for (const [property, dbColumn] of Object.entries(columns)) {
