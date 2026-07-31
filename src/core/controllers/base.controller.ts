@@ -11,7 +11,7 @@ export abstract class BaseController<
   TEntity extends QueryResultRow,
   TCreate,
   TUpdate,
-  TResponse
+  TResponse,
 > {
   protected constructor(
     protected readonly service: BaseService<TEntity, TCreate, TUpdate>,
@@ -20,7 +20,9 @@ export abstract class BaseController<
 
   findAll = async (_req: Request, res: Response): Promise<void> => {
     const entities = await this.service.findAll();
-    const data = this.mapper ? this.mapper.toResponseCollection(entities) : entities;
+    const data = this.mapper
+      ? this.mapper.toResponseCollection(entities)
+      : entities;
     res.status(200).json(data);
   };
 

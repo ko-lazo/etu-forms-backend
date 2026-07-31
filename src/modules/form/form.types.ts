@@ -11,4 +11,3 @@ export interface Form {
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
-
