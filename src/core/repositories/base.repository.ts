@@ -38,21 +38,34 @@ export abstract class BaseRepository<
     return this.db.queryOne<TEntity>(
       `SELECT * FROM ${this.table} WHERE ${this.col(this.metadata.primaryKey)} = $1 LIMIT 1`,
       [id],
+      this.metadata.columns,
     );
   }
 
   async findAll(): Promise<TEntity[]> {
-    return this.db.query<TEntity>(`SELECT * FROM ${this.table}`);
+    return this.db.query<TEntity>(
+      `SELECT * FROM ${this.table}`,
+      [],
+      this.metadata.columns,
+    );
   }
 
   async create(data: TCreate): Promise<TEntity> {
     const { sql, values } = this.queryBuilder.insert(data);
-    return (await this.db.queryOne<TEntity>(sql, values))!;
+    return (await this.db.queryOne<TEntity>(
+      sql,
+      values,
+      this.metadata.columns,
+    ))!;
   }
 
   async update(id: string, data: TUpdate): Promise<TEntity> {
     const { sql, values } = this.queryBuilder.update(id, data);
-    const entity = await this.db.queryOne<TEntity>(sql, values);
+    const entity = await this.db.queryOne<TEntity>(
+      sql,
+      values,
+      this.metadata.columns,
+    );
 
     if (!entity) {
       throw new Error(`${this.table} with id ${id} not found`);
