@@ -1,15 +1,10 @@
 import { BaseService } from "@/core/services/base.service.js";
 
-import type { Form } from "./form.types.js";
+import type { Form, FormCreate, FormUpdate } from "./form.types.js";
 
 import { FormRepository } from "./form.repository.js";
-import { CreateFormDto, UpdateFormDto } from "@/modules/form/form.dto.js";
 
-export class FormService extends BaseService<
-  Form,
-  CreateFormDto,
-  UpdateFormDto
-> {
+export class FormService extends BaseService<Form, FormCreate, FormUpdate> {
   constructor(repository: FormRepository) {
     super(repository);
   }

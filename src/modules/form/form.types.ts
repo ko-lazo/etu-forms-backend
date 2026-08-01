@@ -11,3 +11,6 @@ export interface Form {
   readonly createdAt: Date;
   readonly updatedAt: Date;
 }
+
+export type FormCreate = Pick<Form, "userId" | "title" | "schema" | "settings">;
+export type FormUpdate = Pick<Form, "title" | "schema" | "settings">;
