@@ -15,4 +15,12 @@ export class ApiTokenRepository extends BaseRepository<
   constructor(db: DatabaseClient) {
     super(db, apiTokenMetadata);
   }
+
+  async findByToken(hashedToken: string): Promise<ApiToken | null> {
+    return this.db.queryOne<ApiToken>(
+      `SELECT * FROM ${this.table} WHERE ${this.col("token")} = $1 LIMIT 1`,
+      [hashedToken],
+      this.metadata.columns,
+    );
+  }
 }
