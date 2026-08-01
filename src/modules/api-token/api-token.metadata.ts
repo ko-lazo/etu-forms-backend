@@ -17,7 +17,7 @@ export const apiTokenMetadata = {
     createdAt: "created_at",
   },
 
-  creatableColumns: ["name", "userId", "expiresAt"],
+  creatableColumns: ["name", "token", "userId", "expiresAt"],
 
   updatableColumns: ["name"],
 } satisfies RepositoryMetadata<ApiToken, ApiTokenCreate, ApiTokenUpdate>;
