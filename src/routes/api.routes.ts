@@ -1,11 +1,24 @@
-import { createFormModule } from "@/modules/form/form.module.js";
 import { Router } from "express";
-import { createUserModule } from "@/modules/user/user.module.js";
+import { container } from "@/app/app.container.js";
 
-const formModule = createFormModule();
-const userModule = createUserModule();
+import { createApiTokenRoutes } from "@/modules/api-token/api-token.routes.js";
+import { createUserRoutes } from "@/modules/user/user.routes.js";
+import { createFormRoutes } from "@/modules/form/form.routes.js";
 
-export const apiRoutes = Router();
+export function createApiRoutes(): Router {
+  const apiRoutes = Router();
 
-apiRoutes.use("/forms", formModule.routes);
-apiRoutes.use("/users", userModule.routes);
+  const { authMiddleware } = container;
+  const { controller: apiTokenController } = container.apiToken;
+  const { controller: userController } = container.user;
+  const { controller: formController } = container.form;
+
+  apiRoutes.use(
+    "/tokens",
+    createApiTokenRoutes(apiTokenController, authMiddleware),
+  );
+  apiRoutes.use("/users", createUserRoutes(userController, authMiddleware));
+  apiRoutes.use("/forms", createFormRoutes(formController, authMiddleware));
+
+  return apiRoutes;
+}

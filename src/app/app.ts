@@ -2,9 +2,12 @@ import express from "express";
 
 import { errorHandler } from "@/shared/errors/error-handler.js";
 import { notFoundMiddleware } from "@/shared/http/middleware/not-found.middleware.js";
-import { apiRoutes } from "@/routes/api.routes.js";
+import { container } from "@/app/app.container.js";
+import { createApiRoutes } from "@/routes/api.routes.js";
 
 export function createApp() {
+  container.init();
+
   const app = express();
 
   app.use(express.json());
@@ -15,6 +18,7 @@ export function createApp() {
     });
   });
 
+  const apiRoutes = createApiRoutes();
   app.use("/api", apiRoutes);
 
   app.use(notFoundMiddleware);
