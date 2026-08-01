@@ -10,7 +10,7 @@ export class UserService extends BaseService<
   UpdateUserDto
 > {
   constructor(
-    repository: UserRepository,
+    protected override readonly repository: UserRepository,
     private readonly passwordHasher: PasswordHasher,
   ) {
     super(repository);
