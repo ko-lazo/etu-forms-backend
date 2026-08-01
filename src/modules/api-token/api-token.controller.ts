@@ -9,6 +9,7 @@ import {
 import { ApiTokenService } from "@/modules/api-token/api-token.service.js";
 import { ApiTokenGeneratorService } from "@/modules/api-token/api-token-generator.service.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
+import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 
 export class ApiTokenController extends BaseController<
   ApiToken,
@@ -28,7 +29,7 @@ export class ApiTokenController extends BaseController<
     const dto: CreateApiTokenDto = req.body;
 
     if (!userId) {
-      throw new NotFoundError("...");
+      throw new UnauthorizedError();
     }
 
     const result = await this.generatorService.generate(userId, dto);
