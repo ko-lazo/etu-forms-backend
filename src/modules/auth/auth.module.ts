@@ -1,0 +1,29 @@
+import { UserRepository } from "@/modules/user/user.repository.js";
+import { ApiTokenGeneratorService } from "@/modules/api-token/api-token-generator.service.js";
+import { PasswordHasher } from "@/shared/security/password-hasher.js";
+import { AuthService } from "./auth.service.js";
+import { AuthController } from "./auth.controller.js";
+import { createAuthRoutes } from "./auth.routes.js";
+
+interface AuthModuleDependencies {
+  userRepository: UserRepository;
+  tokenGenerator: ApiTokenGeneratorService;
+}
+
+export function createAuthModule(deps: AuthModuleDependencies) {
+  const passwordHasher = new PasswordHasher();
+
+  const service = new AuthService(
+    deps.userRepository,
+    passwordHasher,
+    deps.tokenGenerator,
+  );
+  const controller = new AuthController(service);
+  const routes = createAuthRoutes(controller);
+
+  return {
+    service,
+    controller,
+    routes,
+  };
+}

@@ -11,4 +11,12 @@ export class UserRepository extends BaseRepository<
   constructor(db: DatabaseClient) {
     super(db, userMetadata);
   }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.db.queryOne<User>(
+      `SELECT * FROM ${this.table} WHERE ${this.col("email")} = $1 LIMIT 1`,
+      [email],
+      this.metadata.columns,
+    );
+  }
 }
