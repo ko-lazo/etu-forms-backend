@@ -1,4 +1,3 @@
-// src/database/database.seeder.ts
 import { pool } from "./pool.js";
 import { seedUsers } from "@/modules/user/user.seeder.js";
 import { seedForms } from "@/modules/form/form.seeder.js";
