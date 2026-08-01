@@ -15,6 +15,20 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: public; Type: SCHEMA; Schema: -; Owner: -
+--
+
+-- *not* creating schema, since initdb creates it
+
+
+--
+-- Name: SCHEMA public; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON SCHEMA public IS '';
+
+
+--
 -- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -57,6 +71,7 @@ CREATE TABLE public.api_tokens (
     token character varying(255) NOT NULL,
     name character varying(100) NOT NULL,
     last_used_at timestamp with time zone,
+    expires_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 

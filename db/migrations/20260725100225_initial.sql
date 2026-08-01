@@ -16,6 +16,7 @@ CREATE TABLE api_tokens (
     token        VARCHAR(255) UNIQUE NOT NULL,
     name         VARCHAR(100) NOT NULL,
     last_used_at TIMESTAMPTZ,
+    expires_at   TIMESTAMPTZ,
     created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
