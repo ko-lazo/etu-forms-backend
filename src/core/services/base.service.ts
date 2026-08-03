@@ -1,4 +1,7 @@
-import { Repository } from "@/core/repositories/repository.interface.js";
+import {
+  FindAllOptions,
+  Repository,
+} from "@/core/repositories/repository.interface.js";
 
 export abstract class BaseService<TEntity, TCreate, TUpdate> {
   protected constructor(
@@ -13,8 +16,8 @@ export abstract class BaseService<TEntity, TCreate, TUpdate> {
     return this.repository.findById(id);
   }
 
-  findAll(): Promise<TEntity[]> {
-    return this.repository.findAll();
+  findAll(options?: FindAllOptions): Promise<TEntity[]> {
+    return this.repository.findAll(options);
   }
 
   update(id: string, data: TUpdate): Promise<TEntity> {
