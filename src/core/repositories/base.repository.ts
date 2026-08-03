@@ -3,12 +3,16 @@ import type { Repository } from "./repository.interface.js";
 import type { RepositoryMetadata } from "./repository.metadata.js";
 import { SqlQueryBuilder } from "./repository.sql-builder.js";
 import { DatabaseClient } from "@/core/database/database.client.js";
+import { MetadataAccessor } from "@/core/database/metdata-accessor.js";
 
 export abstract class BaseRepository<
   TEntity extends QueryResultRow,
   TCreate extends object,
   TUpdate extends object,
-> implements Repository<TEntity, TCreate, TUpdate> {
+>
+  extends MetadataAccessor<TEntity>
+  implements Repository<TEntity, TCreate, TUpdate>
+{
   protected readonly db: DatabaseClient;
   private readonly queryBuilder: SqlQueryBuilder<TEntity, TCreate, TUpdate>;
 
@@ -16,18 +20,9 @@ export abstract class BaseRepository<
     db: DatabaseClient,
     protected readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
   ) {
+    super();
     this.db = db;
     this.queryBuilder = new SqlQueryBuilder(metadata);
-  }
-
-  protected col(property: keyof TEntity): string {
-    const column = this.metadata.columns[property];
-    if (!column) {
-      throw new Error(
-        `Column mapping not found for property "${String(property)}"`,
-      );
-    }
-    return column;
   }
 
   protected get table(): string {
