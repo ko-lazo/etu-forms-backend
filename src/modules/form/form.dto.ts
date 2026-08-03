@@ -26,8 +26,15 @@ export const formDto = {
     archivedAt: z.date(),
     createdAt: z.date(),
   }),
+
+  querySchema: z.object({
+    title: z.string().trim().min(1).max(500),
+    page: z.number().optional(),
+    limit: z.number().optional(),
+  }),
 } satisfies ModuleDto<z.ZodTypeAny, z.ZodTypeAny, z.ZodTypeAny>;
 
 export type CreateFormDto = z.infer<typeof formDto.createSchema>;
 export type UpdateFormDto = z.infer<typeof formDto.updateSchema>;
 export type FormResponseDto = z.infer<typeof formDto.responseSchema>;
+export type FormQueryDto = z.infer<typeof formDto.querySchema>;
