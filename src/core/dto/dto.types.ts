@@ -17,4 +17,7 @@ export interface ModuleDto<
 
   /** Схема валидации и очистки данных при отправке */
   readonly responseSchema: TResponseSchema;
+
+  /** Схема запроса */
+  readonly querySchema?: TResponseSchema;
 }
