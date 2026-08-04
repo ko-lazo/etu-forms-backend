@@ -1,5 +1,6 @@
 import { BaseScope } from "@/core/repositories/base.scope.js";
 import { BaseFilter } from "@/core/repositories/base.filter.js";
+import { BasePagination } from "@/core/repositories/base.pagination.js";
 
 export interface Repository<TEntity extends object, TCreate, TUpdate> {
   create(data: TCreate): Promise<TEntity>;
@@ -16,4 +17,10 @@ export interface Repository<TEntity extends object, TCreate, TUpdate> {
 export interface FindContext<TEntity extends object> {
   scope?: BaseScope<TEntity>;
   filter?: BaseFilter<TEntity>;
+  pagination?: BasePagination;
+}
+
+export interface PaginationQuery {
+  page?: number | undefined;
+  limit?: number | undefined;
 }

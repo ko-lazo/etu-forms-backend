@@ -1,6 +1,7 @@
 import type { QueryResultRow } from "pg";
 import { RepositoryMetadata } from "./repository.metadata.js";
 import { SqlCondition } from "@/core/database/sql-condition.interface.js";
+import { BasePagination } from "@/core/repositories/base.pagination.js";
 
 export class SqlQueryBuilder<
   TEntity extends QueryResultRow,
@@ -10,6 +11,35 @@ export class SqlQueryBuilder<
   constructor(
     private readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
   ) {}
+
+  public count(conditions: SqlCondition[]): { sql: string; values: unknown[] } {
+    const { sql: whereClause, values } = this.buildWhere(conditions);
+    return {
+      sql: `SELECT COUNT(*) as count FROM ${this.metadata.tableName} ${whereClause}`,
+      values,
+    };
+  }
+
+  public all(
+    conditions: SqlCondition[],
+    pagination?: BasePagination,
+  ): { sql: string; values: unknown[] } {
+    const { sql: whereClause, values } = this.buildWhere(conditions);
+
+    const orderClause = `ORDER BY ${this.getCol(this.metadata.primaryKey)}`;
+    const nextIndex = values.length + 1;
+    const paginationClause = pagination
+      ? `LIMIT $${nextIndex} OFFSET $${nextIndex + 1}`
+      : "";
+    const paginationData = pagination
+      ? [pagination?.limit, pagination?.offset]
+      : [];
+
+    return {
+      sql: `SELECT * FROM ${this.metadata.tableName} ${whereClause} ${orderClause} ${paginationClause}`,
+      values: [...values, ...paginationData],
+    };
+  }
 
   public buildWhere(conditions: SqlCondition[]): {
     sql: string;

@@ -19,6 +19,7 @@ export abstract class BaseController<
     protected readonly mapper?: IMapper<TEntity, TResponse>,
   ) {}
 
+  // todo для mapper? реализовать ответ вида { data, paginationData }
   findAll = async (_req: Request, res: Response): Promise<void> => {
     const options = this.getFindAllOptions(_req);
     const entities = await this.service.findAll(options);

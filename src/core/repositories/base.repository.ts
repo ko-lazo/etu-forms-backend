@@ -42,13 +42,11 @@ export abstract class BaseRepository<
       ...(options?.scope?.apply() ?? []),
       ...(options?.filter?.apply() ?? []),
     ];
-    const { sql: whereClause, values } =
-      this.queryBuilder.buildWhere(conditions);
-    return this.db.query<TEntity>(
-      `SELECT * FROM ${this.table} ${whereClause}`,
-      values,
-      this.metadata.columns,
+    const { sql: sql, values } = this.queryBuilder.all(
+      conditions,
+      options?.pagination,
     );
+    return this.db.query<TEntity>(sql, values, this.metadata.columns);
   }
 
   async create(data: TCreate): Promise<TEntity> {
