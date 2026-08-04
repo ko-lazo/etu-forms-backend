@@ -6,7 +6,7 @@ import { getRouteParam } from "@/shared/http/http.params.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { BaseService } from "@/core/services/base.service.js";
 import { IMapper } from "@/core/dto/mapper.interface.js";
-import { FindAllOptions } from "@/core/repositories/repository.interface.js";
+import { FindContext } from "@/core/repositories/repository.interface.js";
 
 export abstract class BaseController<
   TEntity extends QueryResultRow,
@@ -28,8 +28,7 @@ export abstract class BaseController<
     res.status(200).json(data);
   };
 
-  // todo refactor
-  protected getFindAllOptions(_req: Request): FindAllOptions | undefined {
+  protected getFindAllOptions(_req: Request): FindContext<TEntity> | undefined {
     return undefined;
   }
 

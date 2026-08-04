@@ -4,14 +4,14 @@ import type { FormService } from "./form.service.js";
 import type { Form } from "./form.types.js";
 import {
   CreateFormDto,
-  FormQueryDto,
+  FindFormDto,
   FormResponseDto,
   UpdateFormDto,
 } from "@/modules/form/form.dto.js";
-import { FindAllOptions } from "@/core/repositories/repository.interface.js";
 import { FormScope } from "@/modules/form/form.scope.js";
 import { FormFilter } from "@/modules/form/form.filter.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
+import { FindContext } from "@/core/repositories/repository.interface.js";
 
 export class FormController extends BaseController<
   Form,
@@ -23,14 +23,13 @@ export class FormController extends BaseController<
     super(formService);
   }
 
-  // todo refactor
-  protected override getFindAllOptions(req: Request): FindAllOptions {
+  protected override getFindAllOptions(req: Request): FindContext<Form> {
     if (!req.user) {
       throw new UnauthorizedError();
     }
     return {
       scope: new FormScope(req.user.id),
-      filter: new FormFilter(req.query as FormQueryDto),
+      filter: new FormFilter(req.query as FindFormDto),
     };
   }
 }

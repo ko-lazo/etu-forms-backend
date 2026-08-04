@@ -1,5 +1,5 @@
 import type { Pool, QueryResultRow } from "pg";
-import type { FindAllOptions, Repository } from "./repository.interface.js";
+import type { FindContext, Repository } from "./repository.interface.js";
 import type { RepositoryMetadata } from "./repository.metadata.js";
 import { SqlQueryBuilder } from "./repository.sql-builder.js";
 import { DatabaseClient } from "@/core/database/database.client.js";
@@ -37,7 +37,7 @@ export abstract class BaseRepository<
     );
   }
 
-  async findAll(options?: FindAllOptions): Promise<TEntity[]> {
+  async findAll(options?: FindContext<TEntity>): Promise<TEntity[]> {
     const conditions = [
       ...(options?.scope?.apply() ?? []),
       ...(options?.filter?.apply() ?? []),

@@ -1,9 +1,9 @@
 import {
-  FindAllOptions,
+  FindContext,
   Repository,
 } from "@/core/repositories/repository.interface.js";
 
-export abstract class BaseService<TEntity, TCreate, TUpdate> {
+export abstract class BaseService<TEntity extends object, TCreate, TUpdate> {
   protected constructor(
     protected readonly repository: Repository<TEntity, TCreate, TUpdate>,
   ) {}
@@ -16,7 +16,7 @@ export abstract class BaseService<TEntity, TCreate, TUpdate> {
     return this.repository.findById(id);
   }
 
-  findAll(options?: FindAllOptions): Promise<TEntity[]> {
+  findAll(options?: FindContext<TEntity>): Promise<TEntity[]> {
     return this.repository.findAll(options);
   }
 
