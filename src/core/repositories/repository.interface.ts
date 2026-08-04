@@ -1,4 +1,3 @@
-import { IConditionProvider } from "@/core/database/sql-condition.interface.js";
 import { BaseScope } from "@/core/repositories/base.scope.js";
 import { BaseFilter } from "@/core/repositories/base.filter.js";
 

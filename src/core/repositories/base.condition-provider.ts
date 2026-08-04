@@ -1,9 +1,13 @@
-import { SqlCondition } from "@/core/database/sql-condition.interface.js";
+import {
+  IConditionProvider,
+  SqlCondition,
+} from "@/core/database/sql-condition.interface.js";
 import { MetadataAccessor } from "@/core/database/metdata-accessor.js";
 
-export abstract class BaseConditionProvider<
-  TEntity extends object,
-> extends MetadataAccessor<TEntity> {
+export abstract class BaseConditionProvider<TEntity extends object>
+  extends MetadataAccessor<TEntity>
+  implements IConditionProvider
+{
   private readonly conditions: SqlCondition[] = [];
 
   protected constructor(
