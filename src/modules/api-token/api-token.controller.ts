@@ -8,8 +8,9 @@ import {
 } from "@/modules/api-token/api-token.dto.js";
 import { ApiTokenService } from "@/modules/api-token/api-token.service.js";
 import { ApiTokenGeneratorService } from "@/modules/api-token/api-token-generator.service.js";
-import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
+import { FindContext } from "@/core/repositories/repository.interface.js";
+import { ApiTokenScope } from "@/modules/api-token/api-token.scope.js";
 
 export class ApiTokenController extends BaseController<
   ApiToken,
@@ -37,4 +38,13 @@ export class ApiTokenController extends BaseController<
     const data = this.mapper ? this.mapper.toResponse(result) : result;
     res.status(201).json(data);
   };
+
+  protected override getFindAllOptions(req: Request): FindContext<ApiToken> {
+    if (!req.user) {
+      throw new UnauthorizedError();
+    }
+    return {
+      scope: new ApiTokenScope(req.user.id),
+    };
+  }
 }
