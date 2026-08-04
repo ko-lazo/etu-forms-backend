@@ -27,7 +27,7 @@ export const formDto = {
     createdAt: z.date(),
   }),
 
-  querySchema: z.object({
+  findSchema: z.object({
     title: z.string().trim().min(1).max(500),
     page: z.number().optional(),
     limit: z.number().optional(),
@@ -37,4 +37,4 @@ export const formDto = {
 export type CreateFormDto = z.infer<typeof formDto.createSchema>;
 export type UpdateFormDto = z.infer<typeof formDto.updateSchema>;
 export type FormResponseDto = z.infer<typeof formDto.responseSchema>;
-export type FormQueryDto = z.infer<typeof formDto.querySchema>;
+export type FindFormDto = z.infer<typeof formDto.findSchema>;

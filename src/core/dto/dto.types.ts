@@ -19,5 +19,5 @@ export interface ModuleDto<
   readonly responseSchema: TResponseSchema;
 
   /** Схема запроса */
-  readonly querySchema?: TResponseSchema;
+  readonly findSchema?: TResponseSchema;
 }
