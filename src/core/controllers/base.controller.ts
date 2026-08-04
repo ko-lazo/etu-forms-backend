@@ -6,6 +6,7 @@ import { getRouteParam } from "@/shared/http/http.params.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { BaseService } from "@/core/services/base.service.js";
 import { IMapper } from "@/core/dto/mapper.interface.js";
+import { FindContext } from "@/core/repositories/repository.interface.js";
 
 export abstract class BaseController<
   TEntity extends QueryResultRow,
@@ -19,12 +20,17 @@ export abstract class BaseController<
   ) {}
 
   findAll = async (_req: Request, res: Response): Promise<void> => {
-    const entities = await this.service.findAll();
+    const options = this.getFindAllOptions(_req);
+    const entities = await this.service.findAll(options);
     const data = this.mapper
       ? this.mapper.toResponseCollection(entities)
       : entities;
     res.status(200).json(data);
   };
+
+  protected getFindAllOptions(_req: Request): FindContext<TEntity> | undefined {
+    return undefined;
+  }
 
   findById = async (req: Request, res: Response): Promise<void> => {
     const id = getRouteParam(req, "id");

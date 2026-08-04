@@ -1,5 +1,5 @@
 import type { Pool, QueryResultRow } from "pg";
-import type { Repository } from "./repository.interface.js";
+import type { FindContext, Repository } from "./repository.interface.js";
 import type { RepositoryMetadata } from "./repository.metadata.js";
 import { SqlQueryBuilder } from "./repository.sql-builder.js";
 import { DatabaseClient } from "@/core/database/database.client.js";
@@ -37,10 +37,16 @@ export abstract class BaseRepository<
     );
   }
 
-  async findAll(): Promise<TEntity[]> {
+  async findAll(options?: FindContext<TEntity>): Promise<TEntity[]> {
+    const conditions = [
+      ...(options?.scope?.apply() ?? []),
+      ...(options?.filter?.apply() ?? []),
+    ];
+    const { sql: whereClause, values } =
+      this.queryBuilder.buildWhere(conditions);
     return this.db.query<TEntity>(
-      `SELECT * FROM ${this.table}`,
-      [],
+      `SELECT * FROM ${this.table} ${whereClause}`,
+      values,
       this.metadata.columns,
     );
   }

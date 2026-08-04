@@ -1,5 +1,6 @@
 import type { QueryResultRow } from "pg";
 import { RepositoryMetadata } from "./repository.metadata.js";
+import { SqlCondition } from "@/core/database/sql-condition.interface.js";
 
 export class SqlQueryBuilder<
   TEntity extends QueryResultRow,
@@ -9,6 +10,39 @@ export class SqlQueryBuilder<
   constructor(
     private readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
   ) {}
+
+  public buildWhere(conditions: SqlCondition[]): {
+    sql: string;
+    values: unknown[];
+  } {
+    if (conditions.length === 0) {
+      return {
+        sql: "",
+        values: [],
+      };
+    }
+
+    const values: unknown[] = [];
+    let index = 1;
+
+    const sql = conditions
+      .map((condition) => {
+        let fragment = condition.sql;
+
+        for (const value of condition.params) {
+          fragment = fragment.replace("?", `$${index++}`);
+          values.push(value);
+        }
+
+        return `(${fragment})`;
+      })
+      .join(" AND ");
+
+    return {
+      sql: `WHERE ${sql}`,
+      values,
+    };
+  }
 
   public insert(data: TCreate): { sql: string; values: unknown[] } {
     const entries = this.getAllowedEntries(
