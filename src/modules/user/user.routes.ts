@@ -12,9 +12,10 @@ export function createUserRoutes(
 
   router.use(authMiddleware.handle);
 
-  router.get("/", controller.findAll);
-  router.get("/:id", controller.findById);
-  router.post("/", validate(userDto.createSchema), controller.create);
+  // todo admin middleware
+  // router.get("/", controller.findAll);
+  // router.get("/:id", controller.findById);
+  // router.post("/", validate(userDto.createSchema), controller.create);
 
   return router;
 }
