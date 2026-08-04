@@ -42,7 +42,8 @@ export abstract class BaseRepository<
       ...(options?.scope?.apply() ?? []),
       ...(options?.filter?.apply() ?? []),
     ];
-    const { sql: whereClause, values } = this.queryBuilder.buildWhere(conditions);
+    const { sql: whereClause, values } =
+      this.queryBuilder.buildWhere(conditions);
     return this.db.query<TEntity>(
       `SELECT * FROM ${this.table} ${whereClause}`,
       values,
