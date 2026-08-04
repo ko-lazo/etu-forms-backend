@@ -28,7 +28,7 @@ export const formDto = {
   }),
 
   findSchema: z.object({
-    title: z.string().trim().min(1).max(500),
+    title: z.string().trim().min(1).max(500).optional(),
     page: z.number().optional(),
     limit: z.number().optional(),
   }),
