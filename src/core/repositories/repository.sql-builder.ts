@@ -2,15 +2,18 @@ import type { QueryResultRow } from "pg";
 import { RepositoryMetadata } from "./repository.metadata.js";
 import { SqlCondition } from "@/core/database/sql-condition.interface.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
+import { MetadataAccessor } from "@/core/database/metdata-accessor.js";
 
 export class SqlQueryBuilder<
   TEntity extends QueryResultRow,
   TCreate extends object,
   TUpdate extends object,
-> {
-  constructor(
-    private readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
-  ) {}
+> extends MetadataAccessor<TEntity> {
+  protected constructor(
+    protected readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
+  ) {
+    super();
+  }
 
   public count(conditions: SqlCondition[]): { sql: string; values: unknown[] } {
     const { sql: whereClause, values } = this.buildWhere(conditions);
@@ -79,7 +82,7 @@ export class SqlQueryBuilder<
       data,
       this.metadata.creatableColumns,
     );
-    const columns = entries.map(([prop]) => this.getCol(prop));
+    const columns = entries.map(([prop]) => this.col(prop));
     const values = entries.map(([prop, val]) => this.prepare(prop, val));
     const placeholders = values.map((_, i) => `$${i + 1}`);
 
@@ -98,18 +101,14 @@ export class SqlQueryBuilder<
       throw new Error("Update data must contain at least one field");
 
     const assignments = entries.map(
-      ([prop], i) => `${this.getCol(prop)} = $${i + 1}`,
+      ([prop], i) => `${this.col(prop)} = $${i + 1}`,
     );
     const values = entries.map(([prop, val]) => this.prepare(prop, val));
 
     return {
-      sql: `UPDATE ${this.metadata.tableName} SET ${assignments.join(", ")} WHERE ${this.getCol(this.metadata.primaryKey)} = $${values.length + 1} RETURNING *`,
+      sql: `UPDATE ${this.metadata.tableName} SET ${assignments.join(", ")} WHERE ${this.col(this.metadata.primaryKey)} = $${values.length + 1} RETURNING *`,
       values: [...values, id],
     };
-  }
-
-  private getCol(property: keyof TEntity): string {
-    return this.metadata.columns[property]!;
   }
 
   private getAllowedEntries<TInput extends object>(
