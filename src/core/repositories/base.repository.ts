@@ -9,20 +9,22 @@ export abstract class BaseRepository<
   TEntity extends QueryResultRow,
   TCreate extends object,
   TUpdate extends object,
->
-  extends MetadataAccessor<TEntity>
-  implements Repository<TEntity, TCreate, TUpdate>
-{
+> implements Repository<TEntity, TCreate, TUpdate> {
   protected readonly db: DatabaseClient;
   private readonly queryBuilder: SqlQueryBuilder<TEntity, TCreate, TUpdate>;
+  private readonly metadataAccessor: MetadataAccessor<
+    TEntity,
+    TCreate,
+    TUpdate
+  >;
 
   protected constructor(
     db: DatabaseClient,
     protected readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
   ) {
-    super();
     this.db = db;
-    this.queryBuilder = new SqlQueryBuilder(metadata);
+    this.metadataAccessor = new MetadataAccessor(metadata);
+    this.queryBuilder = new SqlQueryBuilder(this.metadataAccessor);
   }
 
   protected get table(): string {
@@ -77,5 +79,9 @@ export abstract class BaseRepository<
       `DELETE FROM ${this.table} WHERE ${this.col(this.metadata.primaryKey)} = $1`,
       [id],
     );
+  }
+
+  private col(property: keyof TEntity): string {
+    return this.metadataAccessor.col(property);
   }
 }

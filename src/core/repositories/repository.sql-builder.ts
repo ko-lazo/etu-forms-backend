@@ -1,18 +1,24 @@
 import type { QueryResultRow } from "pg";
-import { RepositoryMetadata } from "./repository.metadata.js";
 import { SqlCondition } from "@/core/database/sql-condition.interface.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import { MetadataAccessor } from "@/core/database/metdata-accessor.js";
+import { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
 
 export class SqlQueryBuilder<
   TEntity extends QueryResultRow,
   TCreate extends object,
   TUpdate extends object,
-> extends MetadataAccessor<TEntity> {
-  protected constructor(
-    protected readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
+> {
+  private readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>;
+
+  public constructor(
+    private readonly metadataAccessor: MetadataAccessor<
+      TEntity,
+      TCreate,
+      TUpdate
+    >,
   ) {
-    super();
+    this.metadata = metadataAccessor.metadata;
   }
 
   public count(conditions: SqlCondition[]): { sql: string; values: unknown[] } {
@@ -126,5 +132,9 @@ export class SqlQueryBuilder<
       typeof value === "object"
       ? JSON.stringify(value)
       : value;
+  }
+
+  private col(property: keyof TEntity): string {
+    return this.metadataAccessor.col(property);
   }
 }
