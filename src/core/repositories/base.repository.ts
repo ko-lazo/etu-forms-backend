@@ -81,7 +81,7 @@ export abstract class BaseRepository<
     );
   }
 
-  private col(property: keyof TEntity): string {
+  protected col(property: keyof TEntity): string {
     return this.metadataAccessor.col(property);
   }
 }
