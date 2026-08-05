@@ -29,7 +29,7 @@ export class SqlQueryBuilder<
   ): { sql: string; values: unknown[] } {
     const { sql: whereClause, values } = this.buildWhere(conditions);
 
-    const orderClause = `ORDER BY ${this.getCol(this.metadata.primaryKey)}`;
+    const orderClause = `ORDER BY ${this.col(this.metadata.defaultOrder.column)} ${this.metadata.defaultOrder.direction}`;
     const nextIndex = values.length + 1;
     const paginationClause = pagination
       ? `LIMIT $${nextIndex} OFFSET $${nextIndex + 1}`

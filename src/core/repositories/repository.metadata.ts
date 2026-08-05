@@ -1,7 +1,9 @@
 import { QueryResultRow } from "pg";
 import { ColumnMap } from "./types.js";
 
-export type StringKeyOf<T> = Extract<keyof T, string>;
+type StringKeyOf<T> = Extract<keyof T, string>;
+
+type OrderDirection = "ASC" | "DESC" | "asc" | "desc";
 
 export type RepositoryMetadata<
   TEntity extends QueryResultRow,
@@ -11,6 +13,11 @@ export type RepositoryMetadata<
   readonly tableName: string;
 
   readonly primaryKey: keyof TEntity;
+
+  readonly defaultOrder: {
+    readonly column: keyof TEntity;
+    readonly direction: OrderDirection;
+  };
 
   readonly columns: ColumnMap<TEntity>;
 
