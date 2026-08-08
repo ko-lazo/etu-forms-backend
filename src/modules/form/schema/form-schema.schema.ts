@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { conditionSchema } from "@/modules/form/schema/condition.schema.js";
 
 const baseFieldSchema = z.object({
   name: z
@@ -12,6 +13,8 @@ const baseFieldSchema = z.object({
   required: z.boolean().default(false),
 
   placeholder: z.string().optional(),
+
+  visibleIf: conditionSchema.optional(),
 });
 
 const choiceOptionSchema = z.object({
@@ -65,6 +68,7 @@ export const formElementSchema = z.discriminatedUnion("type", [
 export const formPageSchema = z.object({
   name: z.string().min(1).max(100),
   title: z.string().optional(),
+  visibleIf: conditionSchema.optional(),
   elements: z.array(formElementSchema),
 });
 

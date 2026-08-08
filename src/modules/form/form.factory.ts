@@ -124,10 +124,7 @@ export function makeForm(
     userId: faker.string.uuid(),
     title: faker.lorem.sentence({ min: 3, max: 10 }),
     schema: makeFormSchema(),
-    settings: {
-      theme: faker.helpers.arrayElement(["light", "dark", "contrast"]),
-      showProgressBar: faker.datatype.boolean(),
-    },
+    settings: {},
     ...overrides,
   };
 }
