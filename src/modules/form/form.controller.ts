@@ -28,10 +28,10 @@ export class FormController extends BaseController<
     if (!req.user) {
       throw new UnauthorizedError();
     }
-    const dto = req.query as FindFormDto;
+    const dto = req.query as unknown as FindFormDto;
     return {
       scope: new FormScope(req.user.id),
-      filter: new FormFilter(req.query as FindFormDto),
+      filter: new FormFilter(dto),
       pagination: new BasePagination(dto),
     };
   }

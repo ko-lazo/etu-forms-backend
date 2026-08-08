@@ -39,16 +39,33 @@ export abstract class BaseRepository<
     );
   }
 
-  async findAll(options?: FindContext<TEntity>): Promise<TEntity[]> {
+  async findAll(
+    options?: FindContext<TEntity>,
+  ): Promise<{ entities: TEntity[]; total: number }> {
     const conditions = [
       ...(options?.scope?.apply() ?? []),
       ...(options?.filter?.apply() ?? []),
     ];
-    const { sql: sql, values } = this.queryBuilder.all(
-      conditions,
-      options?.pagination,
-    );
-    return this.db.query<TEntity>(sql, values, this.metadata.columns);
+
+    const dataQuery = this.queryBuilder.all(conditions, options?.pagination);
+    const countQuery = this.queryBuilder.count(conditions);
+
+    const [dataResult, countResult] = await Promise.all([
+      this.db.query<TEntity>(
+        dataQuery.sql,
+        dataQuery.values,
+        this.metadata.columns,
+      ),
+      this.db.query<{ count: string }>(countQuery.sql, countQuery.values),
+    ]);
+
+    const firstRow = countResult[0];
+    const totalCount = firstRow ? parseInt(firstRow.count, 10) : 0;
+
+    return {
+      entities: dataResult,
+      total: isNaN(totalCount) ? 0 : totalCount,
+    };
   }
 
   async create(data: TCreate): Promise<TEntity> {

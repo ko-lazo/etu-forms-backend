@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ModuleDto } from "@/core/dto/dto.types.js";
+import { createFindSchema, ModuleDto } from "@/core/dto/dto.types.js";
 import { formSchemaObject } from "./schema/form-schema.schema.js";
 
 export const formDto = {
@@ -27,10 +27,8 @@ export const formDto = {
     createdAt: z.date(),
   }),
 
-  findSchema: z.object({
+  findSchema: createFindSchema({
     title: z.string().trim().min(1).max(500).optional(),
-    page: z.number().optional(),
-    limit: z.number().optional(),
   }),
 } satisfies ModuleDto<z.ZodTypeAny, z.ZodTypeAny, z.ZodTypeAny>;
 

@@ -1,14 +1,13 @@
-import { PaginationQuery } from "@/core/repositories/repository.interface.js";
+import { PaginationQuery } from "./repository.interface.js";
 
 export class BasePagination {
+  readonly page: number;
   readonly limit: number;
   readonly offset: number;
 
   constructor(dto: PaginationQuery) {
-    const page = Math.max(dto.page ?? 1, 1);
-    const limit = Math.max(dto.limit ?? 3, 1);
-
-    this.limit = limit;
-    this.offset = (page - 1) * limit;
+    this.page = Math.max(dto.page ?? 1, 1);
+    this.limit = Math.max(dto.limit ?? 20, 1);
+    this.offset = (this.page - 1) * this.limit;
   }
 }

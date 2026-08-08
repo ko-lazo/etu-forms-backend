@@ -16,7 +16,9 @@ export abstract class BaseService<TEntity extends object, TCreate, TUpdate> {
     return this.repository.findById(id);
   }
 
-  findAll(options?: FindContext<TEntity>): Promise<TEntity[]> {
+  findAll(
+    options?: FindContext<TEntity>,
+  ): Promise<{ entities: TEntity[]; total: number }> {
     return this.repository.findAll(options);
   }
 

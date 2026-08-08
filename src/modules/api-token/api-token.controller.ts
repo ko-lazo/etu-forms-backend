@@ -3,14 +3,15 @@ import { BaseController } from "@/core/controllers/base.controller.js";
 import { ApiToken } from "@/modules/api-token/api-token.types.js";
 import {
   ApiTokenResponseDto,
-  CreateApiTokenDto,
-  UpdateApiTokenDto,
+  CreateApiTokenDto, FindApiTokenDto,
+  UpdateApiTokenDto
 } from "@/modules/api-token/api-token.dto.js";
 import { ApiTokenService } from "@/modules/api-token/api-token.service.js";
 import { ApiTokenGeneratorService } from "@/modules/api-token/api-token-generator.service.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import { FindContext } from "@/core/repositories/repository.interface.js";
 import { ApiTokenScope } from "@/modules/api-token/api-token.scope.js";
+import { BasePagination } from "@/core/repositories/base.pagination.js";
 
 export class ApiTokenController extends BaseController<
   ApiToken,
@@ -43,8 +44,10 @@ export class ApiTokenController extends BaseController<
     if (!req.user) {
       throw new UnauthorizedError();
     }
+    const dto = req.query as unknown as FindApiTokenDto;
     return {
       scope: new ApiTokenScope(req.user.id),
+      pagination: new BasePagination(dto),
     };
   }
 }

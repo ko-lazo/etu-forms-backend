@@ -1,18 +1,15 @@
 import { z } from "zod";
+import { paginationQuerySchema } from "./pagination.schema.js";
 
-/**
- * Единый контракт для DTO любого модуля системы.
- * Гарантирует, что у каждой сущности будут схемы для входа и выхода.
- */
 export interface ModuleDto<
   TCreateSchema extends z.ZodTypeAny,
   TUpdateSchema extends z.ZodTypeAny,
   TResponseSchema extends z.ZodTypeAny,
 > {
-  /** Схема валидации req.body при создании */
+  /** Схема валидации при создании экземпляра */
   readonly createSchema: TCreateSchema;
 
-  /** Схема валидации req.body при обновлении */
+  /** Схема валидации при обновлении экземпляра */
   readonly updateSchema: TUpdateSchema;
 
   /** Схема валидации и очистки данных при отправке */
@@ -20,4 +17,14 @@ export interface ModuleDto<
 
   /** Схема запроса */
   readonly findSchema?: TResponseSchema;
+}
+
+/** Базовая findSchema с метаданными пагинации */
+export function createFindSchema<T extends z.ZodRawShape>(
+  filtersObj: T = {} as T,
+) {
+  return z.object({
+    ...filtersObj,
+    ...paginationQuerySchema.shape,
+  });
 }

@@ -7,7 +7,9 @@ export interface Repository<TEntity extends object, TCreate, TUpdate> {
 
   findById(id: string): Promise<TEntity | null>;
 
-  findAll(options?: FindContext<TEntity>): Promise<TEntity[]>;
+  findAll(
+    options?: FindContext<TEntity>,
+  ): Promise<{ entities: TEntity[]; total: number }>;
 
   update(id: string, data: TUpdate): Promise<TEntity>;
 
