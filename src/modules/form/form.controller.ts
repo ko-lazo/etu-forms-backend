@@ -6,6 +6,7 @@ import {
   FormResponseDto,
   UpdateFormDto,
 } from "@/modules/form/form.dto.js";
+import { FormPolicy } from "@/modules/form/form.policy.js";
 
 export class FormController extends BaseController<
   Form,
@@ -13,7 +14,7 @@ export class FormController extends BaseController<
   UpdateFormDto,
   FormResponseDto
 > {
-  constructor(formService: FormService) {
-    super(formService);
+  constructor(formService: FormService, formPolicy: FormPolicy) {
+    super(formService, formPolicy);
   }
 }

@@ -15,6 +15,6 @@ export class UserController extends BaseController<
   UserResponseDto
 > {
   constructor(userService: UserService) {
-    super(userService, userMapper);
+    super(userService, undefined, userMapper);
   }
 }

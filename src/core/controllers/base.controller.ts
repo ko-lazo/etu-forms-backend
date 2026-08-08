@@ -6,6 +6,9 @@ import { getRouteParam } from "@/shared/http/http.params.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { BaseService } from "@/core/services/base.service.js";
 import { IMapper } from "@/core/dto/mapper.interface.js";
+import { ForbiddenError } from "@/shared/errors/forbidden.error.js";
+import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
+import { IResourcePolicy } from "@/core/policies/policy.interface.js";
 
 export abstract class BaseController<
   TEntity extends QueryResultRow,
@@ -15,6 +18,7 @@ export abstract class BaseController<
 > {
   protected constructor(
     protected readonly service: BaseService<TEntity, TCreate, TUpdate>,
+    protected readonly policy?: IResourcePolicy<TEntity>,
     protected readonly mapper?: IMapper<TEntity, TResponse>,
   ) {}
 
@@ -34,7 +38,14 @@ export abstract class BaseController<
       throw new NotFoundError("Entity not found");
     }
 
+    if (this.policy) {
+      if (!req.user) throw new UnauthorizedError();
+      const allowed = await this.policy.view(req.user.id, entity);
+      if (!allowed) throw new ForbiddenError();
+    }
+
     const data = this.mapper ? this.mapper.toResponse(entity) : entity;
+
     res.status(200).json(data);
   };
 
@@ -46,16 +57,40 @@ export abstract class BaseController<
 
   update = async (req: Request, res: Response): Promise<void> => {
     const id = getRouteParam(req, "id");
-    const entity = await this.service.update(id, req.body);
-    const data = this.mapper ? this.mapper.toResponse(entity) : entity;
+    const entity = await this.service.findById(id);
+
+    if (!entity) {
+      throw new NotFoundError("Entity not found");
+    }
+
+    if (this.policy) {
+      if (!req.user) throw new UnauthorizedError();
+      const allowed = await this.policy.update(req.user.id, entity);
+      if (!allowed) throw new ForbiddenError();
+    }
+
+    const updatedEntity = await this.service.update(id, req.body);
+    const data = this.mapper
+      ? this.mapper.toResponse(updatedEntity)
+      : updatedEntity;
     res.status(200).json(data);
   };
 
   delete = async (req: Request, res: Response): Promise<void> => {
     const id = getRouteParam(req, "id");
+    const entity = await this.service.findById(id);
+
+    if (!entity) {
+      throw new NotFoundError("Entity not found");
+    }
+
+    if (this.policy) {
+      if (!req.user) throw new UnauthorizedError();
+      const allowed = await this.policy.delete(req.user.id, entity);
+      if (!allowed) throw new ForbiddenError();
+    }
 
     await this.service.delete(id);
-
     res.status(204).send();
   };
 }

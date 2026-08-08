@@ -8,8 +8,8 @@ import {
 } from "@/modules/api-token/api-token.dto.js";
 import { ApiTokenService } from "@/modules/api-token/api-token.service.js";
 import { ApiTokenGeneratorService } from "@/modules/api-token/api-token-generator.service.js";
-import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
+import { ApiTokenPolicy } from "@/modules/api-token/api-token.policy.js";
 
 export class ApiTokenController extends BaseController<
   ApiToken,
@@ -19,9 +19,10 @@ export class ApiTokenController extends BaseController<
 > {
   constructor(
     service: ApiTokenService,
+    policy: ApiTokenPolicy,
     private readonly generatorService: ApiTokenGeneratorService,
   ) {
-    super(service);
+    super(service, policy);
   }
 
   override create = async (req: Request, res: Response): Promise<void> => {
