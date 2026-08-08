@@ -5,6 +5,7 @@ import { ApiTokenGeneratorService } from "./api-token-generator.service.js";
 import { ApiTokenController } from "./api-token.controller.js";
 import { TokenGenerator } from "@/shared/security/token-generator.js";
 import { TokenHasher } from "@/shared/security/token-hasher.js";
+import { ApiTokenPolicy } from "@/modules/api-token/api-token.policy.js";
 
 export function createApiTokenModule() {
   const repository = new ApiTokenRepository(dbClient);
@@ -12,13 +13,15 @@ export function createApiTokenModule() {
   const hasher = new TokenHasher();
 
   const service = new ApiTokenService(repository, hasher);
+  const policy = new ApiTokenPolicy();
+
   const generatorService = new ApiTokenGeneratorService(
     repository,
     generator,
     hasher,
   );
 
-  const controller = new ApiTokenController(service, generatorService);
+  const controller = new ApiTokenController(service, policy, generatorService);
 
   return {
     repository,

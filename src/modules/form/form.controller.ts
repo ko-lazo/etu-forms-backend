@@ -13,6 +13,7 @@ import { FormFilter } from "@/modules/form/form.filter.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import { FindContext } from "@/core/repositories/repository.interface.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
+import { FormPolicy } from "@/modules/form/form.policy.js";
 
 export class FormController extends BaseController<
   Form,
@@ -20,8 +21,8 @@ export class FormController extends BaseController<
   UpdateFormDto,
   FormResponseDto
 > {
-  constructor(formService: FormService) {
-    super(formService);
+  constructor(formService: FormService, formPolicy: FormPolicy) {
+    super(formService, formPolicy);
   }
 
   protected override getFindAllOptions(req: Request): FindContext<Form> {
