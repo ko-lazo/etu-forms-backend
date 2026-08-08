@@ -22,22 +22,19 @@ const conditionRuleSchema = z.object({
 
   operator: conditionOperatorSchema,
 
-  value: z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.array(z.string()),
-  ]).optional(),
+  value: z
+    .union([z.string(), z.number(), z.boolean(), z.array(z.string())])
+    .optional(),
 });
 
 export type Condition =
   | z.infer<typeof conditionRuleSchema>
   | {
-  and: Condition[];
-}
+      and: Condition[];
+    }
   | {
-  or: Condition[];
-};
+      or: Condition[];
+    };
 
 export const conditionSchema: z.ZodType<Condition> = z.lazy(() =>
   z.union([
