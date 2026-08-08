@@ -44,10 +44,8 @@ export class ApiTokenController extends BaseController<
     if (!req.user) {
       throw new UnauthorizedError();
     }
-    const dto = req.query as unknown as FindApiTokenDto;
     return {
       scope: new ApiTokenScope(req.user.id),
-      pagination: new BasePagination(dto),
     };
   }
 }
