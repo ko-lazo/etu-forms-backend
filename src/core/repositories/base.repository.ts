@@ -1,5 +1,5 @@
 import type { Pool, QueryResultRow } from "pg";
-import type { Repository } from "./repository.interface.js";
+import type { FindContext, Repository } from "./repository.interface.js";
 import type { RepositoryMetadata } from "./repository.metadata.js";
 import { SqlQueryBuilder } from "./repository.sql-builder.js";
 import { DatabaseClient } from "@/core/database/database.client.js";
@@ -9,20 +9,22 @@ export abstract class BaseRepository<
   TEntity extends QueryResultRow,
   TCreate extends object,
   TUpdate extends object,
->
-  extends MetadataAccessor<TEntity>
-  implements Repository<TEntity, TCreate, TUpdate>
-{
+> implements Repository<TEntity, TCreate, TUpdate> {
   protected readonly db: DatabaseClient;
   private readonly queryBuilder: SqlQueryBuilder<TEntity, TCreate, TUpdate>;
+  private readonly metadataAccessor: MetadataAccessor<
+    TEntity,
+    TCreate,
+    TUpdate
+  >;
 
   protected constructor(
     db: DatabaseClient,
     protected readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
   ) {
-    super();
     this.db = db;
-    this.queryBuilder = new SqlQueryBuilder(metadata);
+    this.metadataAccessor = new MetadataAccessor(metadata);
+    this.queryBuilder = new SqlQueryBuilder(this.metadataAccessor);
   }
 
   protected get table(): string {
@@ -37,12 +39,33 @@ export abstract class BaseRepository<
     );
   }
 
-  async findAll(): Promise<TEntity[]> {
-    return this.db.query<TEntity>(
-      `SELECT * FROM ${this.table}`,
-      [],
-      this.metadata.columns,
-    );
+  async findAll(
+    options?: FindContext<TEntity>,
+  ): Promise<{ entities: TEntity[]; total: number }> {
+    const conditions = [
+      ...(options?.scope?.apply() ?? []),
+      ...(options?.filter?.apply() ?? []),
+    ];
+
+    const dataQuery = this.queryBuilder.all(conditions, options?.pagination);
+    const countQuery = this.queryBuilder.count(conditions);
+
+    const [dataResult, countResult] = await Promise.all([
+      this.db.query<TEntity>(
+        dataQuery.sql,
+        dataQuery.values,
+        this.metadata.columns,
+      ),
+      this.db.query<{ count: string }>(countQuery.sql, countQuery.values),
+    ]);
+
+    const firstRow = countResult[0];
+    const totalCount = firstRow ? parseInt(firstRow.count, 10) : 0;
+
+    return {
+      entities: dataResult,
+      total: isNaN(totalCount) ? 0 : totalCount,
+    };
   }
 
   async create(data: TCreate): Promise<TEntity> {
@@ -73,5 +96,9 @@ export abstract class BaseRepository<
       `DELETE FROM ${this.table} WHERE ${this.col(this.metadata.primaryKey)} = $1`,
       [id],
     );
+  }
+
+  protected col(property: keyof TEntity): string {
+    return this.metadataAccessor.col(property);
   }
 }

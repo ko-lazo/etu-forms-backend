@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ModuleDto } from "@/core/dto/dto.types.js";
+import { createFindSchema, ModuleDto } from "@/core/dto/dto.types.js";
 
 export const apiTokenDto = {
   createSchema: z.object({
@@ -19,8 +19,11 @@ export const apiTokenDto = {
     expiresAt: z.date().nullable(),
     createdAt: z.date(),
   }),
+
+  findSchema: createFindSchema(),
 } satisfies ModuleDto<z.ZodTypeAny, z.ZodTypeAny, z.ZodTypeAny>;
 
 export type CreateApiTokenDto = z.infer<typeof apiTokenDto.createSchema>;
 export type UpdateApiTokenDto = z.infer<typeof apiTokenDto.updateSchema>;
 export type ApiTokenResponseDto = z.infer<typeof apiTokenDto.responseSchema>;
+export type FindApiTokenDto = z.infer<typeof apiTokenDto.findSchema>;

@@ -1,6 +1,9 @@
-import { Repository } from "@/core/repositories/repository.interface.js";
+import {
+  FindContext,
+  Repository,
+} from "@/core/repositories/repository.interface.js";
 
-export abstract class BaseService<TEntity, TCreate, TUpdate> {
+export abstract class BaseService<TEntity extends object, TCreate, TUpdate> {
   protected constructor(
     protected readonly repository: Repository<TEntity, TCreate, TUpdate>,
   ) {}
@@ -13,8 +16,10 @@ export abstract class BaseService<TEntity, TCreate, TUpdate> {
     return this.repository.findById(id);
   }
 
-  findAll(): Promise<TEntity[]> {
-    return this.repository.findAll();
+  findAll(
+    options?: FindContext<TEntity>,
+  ): Promise<{ entities: TEntity[]; total: number }> {
+    return this.repository.findAll(options);
   }
 
   update(id: string, data: TUpdate): Promise<TEntity> {

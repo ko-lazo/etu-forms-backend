@@ -7,6 +7,11 @@ export const apiTokenMetadata = {
 
   primaryKey: "id",
 
+  defaultOrder: {
+    column: "createdAt",
+    direction: "DESC",
+  },
+
   columns: {
     id: "id",
     userId: "user_id",

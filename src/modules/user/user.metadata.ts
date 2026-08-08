@@ -6,6 +6,11 @@ export const userMetadata = {
 
   primaryKey: "id",
 
+  defaultOrder: {
+    column: "createdAt",
+    direction: "DESC",
+  },
+
   columns: {
     id: "id",
     email: "email",

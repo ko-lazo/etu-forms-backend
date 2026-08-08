@@ -1,16 +1,20 @@
-export abstract class MetadataAccessor<TEntity extends object> {
-  protected abstract readonly metadata: {
-    tableName: string;
-    columns: Record<string, string | undefined>;
-  };
+import { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
 
-  protected col(property: keyof TEntity): string {
-    const column = this.metadata.columns[property as string];
+export class MetadataAccessor<
+  TEntity extends object,
+  TCreate extends object = object,
+  TUpdate extends object = object,
+> {
+  constructor(
+    public readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
+  ) {}
 
+  public col(property: keyof TEntity): string {
+    const column =
+      this.metadata.columns[property as keyof typeof this.metadata.columns];
     if (!column) {
       throw new Error(`Unknown column "${String(property)}"`);
     }
-
     return `${this.metadata.tableName}.${column}`;
   }
 }
