@@ -4,7 +4,7 @@ import { ApiToken } from "@/modules/api-token/api-token.types.js";
 import {
   ApiTokenResponseDto,
   CreateApiTokenDto,
-  UpdateApiTokenDto
+  UpdateApiTokenDto,
 } from "@/modules/api-token/api-token.dto.js";
 import { ApiTokenService } from "@/modules/api-token/api-token.service.js";
 import { ApiTokenGeneratorService } from "@/modules/api-token/api-token-generator.service.js";
