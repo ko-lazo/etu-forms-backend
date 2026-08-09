@@ -29,6 +29,7 @@ export class SqlQueryBuilder<
     };
   }
 
+  // todo обязательный маппер вместо select * from?
   public all(
     conditions: SqlCondition[],
     pagination?: BasePagination,

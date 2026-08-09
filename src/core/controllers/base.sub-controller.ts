@@ -8,6 +8,7 @@ import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import { ForbiddenError } from "@/shared/errors/forbidden.error.js";
 
+// todo refactor
 export abstract class BaseSubController<
   TEntity extends QueryResultRow,
   TCreate,
