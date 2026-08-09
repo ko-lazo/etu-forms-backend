@@ -35,7 +35,7 @@ export class SqlQueryBuilder<
   ): { sql: string; values: unknown[] } {
     const { sql: whereClause, values } = this.buildWhere(conditions);
 
-    const orderClause = `ORDER BY ${this.col(this.metadata.defaultOrder.column)} ${this.metadata.defaultOrder.direction}`;
+    const orderClause = `ORDER BY ${this.getCol(this.metadata.defaultOrder.column)} ${this.metadata.defaultOrder.direction}`;
     const nextIndex = values.length + 1;
     const paginationClause = pagination
       ? `LIMIT $${nextIndex} OFFSET $${nextIndex + 1}`
@@ -88,7 +88,7 @@ export class SqlQueryBuilder<
       data,
       this.metadata.creatableColumns,
     );
-    const columns = entries.map(([prop]) => this.col(prop));
+    const columns = entries.map(([prop]) => this.getCol(prop));
     const values = entries.map(([prop, val]) => this.prepare(prop, val));
     const placeholders = values.map((_, i) => `$${i + 1}`);
 
@@ -107,12 +107,12 @@ export class SqlQueryBuilder<
       throw new Error("Update data must contain at least one field");
 
     const assignments = entries.map(
-      ([prop], i) => `${this.col(prop)} = $${i + 1}`,
+      ([prop], i) => `${this.getCol(prop)} = $${i + 1}`,
     );
     const values = entries.map(([prop, val]) => this.prepare(prop, val));
 
     return {
-      sql: `UPDATE ${this.metadata.tableName} SET ${assignments.join(", ")} WHERE ${this.col(this.metadata.primaryKey)} = $${values.length + 1} RETURNING *`,
+      sql: `UPDATE ${this.metadata.tableName} SET ${assignments.join(", ")} WHERE ${this.getCol(this.metadata.primaryKey)} = $${values.length + 1} RETURNING *`,
       values: [...values, id],
     };
   }
@@ -134,7 +134,7 @@ export class SqlQueryBuilder<
       : value;
   }
 
-  private col(property: keyof TEntity): string {
-    return this.metadataAccessor.col(property);
+  private getCol(property: keyof TEntity): string {
+    return this.metadata.columns[property]!;
   }
 }
