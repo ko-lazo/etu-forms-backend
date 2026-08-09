@@ -17,7 +17,7 @@ export function createApiRoutes(): Router {
   const { controller: formController } = container.form;
   const { controller: formResponseController } = container.formResponse;
 
-  apiRoutes.use("/auth", createAuthRoutes(authController));
+  apiRoutes.use("/auth", createAuthRoutes(authController, authMiddleware));
   apiRoutes.use(
     "/tokens",
     createApiTokenRoutes(apiTokenController, authMiddleware),

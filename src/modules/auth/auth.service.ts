@@ -4,6 +4,8 @@ import { PasswordHasher } from "@/shared/security/password-hasher.js";
 import { ApiTokenGeneratorService } from "@/modules/api-token/api-token-generator.service.js";
 import { ApiToken } from "@/modules/api-token/api-token.types.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
+import { UserResponseDto } from "@/modules/user/user.dto.js";
+import { User } from "@/modules/user/user.types.js";
 
 export class AuthService {
   constructor(
@@ -33,5 +35,13 @@ export class AuthService {
       name: `Session Token (${new Date().toLocaleDateString()})`,
       expiresAt: expiresAt,
     });
+  }
+
+  async getMe(userId: string): Promise<User> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new UnauthorizedError();
+    }
+    return user;
   }
 }

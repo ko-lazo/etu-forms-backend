@@ -4,10 +4,12 @@ import { PasswordHasher } from "@/shared/security/password-hasher.js";
 import { AuthService } from "./auth.service.js";
 import { AuthController } from "./auth.controller.js";
 import { createAuthRoutes } from "./auth.routes.js";
+import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
 
 interface AuthModuleDependencies {
   userRepository: UserRepository;
   tokenGenerator: ApiTokenGeneratorService;
+  authMiddleware: AuthMiddleware;
 }
 
 export function createAuthModule(deps: AuthModuleDependencies) {
@@ -19,7 +21,7 @@ export function createAuthModule(deps: AuthModuleDependencies) {
     deps.tokenGenerator,
   );
   const controller = new AuthController(service);
-  const routes = createAuthRoutes(controller);
+  const routes = createAuthRoutes(controller, deps.authMiddleware);
 
   return {
     service,

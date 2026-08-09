@@ -19,17 +19,18 @@ class AppContainer {
   public init(): void {
     if (this.initialized) return;
 
-    this.apiToken = createApiTokenModule();
     this.user = createUserModule();
+    this.apiToken = createApiTokenModule();
+    this.authMiddleware = new AuthMiddleware(this.apiToken.service);
+
     this.form = createFormModule();
     this.formResponse = createFormResponseModule(this.form.service);
 
     this.auth = createAuthModule({
       userRepository: this.user.repository,
       tokenGenerator: this.apiToken.generatorService,
+      authMiddleware: this.authMiddleware,
     });
-
-    this.authMiddleware = new AuthMiddleware(this.apiToken.service);
 
     this.initialized = true;
   }
