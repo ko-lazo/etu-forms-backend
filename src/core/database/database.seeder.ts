@@ -7,8 +7,7 @@ export async function seedDatabase(): Promise<void> {
   console.log("Starting seeding a database...");
 
   try {
-    // await pool.query("TRUNCATE TABLE users CASCADE;");
-    // console.log("Database cleared");
+    await clearDatabase();
 
     const createdUsers = await seedUsers(10);
     console.log(`Users created: ${createdUsers.length}`);
@@ -23,6 +22,26 @@ export async function seedDatabase(): Promise<void> {
     throw error;
   } finally {
     await pool.end();
+  }
+}
+
+async function clearDatabase(): Promise<void> {
+  const res = await pool.query(`
+  SELECT table_name 
+  FROM information_schema.tables 
+  WHERE table_schema = 'public' 
+    AND table_type = 'BASE TABLE'
+    AND table_name != 'schema_migrations';
+`);
+
+  const tables = res.rows.map((row) => `"${row.table_name}"`);
+
+  if (tables.length > 0) {
+    const truncateQuery = `TRUNCATE TABLE ${tables.join(", ")} CASCADE;`;
+    await pool.query(truncateQuery);
+    console.log("Database cleared");
+  } else {
+    console.log("No tables found to clear.");
   }
 }
 
