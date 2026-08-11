@@ -5,3 +5,10 @@ export interface IResourcePolicy<TEntity> {
 
   delete(userId: string, entity: TEntity): boolean | Promise<boolean>;
 }
+
+export interface ISubResourcePolicy<TEntity> extends IResourcePolicy<TEntity> {
+  create?(
+    userId: string | undefined,
+    parentId: string,
+  ): boolean | Promise<boolean>;
+}

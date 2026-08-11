@@ -7,6 +7,7 @@ import { getRouteParam } from "@/shared/http/http.params.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import { ForbiddenError } from "@/shared/errors/forbidden.error.js";
+import { ISubResourcePolicy } from "@/core/policies/policy.interface.js";
 
 // todo refactor
 export abstract class BaseSubController<
@@ -15,9 +16,11 @@ export abstract class BaseSubController<
   TUpdate,
   TResponse,
 > extends BaseController<TEntity, TCreate, TUpdate, TResponse> {
+  declare protected policy?: ISubResourcePolicy<TEntity>;
+
   protected constructor(
     service: BaseController<TEntity, TCreate, TUpdate, TResponse>["service"],
-    policy?: BaseController<TEntity, TCreate, TUpdate, TResponse>["policy"],
+    policy?: ISubResourcePolicy<TEntity>,
     mapper?: BaseController<TEntity, TCreate, TUpdate, TResponse>["mapper"],
   ) {
     super(service, policy, mapper);
@@ -34,10 +37,16 @@ export abstract class BaseSubController<
 
   override create = async (req: Request, res: Response): Promise<void> => {
     const parentId = this.getParentId(req);
+
+    if (this.policy && this.policy.create) {
+      const allowed = await this.policy.create(req.user?.id, parentId);
+      if (!allowed) {
+        throw req.user ? new ForbiddenError() : new UnauthorizedError();
+      }
+    }
+
     const data = this.buildCreateData(req, parentId);
-
     const entity = await this.service.create(data);
-
     const response = this.mapper ? this.mapper.toResponse(entity) : entity;
 
     res.status(201).json(response);
