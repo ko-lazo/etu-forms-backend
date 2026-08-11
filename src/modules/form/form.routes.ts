@@ -10,12 +10,24 @@ export function createFormRoutes(
 ): Router {
   const router = Router();
 
-  router.use(authMiddleware.handle);
-
-  router.get("/", (req, res) => controller.findAll(req, res));
+  router.get("/", authMiddleware.handle, (req, res) =>
+    controller.findAll(req, res),
+  );
   router.get("/:id", (req, res) => controller.findById(req, res));
-  router.post("/", validate(formDto.createSchema), (req, res) =>
-    controller.create(req, res),
+  router.post(
+    "/",
+    authMiddleware.handle,
+    validate(formDto.createSchema),
+    (req, res) => controller.create(req, res),
+  );
+  router.patch(
+    "/:id",
+    authMiddleware.handle,
+    validate(formDto.updateSchema),
+    (req, res) => controller.update(req, res),
+  );
+  router.delete("/:id", authMiddleware.handle, (req, res) =>
+    controller.delete(req, res),
   );
 
   return router;
