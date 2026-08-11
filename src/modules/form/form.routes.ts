@@ -3,17 +3,21 @@ import type { FormController } from "./form.controller.js";
 import { validate } from "@/shared/http/middleware/validate.middleware.js";
 import { formDto } from "@/modules/form/form.dto.js";
 import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
+import { OptionalAuthMiddleware } from "@/shared/http/middleware/optional-auth.middleware.js";
 
 export function createFormRoutes(
   controller: FormController,
   authMiddleware: AuthMiddleware,
+  optionalAuthMiddleware: OptionalAuthMiddleware,
 ): Router {
   const router = Router();
 
   router.get("/", authMiddleware.handle, (req, res) =>
     controller.findAll(req, res),
   );
-  router.get("/:id", (req, res) => controller.findById(req, res));
+  router.get("/:id", optionalAuthMiddleware.handle, (req, res) =>
+    controller.findById(req, res),
+  );
   router.post(
     "/",
     authMiddleware.handle,

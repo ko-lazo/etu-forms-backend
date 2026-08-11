@@ -4,6 +4,7 @@ import { createFormModule } from "@/modules/form/form.module.js";
 import { createFormResponseModule } from "@/modules/form-response/form-response.module.js";
 import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
 import { createAuthModule } from "@/modules/auth/auth.module.js";
+import { OptionalAuthMiddleware } from "@/shared/http/middleware/optional-auth.middleware.js";
 
 class AppContainer {
   private initialized = false;
@@ -15,6 +16,7 @@ class AppContainer {
 
   public auth!: ReturnType<typeof createAuthModule>;
   public authMiddleware!: AuthMiddleware;
+  public optionalAuthMiddleware!: OptionalAuthMiddleware;
 
   public init(): void {
     if (this.initialized) return;
@@ -22,6 +24,9 @@ class AppContainer {
     this.user = createUserModule();
     this.apiToken = createApiTokenModule();
     this.authMiddleware = new AuthMiddleware(this.apiToken.service);
+    this.optionalAuthMiddleware = new OptionalAuthMiddleware(
+      this.apiToken.service,
+    );
 
     this.form = createFormModule();
     this.formResponse = createFormResponseModule(this.form.service);
