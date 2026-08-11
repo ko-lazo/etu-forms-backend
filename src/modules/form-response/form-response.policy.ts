@@ -5,8 +5,8 @@ import type { FormPolicy } from "@/modules/form/form.policy.js";
 
 export class FormResponsePolicy implements ISubResourcePolicy<FormResponse> {
   constructor(
-      private readonly formService: FormService,
-      private readonly formPolicy: FormPolicy,
+    private readonly formService: FormService,
+    private readonly formPolicy: FormPolicy,
   ) {}
 
   async create(userId: string | undefined, formId?: string): Promise<boolean> {
@@ -18,14 +18,20 @@ export class FormResponsePolicy implements ISubResourcePolicy<FormResponse> {
     return this.formPolicy.view(userId, form);
   }
 
-  async view(userId: string | undefined, response: FormResponse): Promise<boolean> {
+  async view(
+    userId: string | undefined,
+    response: FormResponse,
+  ): Promise<boolean> {
     const form = await this.formService.findById(response.formId);
     if (!form) return false;
 
     return this.formPolicy.view(userId, form);
   }
 
-  async update(userId: string | undefined, response: FormResponse): Promise<boolean> {
+  async update(
+    userId: string | undefined,
+    response: FormResponse,
+  ): Promise<boolean> {
     const form = await this.formService.findById(response.formId);
     if (!form) return false;
 

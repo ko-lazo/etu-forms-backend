@@ -14,9 +14,7 @@ export function createFormResponseRoutes(
     controller.findAll(req, res),
   );
 
-  router.get("/:id", (req, res) =>
-    controller.findById(req, res),
-  );
+  router.get("/:id", (req, res) => controller.findById(req, res));
 
   router.post("/", validate(formResponseDto.createSchema), (req, res) =>
     controller.create(req, res),
