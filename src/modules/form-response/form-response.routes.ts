@@ -10,14 +10,20 @@ export function createFormResponseRoutes(
 ): Router {
   const router = Router({ mergeParams: true });
 
-  router.use(authMiddleware.handle);
+  router.get("/", authMiddleware.handle, (req, res) =>
+    controller.findAll(req, res),
+  );
 
-  router.get("/", (req, res) => controller.findAll(req, res));
-
-  router.get("/:id", (req, res) => controller.findById(req, res));
+  router.get("/:id", (req, res) =>
+    controller.findById(req, res),
+  );
 
   router.post("/", validate(formResponseDto.createSchema), (req, res) =>
     controller.create(req, res),
+  );
+
+  router.patch("/:id", validate(formResponseDto.updateSchema), (req, res) =>
+    controller.update(req, res),
   );
 
   return router;
