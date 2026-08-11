@@ -5,7 +5,7 @@ import { notFoundMiddleware } from "@/shared/http/middleware/not-found.middlewar
 import { container } from "@/app/app.container.js";
 import { createApiRoutes } from "@/routes/api.routes.js";
 import cors from "cors";
-import {corsConfig} from "@/config/cors.config.js";
+import { corsConfig } from "@/config/cors.config.js";
 
 export function createApp() {
   container.init();
