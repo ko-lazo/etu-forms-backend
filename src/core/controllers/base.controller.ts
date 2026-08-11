@@ -69,9 +69,10 @@ export abstract class BaseController<
     }
 
     if (this.policy) {
-      if (!req.user) throw new UnauthorizedError();
-      const allowed = await this.policy.view(req.user.id, entity);
-      if (!allowed) throw new ForbiddenError();
+      const allowed = await this.policy.view(req.user?.id, entity);
+      if (!allowed) {
+        throw req.user ? new ForbiddenError() : new UnauthorizedError();
+      }
     }
 
     const data = this.mapper ? this.mapper.toResponse(entity) : entity;
