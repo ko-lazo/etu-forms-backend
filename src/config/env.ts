@@ -16,6 +16,9 @@ const envSchema = z.object({
   DB_PASSWORD: z.string(),
 
   CORS_ORIGIN: z.url(),
+
+  STORAGE_PATH: z.string().min(1).default("storage"),
+  UPLOAD_MAX_SIZE_MB: z.coerce.number().int().positive().default(10),
 });
 
 export const env = Object.freeze(envSchema.parse(process.env));
