@@ -19,6 +19,11 @@ const envSchema = z.object({
 
   STORAGE_PATH: z.string().min(1).default("storage"),
   UPLOAD_MAX_SIZE_MB: z.coerce.number().int().positive().default(10),
+
+  REDIS_URL: z.string().min(1).default("redis://127.0.0.1:6379"),
+
+  JOB_CONCURRENCY: z.coerce.number().int().positive().default(2),
+  JOB_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
 });
 
 export const env = Object.freeze(envSchema.parse(process.env));
