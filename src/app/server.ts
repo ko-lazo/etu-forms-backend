@@ -20,9 +20,6 @@ export function startServer(): Server {
     );
   });
 
-  return app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-  });
   registerShutdownHandlers({
     logger,
     shutdown: async () => {
@@ -32,6 +29,7 @@ export function startServer(): Server {
         server.close((error) => (error ? reject(error) : resolve()));
       });
 
+      await closeJobQueue();
       await pool.end();
     },
   });
