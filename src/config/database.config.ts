@@ -6,7 +6,7 @@ export const databaseConfig = {
   database: env.DB_NAME,
   user: env.DB_USER,
   password: env.DB_PASSWORD,
-  maxConnections: 20,
+  max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 } as const;
