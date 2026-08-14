@@ -32,9 +32,64 @@ export class DatabaseClient {
   }
 
   public async execute(sql: string, params: unknown[] = []): Promise<void> {
-    await this.pool.query(sql, params);
     await this.queryable.query(sql, params);
   }
+
+  /**
+   * Выделенное соединение, необходимо для `pg-query-stream`
+   */
+  public async withClient<T>(
+    fn: (client: PoolClient) => Promise<T>,
+  ): Promise<T> {
+    if (!isPool(this.queryable)) {
+      throw new Error("No pool is presented for dedicated connection");
+    }
+
+    const client = await this.queryable.connect();
+
+    try {
+      return await fn(client);
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Выполняет функцию в рамках одной транзакции на выделенном соединении,
+   * переиспользуя внешнюю транзакцию без открытия новой
+   */
+  public async withTransaction<T>(
+    fn: (tx: DatabaseClient) => Promise<T>,
+  ): Promise<T> {
+    if (!isPool(this.queryable)) {
+      return fn(this);
+    }
+
+    const client = await this.queryable.connect();
+    const transactional = new DatabaseClient(client);
+
+    let brokenConnection: Error | undefined;
+
+    try {
+      await client.query("BEGIN");
+      const result = await fn(transactional);
+      await client.query("COMMIT");
+
+      return result;
+    } catch (error) {
+      try {
+        await client.query("ROLLBACK");
+      } catch (rollbackError) {
+        brokenConnection =
+          rollbackError instanceof Error
+            ? rollbackError
+            : new Error(String(rollbackError));
+      }
+
+      throw error;
+    } finally {
+      client.release(brokenConnection);
+    }
   }
 
   private mapToEntity<T>(
