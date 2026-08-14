@@ -56,7 +56,9 @@ export class LocalFileStorage implements IFileStorage {
     const filePath = path.resolve(this.root, key);
 
     if (filePath !== this.root && !filePath.startsWith(this.root + path.sep)) {
-      throw new Error(`Directory traversal detected: key "${key}" leads outside the storage root`);
+      throw new Error(
+        `Directory traversal detected: key "${key}" leads outside the storage root`,
+      );
     }
 
     return filePath;
