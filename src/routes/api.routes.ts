@@ -6,8 +6,9 @@ import { createUserRoutes } from "@/modules/user/user.routes.js";
 import { createFormRoutes } from "@/modules/form/form.routes.js";
 import { createAuthRoutes } from "@/modules/auth/auth.routes.js";
 import { createFormResponseRoutes } from "@/modules/form-response/form-response.routes.js";
-import { createJobRoutes } from "@/modules/job/job.routes.js";
 import { createJobRoutes } from "@/modules/job/api/job.routes.js";
+import { createExportResponsesRoutes } from "@/modules/form-response/export-responses.routes.js";
+import { createImportFormRoutes } from "@/modules/form/import-form.routes.js";
 
 export function createApiRoutes(): Router {
   const apiRoutes = Router();
