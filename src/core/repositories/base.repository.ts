@@ -77,6 +77,13 @@ export abstract class BaseRepository<
     ))!;
   }
 
+  async createMany(data: readonly TCreate[]): Promise<TEntity[]> {
+    if (data.length === 0) return [];
+
+    const { sql, values } = this.queryBuilder.insertMany(data);
+    return this.db.query<TEntity>(sql, values, this.metadata.columns);
+  }
+
   async update(id: string, data: TUpdate): Promise<TEntity> {
     const { sql, values } = this.queryBuilder.update(id, data);
     const entity = await this.db.queryOne<TEntity>(

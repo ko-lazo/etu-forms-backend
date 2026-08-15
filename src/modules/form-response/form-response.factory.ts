@@ -62,20 +62,20 @@ function makeAnswer(element: FormElement): Answer {
         })
         .map((choice) => choice.value);
 
-      // todo files
-      // case "file": {
-      //   const maxFilesCount = element.validation?.maxFilesCount ?? 1;
-      //
-      //   const filesCount = faker.number.int({
-      //     min: 1,
-      //     max: maxFilesCount,
-      //   });
-      //
-      //   return Array.from(
-      //     { length: filesCount },
-      //     () => `file_${faker.string.uuid()}`,
-      //   );
-      // }
+    // todo files
+    // case "file": {
+    //   const maxFilesCount = element.validation?.maxFilesCount ?? 1;
+    //
+    //   const filesCount = faker.number.int({
+    //     min: 1,
+    //     max: maxFilesCount,
+    //   });
+    //
+    //   return Array.from(
+    //     { length: filesCount },
+    //     () => `file_${faker.string.uuid()}`,
+    //   );
+    // }
   }
 }
 

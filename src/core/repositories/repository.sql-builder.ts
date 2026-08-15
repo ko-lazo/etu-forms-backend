@@ -99,6 +99,40 @@ export class SqlQueryBuilder<
     };
   }
 
+  public insertMany(rows: readonly TCreate[]): {
+    sql: string;
+    values: unknown[];
+  } {
+    if (rows.length === 0)
+      throw new Error("Insert data must contain at least one row");
+
+    const properties = this.metadata.creatableColumns.filter((prop) =>
+      rows.some((row) => prop in row),
+    );
+
+    if (properties.length === 0)
+      throw new Error("Insert data must contain at least one field");
+
+    const columns = properties.map((prop) => this.getCol(prop));
+    const values: unknown[] = [];
+
+    const tuples = rows.map((row) => {
+      const placeholders = properties.map((prop) => {
+        values.push(
+          this.prepare(prop, (row as Record<string, unknown>)[prop as string]),
+        );
+        return `$${values.length}`;
+      });
+
+      return `(${placeholders.join(", ")})`;
+    });
+
+    return {
+      sql: `INSERT INTO ${this.metadata.tableName} (${columns.join(", ")}) VALUES ${tuples.join(", ")} RETURNING *`,
+      values,
+    };
+  }
+
   public update(id: string, data: TUpdate): { sql: string; values: unknown[] } {
     const entries = this.getAllowedEntries(
       data,
