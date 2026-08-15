@@ -1,4 +1,5 @@
 import type { Readable } from "node:stream";
+import { finished } from "node:stream/promises";
 import QueryStream from "pg-query-stream";
 
 import { BaseRepository } from "@/core/repositories/base.repository.js";
@@ -58,6 +59,7 @@ export class FormResponseRepository extends BaseRepository<
         return await consume(stream);
       } finally {
         stream.destroy();
+        await finished(stream).catch(() => undefined);
       }
     });
   }
