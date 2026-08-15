@@ -13,13 +13,6 @@ export const JOB_STATUSES = Object.values(JOB_STATUS) as [
   ...JobStatus[],
 ];
 
-export const JOB_TYPES = {
-  formResponsesExport: "form-responses.export",
-  formImport: "form.import",
-} as const;
-
-export type JobType = (typeof JOB_TYPES)[keyof typeof JOB_TYPES];
-
 export type JobPayload = Record<string, unknown>;
 
 export type JobResult = Record<string, unknown>;
@@ -43,7 +36,7 @@ export type JobError = {
 
 export interface Job {
   readonly id: string;
-  readonly type: JobType;
+  readonly type: string;
   readonly status: JobStatus;
   readonly userId: string | null;
 
@@ -65,7 +58,7 @@ export interface Job {
 }
 
 export type JobCreate = {
-  readonly type: JobType;
+  readonly type: string;
   readonly userId: string | null;
   readonly payload: JobPayload;
   readonly idempotencyKey?: string | null;

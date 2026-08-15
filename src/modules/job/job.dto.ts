@@ -1,11 +1,8 @@
 import { z } from "zod";
 import { createFindSchema, ModuleDto } from "@/core/dto/dto.types.js";
-import { JOB_STATUSES, JOB_TYPES } from "./job.types.js";
+import { JOB_STATUSES } from "./job.types.js";
 
-const jobTypeSchema = z.enum([
-  JOB_TYPES.formResponsesExport,
-  JOB_TYPES.formImport,
-]);
+const jobTypeSchema = z.string().trim().min(1).max(100);
 
 const jobErrorSchema = z.object({
   code: z.string(),
