@@ -62,7 +62,8 @@ export const formElementSchema = z.discriminatedUnion("type", [
   textFieldSchema,
   numberFieldSchema,
   selectFieldSchema,
-  fileFieldSchema,
+  // todo files
+  // fileFieldSchema,
 ]);
 
 export const formPageSchema = z.object({

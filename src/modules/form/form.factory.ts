@@ -72,24 +72,25 @@ function makeRandomField(): FormElement {
         choices,
       };
 
-    case "file":
-      const rawMimeTypes = faker.helpers.arrayElement([
-        ["image/jpeg", "image/png"],
-        ["application/pdf"],
-        ["image/*", "application/pdf"],
-      ]);
-
-      return {
-        ...base,
-        type: "file" as const,
-        validation: faker.datatype.boolean(0.5)
-          ? {
-              maxFileSizeMb: faker.number.int({ min: 1, max: 20 }),
-              maxFilesCount: faker.number.int({ min: 1, max: 5 }),
-              allowedMimeTypes: [...rawMimeTypes],
-            }
-          : undefined,
-      };
+      // todo files
+      // case "file":
+      //   const rawMimeTypes = faker.helpers.arrayElement([
+      //     ["image/jpeg", "image/png"],
+      //     ["application/pdf"],
+      //     ["image/*", "application/pdf"],
+      //   ]);
+      //
+      //   return {
+      //     ...base,
+      //     type: "file" as const,
+      //     validation: faker.datatype.boolean(0.5)
+      //       ? {
+      //           maxFileSizeMb: faker.number.int({ min: 1, max: 20 }),
+      //           maxFilesCount: faker.number.int({ min: 1, max: 5 }),
+      //           allowedMimeTypes: [...rawMimeTypes],
+      //         }
+      //       : undefined,
+      //   };
 
     default:
       throw new Error(`Unknown type`);
