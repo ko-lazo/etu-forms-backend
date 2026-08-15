@@ -1,13 +1,12 @@
 import { BaseRepository } from "@/core/repositories/base.repository.js";
 import { formMetadata } from "./form.metadata.js";
-import type { Form } from "./form.types.js";
+import type { Form, FormCreate, FormUpdate } from "./form.types.js";
 import { DatabaseClient } from "@/core/database/database.client.js";
-import { CreateFormDto, UpdateFormDto } from "@/modules/form/form.dto.js";
 
 export class FormRepository extends BaseRepository<
   Form,
-  CreateFormDto,
-  UpdateFormDto
+  FormCreate,
+  FormUpdate
 > {
   constructor(db: DatabaseClient) {
     super(db, formMetadata);
