@@ -3,6 +3,7 @@ import { createUserModule } from "@/modules/user/user.module.js";
 import { createFormModule } from "@/modules/form/form.module.js";
 import { createFormResponseModule } from "@/modules/form-response/form-response.module.js";
 import { createJobModule } from "@/modules/job/job.module.js";
+import { createExportResponsesModule } from "@/modules/form-response/export-responses.module.js";
 import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
 import { createAuthModule } from "@/modules/auth/auth.module.js";
 import { OptionalAuthMiddleware } from "@/shared/http/middleware/optional-auth.middleware.js";
@@ -15,6 +16,7 @@ class AppContainer {
   public form!: ReturnType<typeof createFormModule>;
   public formResponse!: ReturnType<typeof createFormResponseModule>;
   public job!: ReturnType<typeof createJobModule>;
+  public exportResponses!: ReturnType<typeof createExportResponsesModule>;
 
   public auth!: ReturnType<typeof createAuthModule>;
   public authMiddleware!: AuthMiddleware;
@@ -37,6 +39,12 @@ class AppContainer {
 
     this.job = createJobModule();
     this.formResponse = createFormResponseModule(this.form.service);
+    this.exportResponses = createExportResponsesModule({
+      formService: this.form.service,
+      formPolicy: this.form.policy,
+      jobService: this.job.service,
+      responseRepository: this.formResponse.repository,
+    });
 
     this.auth = createAuthModule({
       userRepository: this.user.repository,
