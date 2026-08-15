@@ -1,21 +1,12 @@
 import { makeUsers } from "./user.factory.js";
-import { User } from "./user.types.js";
-import { createUserModule } from "./user.module.js";
-import { chunked, CountStrict, resolveCount } from "@/core/database/seed.js";
+import type { User } from "./user.types.js";
+import type { UserService } from "./user.service.js";
 
-export async function seedUsers(count: CountStrict): Promise<User[]> {
-  const userModule = createUserModule();
-  const rawUsersInput = makeUsers(resolveCount(count));
+export async function seedUsers(
+  service: UserService,
+  count: number,
+): Promise<User[]> {
+  const rawUsersInput = makeUsers(count);
 
-  const createdUsers: User[] = [];
-
-  for (const chunk of chunked(rawUsersInput)) {
-    const savedChunk = await Promise.all(
-      chunk.map((user) => userModule.service.create(user)),
-    );
-
-    createdUsers.push(...savedChunk);
-  }
-
-  return createdUsers;
+  return Promise.all(rawUsersInput.map((user) => service.create(user)));
 }

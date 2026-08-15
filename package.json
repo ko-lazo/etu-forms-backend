@@ -16,7 +16,7 @@
     "db:up": "dbmate up",
     "db:down": "dbmate rollback",
     "db:new": "tsx scripts/db-new.ts",
-    "db:seed": "tsx src/core/database/database.seeder.ts"
+    "db:seed": "tsx src/seed.ts"
   },
   "keywords": [],
   "author": "",

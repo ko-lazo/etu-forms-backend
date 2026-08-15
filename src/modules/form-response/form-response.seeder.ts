@@ -1,34 +1,48 @@
 import { makeFormResponse } from "./form-response.factory.js";
 import type { FormResponseCreate } from "./form-response.types.js";
+import type { FormResponseRepository } from "./form-response.repository.js";
 import type { Form } from "@/modules/form/form.types.js";
-import { FormResponseRepository } from "./form-response.repository.js";
-import { dbClient } from "@/core/database/pool.js";
-import { chunked, CountRandom, resolveCount } from "@/core/database/seed.js";
 
-function* generateResponses(
+/** Сколько ответов уходит в БД одним INSERT. */
+const INSERT_BATCH_SIZE = 500;
+
+/**
+ * Генерирует ответы пачками
+ */
+function* generateResponseBatches(
   forms: Form[],
-  responsesPerForm: CountRandom,
-): Generator<FormResponseCreate> {
+  responsesPerForm: () => number,
+): Generator<FormResponseCreate[]> {
+  let batch: FormResponseCreate[] = [];
+
   for (const form of forms) {
-    const responsesCount = resolveCount(responsesPerForm);
+    const responsesCount = responsesPerForm();
 
     for (let i = 0; i < responsesCount; i++) {
-      yield makeFormResponse(form.id, form.schema);
+      batch.push(makeFormResponse(form.id, form.schema));
+
+      if (batch.length === INSERT_BATCH_SIZE) {
+        yield batch;
+        batch = [];
+      }
     }
+  }
+
+  if (batch.length > 0) {
+    yield batch;
   }
 }
 
 export async function seedFormResponses(
+  repository: FormResponseRepository,
   forms: Form[],
-  responsesPerForm: CountRandom,
+  responsesPerForm: () => number,
 ): Promise<number> {
-  const repository = new FormResponseRepository(dbClient);
-
   let createdCount = 0;
 
-  for (const chunk of chunked(generateResponses(forms, responsesPerForm))) {
-    const savedChunk = await repository.createMany(chunk);
-    createdCount += savedChunk.length;
+  for (const batch of generateResponseBatches(forms, responsesPerForm)) {
+    const savedBatch = await repository.createMany(batch);
+    createdCount += savedBatch.length;
   }
 
   return createdCount;

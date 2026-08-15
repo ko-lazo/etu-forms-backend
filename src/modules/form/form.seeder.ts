@@ -1,28 +1,16 @@
 import { makeForms } from "./form.factory.js";
-import { Form } from "./form.types.js";
-import { createFormModule } from "./form.module.js";
-import { User } from "@/modules/user/user.types.js";
-import { chunked, CountRandom, resolveCount } from "@/core/database/seed.js";
+import type { Form } from "./form.types.js";
+import type { FormService } from "./form.service.js";
+import type { User } from "@/modules/user/user.types.js";
 
 export async function seedForms(
+  service: FormService,
   users: User[],
-  formsPerUser: CountRandom,
+  formsPerUser: () => number,
 ): Promise<Form[]> {
-  const formModule = createFormModule();
-
   const fakeFormsInput = users.flatMap((user) =>
-    makeForms(resolveCount(formsPerUser), { userId: user.id }),
+    makeForms(formsPerUser(), { userId: user.id }),
   );
 
-  const createdForms: Form[] = [];
-
-  for (const chunk of chunked(fakeFormsInput)) {
-    const savedChunk = await Promise.all(
-      chunk.map((form) => formModule.service.create(form)),
-    );
-
-    createdForms.push(...savedChunk);
-  }
-
-  return createdForms;
+  return Promise.all(fakeFormsInput.map((form) => service.create(form)));
 }
