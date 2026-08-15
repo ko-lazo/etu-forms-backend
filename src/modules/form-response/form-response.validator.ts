@@ -87,9 +87,10 @@ function validateElementAnswer(
       validateCheckboxAnswer(element, answer, errors);
       return;
 
-    case "file":
-      validateFileAnswer(element, answer, errors);
-      return;
+    // todo files
+    // case "file":
+    //   validateFileAnswer(element, answer, errors);
+    //   return;
   }
 }
 
@@ -242,34 +243,35 @@ function validateCheckboxAnswer(
   }
 }
 
-function validateFileAnswer(
-  element: FormElement,
-  answer: Answer,
-  errors: FormResponseValidationError[],
-): void {
-  if (element.type !== "file") {
-    return;
-  }
-
-  if (typeof answer === "string") {
-    return;
-  }
-
-  if (!Array.isArray(answer)) {
-    errors.push({
-      field: element.name,
-      message: "Invalid file answer",
-    });
-
-    return;
-  }
-
-  const maxFilesCount = element.validation?.maxFilesCount ?? 1;
-
-  if (answer.length > maxFilesCount) {
-    errors.push({
-      field: element.name,
-      message: `Maximum ${maxFilesCount} files allowed`,
-    });
-  }
-}
+// todo files
+// function validateFileAnswer(
+//   element: FormElement,
+//   answer: Answer,
+//   errors: FormResponseValidationError[],
+// ): void {
+//   if (element.type !== "file") {
+//     return;
+//   }
+//
+//   if (typeof answer === "string") {
+//     return;
+//   }
+//
+//   if (!Array.isArray(answer)) {
+//     errors.push({
+//       field: element.name,
+//       message: "Invalid file answer",
+//     });
+//
+//     return;
+//   }
+//
+//   const maxFilesCount = element.validation?.maxFilesCount ?? 1;
+//
+//   if (answer.length > maxFilesCount) {
+//     errors.push({
+//       field: element.name,
+//       message: `Maximum ${maxFilesCount} files allowed`,
+//     });
+//   }
+// }
