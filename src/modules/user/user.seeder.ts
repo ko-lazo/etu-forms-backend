@@ -1,12 +1,16 @@
 import { makeUsers } from "./user.factory.js";
 import type { User } from "./user.types.js";
-import type { UserService } from "./user.service.js";
+import type { UserRepository } from "./user.repository.js";
+import type { PasswordHasher } from "@/shared/security/password-hasher.js";
+
+const SEED_PASSWORD = "password";
 
 export async function seedUsers(
-  service: UserService,
+  repository: UserRepository,
+  hasher: PasswordHasher,
   count: number,
 ): Promise<User[]> {
-  const rawUsersInput = makeUsers(count);
+  const password = await hasher.hash(SEED_PASSWORD);
 
-  return Promise.all(rawUsersInput.map((user) => service.create(user)));
+  return repository.createMany(makeUsers(count, { password }));
 }

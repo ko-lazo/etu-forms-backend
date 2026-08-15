@@ -15,5 +15,10 @@ export function makeUsers(
   count: number,
   overrides: Partial<CreateUserDto> = {},
 ): CreateUserDto[] {
-  return Array.from({ length: count }, (_, index) => makeUser(overrides));
+  return Array.from({ length: count }, (_, index) =>
+    makeUser({
+      email: `${faker.internet.email().toLowerCase()}`,
+      ...overrides,
+    }),
+  );
 }

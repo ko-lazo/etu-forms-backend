@@ -2,23 +2,29 @@ import { dbClient, pool } from "@/core/database/pool.js";
 import { createUserModule } from "@/modules/user/user.module.js";
 import { createFormModule } from "@/modules/form/form.module.js";
 import { FormResponseRepository } from "@/modules/form-response/form-response.repository.js";
+import { PasswordHasher } from "@/shared/security/password-hasher.js";
 import { seedUsers } from "@/modules/user/user.seeder.js";
 import { seedForms } from "@/modules/form/form.seeder.js";
 import { seedFormResponses } from "@/modules/form-response/form-response.seeder.js";
 import { counter, type SeedScenario } from "./seed.scenario.js";
 
 export async function seedDatabase(scenario: SeedScenario): Promise<void> {
-  const userService = createUserModule().service;
-  const formService = createFormModule().service;
+  const userRepository = createUserModule().repository;
+  const formRepository = createFormModule().repository;
   const formResponseRepository = new FormResponseRepository(dbClient);
+  const passwordHasher = new PasswordHasher();
 
   await clearDatabase();
 
-  const createdUsers = await seedUsers(userService, scenario.users);
+  const createdUsers = await seedUsers(
+    userRepository,
+    passwordHasher,
+    scenario.users,
+  );
   console.log(`Users created: ${createdUsers.length}`);
 
   const createdForms = await seedForms(
-    formService,
+    formRepository,
     createdUsers,
     counter(scenario.formsPerUser),
   );
