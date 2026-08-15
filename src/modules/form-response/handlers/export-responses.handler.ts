@@ -1,7 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { once } from "node:events";
 import { Writable } from "node:stream";
-import { pipeline } from "node:stream/promises";
+import { finished, pipeline } from "node:stream/promises";
 import { z } from "zod";
 import ExcelJS from "exceljs";
 
@@ -12,7 +11,7 @@ import {
   type JobResult,
 } from "@/modules/job/index.js";
 import type { IFileStorage } from "@/core/storage/file-storage.interface.js";
-import type { FormRepository } from "@/modules/form/form.repository.js";
+import type { FormService } from "@/modules/form/form.service.js";
 import type { FormSchemaDto } from "@/modules/form/schema/form-schema.schema.js";
 
 import type { FormResponseRepository } from "../form-response.repository.js";
@@ -53,7 +52,7 @@ export class ExportResponsesHandler implements JobHandler<ExportResponsesPayload
   public readonly payloadSchema = exportResponsesPayloadSchema;
 
   constructor(
-    private readonly formRepository: FormRepository,
+    private readonly formService: FormService,
     private readonly responseRepository: FormResponseRepository,
     private readonly storage: IFileStorage,
   ) {}
@@ -70,7 +69,7 @@ export class ExportResponsesHandler implements JobHandler<ExportResponsesPayload
   ): Promise<JobResult> {
     context.signal.throwIfAborted();
 
-    const form = await this.formRepository.findById(payload.formId);
+    const form = await this.formService.findById(payload.formId);
 
     if (!form) {
       throw new PermanentJobError(
@@ -92,8 +91,6 @@ export class ExportResponsesHandler implements JobHandler<ExportResponsesPayload
     const output = await this.storage.createWriteStream(temporaryKey);
 
     try {
-      const closed = once(output, "close");
-
       const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
         stream: output,
         useStyles: false,
@@ -131,24 +128,27 @@ export class ExportResponsesHandler implements JobHandler<ExportResponsesPayload
         await pipeline(rows, writer, { signal: context.signal });
       });
 
-      sheet.commit();
       await workbook.commit();
-      await closed;
+      await finished(output);
+      await this.storage.move(temporaryKey, finalKey);
     } catch (error) {
       output.destroy();
+      await finished(output).catch(() => undefined);
       await this.storage.delete(temporaryKey).catch(() => undefined);
       throw error;
     }
 
-    await this.storage.move(temporaryKey, finalKey);
-
     const stored = await this.storage.stat(finalKey);
+
+    if (!stored) {
+      throw new Error(`Export file ${finalKey} not found`);
+    }
 
     return {
       artifact: {
         key: finalKey,
         name: buildFileName(form.title),
-        size: stored?.size ?? 0,
+        size: stored.size,
         mimeType: XLSX_MIME,
       },
       rowCount: processed,
