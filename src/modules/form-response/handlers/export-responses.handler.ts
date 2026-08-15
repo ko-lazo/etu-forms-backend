@@ -15,9 +15,7 @@ import type { IFileStorage } from "@/core/storage/file-storage.interface.js";
 import type { FormRepository } from "@/modules/form/form.repository.js";
 import type { FormSchemaDto } from "@/modules/form/schema/form-schema.schema.js";
 
-import type {
-  FormResponseRepository,
-} from "../form-response.repository.js";
+import type { FormResponseRepository } from "../form-response.repository.js";
 
 export const EXPORT_RESPONSES_JOB_TYPE = "form-responses.export";
 
