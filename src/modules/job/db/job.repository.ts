@@ -1,21 +1,39 @@
 import { BaseRepository } from "@/core/repositories/base.repository.js";
 import { DatabaseClient } from "@/core/database/database.client.js";
 import { jobMetadata } from "./job.metadata.js";
-import { JOB_STATUS } from "./job.types.js";
+import { JOB_STATUS } from "../job.types.js";
 import type {
   Job,
   JobCreate,
   JobError,
   JobResult,
   JobUpdate,
-} from "./job.types.js";
+} from "../job.types.js";
 
 export type ProgressUpdate = {
   readonly processedCount: number;
   readonly totalCount?: number | null;
 };
 
-export class JobRepository extends BaseRepository<Job, JobCreate, JobUpdate> {
+/**
+ * Узкий порт для чужих транзакций.
+ *
+ * Обработчику из другого модуля нужно записать результат вместе со своим
+ * бизнес-эффектом — и только это. Переходы статуса (`start`, `succeed`,
+ * `fail`, `cancel`) остаются приватными: их единственный владелец —
+ * воркер, иначе операцию можно завершить в обход очереди.
+ *
+ * Соединение передаётся явно и обязательно: порт существует ради записи
+ * в конкретной транзакции, а не в произвольном соединении из пула.
+ */
+export interface IJobResultWriter {
+  saveResult(id: string, result: JobResult, db: DatabaseClient): Promise<void>;
+}
+
+export class JobRepository
+  extends BaseRepository<Job, JobCreate, JobUpdate>
+  implements IJobResultWriter
+{
   constructor(db: DatabaseClient) {
     super(db, jobMetadata);
   }

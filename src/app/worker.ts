@@ -4,8 +4,11 @@ import { jobConfig } from "@/config/index.js";
 import { pool } from "@/core/database/pool.js";
 import { createRedisConnection } from "@/core/queue/connection.js";
 import { closeJobQueue, type JobQueueData } from "@/core/queue/job-queue.js";
-import { JobRunContext } from "@/modules/job/job.context.js";
-import { PermanentJobError, toJobError } from "@/modules/job/job.error.js";
+import { JobRunContext } from "@/modules/job/contract/job.context.js";
+import {
+  PermanentJobError,
+  toJobError,
+} from "@/modules/job/contract/job.error.js";
 import { isTerminal } from "@/modules/job/job.domain.js";
 import { logger, serializeError } from "@/shared/logger/logger.js";
 import { registerShutdownHandlers } from "@/shared/process/shutdown.js";

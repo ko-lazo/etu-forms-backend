@@ -1,8 +1,8 @@
 import { dbClient } from "@/core/database/pool.js";
 import { jobQueue } from "@/core/queue/job-queue.js";
 import { fileStorage } from "@/core/storage/storage.js";
-import { JobController } from "./job.controller.js";
-import { JobRepository } from "./job.repository.js";
+import { JobController } from "./api/job.controller.js";
+import { JobRepository } from "./db/job.repository.js";
 import { JobService } from "./job.service.js";
 import { JobPolicy } from "./job.policy.js";
 

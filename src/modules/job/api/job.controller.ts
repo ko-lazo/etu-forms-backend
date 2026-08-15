@@ -12,13 +12,13 @@ import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 import { logger, serializeError } from "@/shared/logger/logger.js";
 
-import type { JobService } from "./job.service.js";
-import type { JobPolicy } from "./job.policy.js";
+import type { JobService } from "../job.service.js";
+import type { JobPolicy } from "../job.policy.js";
 import { jobMapper } from "./job.mapper.js";
-import { JobScope } from "./job.scope.js";
-import { JobFilter } from "./job.filter.js";
-import { readArtifact } from "./job.artifact.js";
-import type { Job, JobCreate, JobUpdate } from "./job.types.js";
+import { JobScope } from "../db/job.scope.js";
+import { JobFilter } from "../db/job.filter.js";
+import { readArtifact } from "../job.domain.js";
+import type { Job, JobCreate, JobUpdate } from "../job.types.js";
 import type { FindJobDto, JobResponseDto } from "./job.dto.js";
 
 export class JobController extends BaseController<

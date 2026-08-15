@@ -1,6 +1,6 @@
 import type { Logger } from "@/shared/logger/logger.js";
-import type { ProgressUpdate } from "./job.repository.js";
-import type { Job } from "./job.types.js";
+import type { ProgressUpdate } from "../db/job.repository.js";
+import type { Job } from "../job.types.js";
 
 /**
  * Контекст выполнения job.

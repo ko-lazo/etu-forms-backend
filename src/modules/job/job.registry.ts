@@ -1,8 +1,8 @@
 import { z } from "zod";
 
-import type { JobContext } from "./job.context.js";
-import { PermanentJobError } from "./job.error.js";
-import type { JobHandler } from "./job.handler.js";
+import type { JobContext } from "./contract/job.context.js";
+import { PermanentJobError } from "./contract/job.error.js";
+import type { JobHandler } from "./contract/job.handler.js";
 import type { JobResult } from "./job.types.js";
 
 type RegisteredHandler = (

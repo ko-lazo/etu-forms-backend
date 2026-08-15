@@ -1,5 +1,5 @@
 import { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
-import { Job, JobCreate, JobUpdate } from "./job.types.js";
+import { Job, JobCreate, JobUpdate } from "../job.types.js";
 
 export const jobMetadata = {
   tableName: "jobs",

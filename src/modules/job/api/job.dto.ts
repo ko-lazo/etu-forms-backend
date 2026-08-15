@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createFindSchema, ModuleDto } from "@/core/dto/dto.types.js";
-import { JOB_STATUSES } from "./job.types.js";
+import { JOB_STATUSES } from "../job.types.js";
 
 const jobTypeSchema = z.string().trim().min(1).max(100);
 

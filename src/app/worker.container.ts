@@ -1,5 +1,5 @@
 import { JobRegistry } from "@/modules/job/job.registry.js";
-import type { JobRepository } from "@/modules/job/job.repository.js";
+import type { JobRepository } from "@/modules/job/db/job.repository.js";
 import { container } from "./app.container.js";
 
 export type WorkerContainer = {

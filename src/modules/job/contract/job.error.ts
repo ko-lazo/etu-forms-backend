@@ -1,4 +1,4 @@
-import type { JobError } from "./job.types.js";
+import type { JobError } from "../job.types.js";
 
 /**
  * Критическая ошибка выполнения задачи, исключающая повторные попытки.

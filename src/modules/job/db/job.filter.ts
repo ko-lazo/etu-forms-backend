@@ -1,7 +1,7 @@
 import { BaseFilter } from "@/core/repositories/base.filter.js";
-import { Job } from "@/modules/job/job.types.js";
-import { FindJobDto } from "@/modules/job/job.dto.js";
-import { jobMetadata } from "@/modules/job/job.metadata.js";
+import { Job } from "../job.types.js";
+import { FindJobDto } from "../api/job.dto.js";
+import { jobMetadata } from "./job.metadata.js";
 
 export class JobFilter extends BaseFilter<Job> {
   constructor(query: FindJobDto) {

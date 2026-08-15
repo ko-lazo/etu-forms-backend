@@ -1,6 +1,6 @@
 import type { z } from "zod";
 import type { JobContext } from "./job.context.js";
-import type { JobResult } from "./job.types.js";
+import type { JobResult } from "../job.types.js";
 
 /**
  * Обработчик фоновой операции.
