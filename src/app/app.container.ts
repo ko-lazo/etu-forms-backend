@@ -38,7 +38,6 @@ class AppContainer {
     });
 
     this.job = createJobModule();
-    this.formResponse = createFormResponseModule(this.form.service);
     this.exportResponses = createExportResponsesModule({
       formService: this.form.service,
       formPolicy: this.form.policy,
