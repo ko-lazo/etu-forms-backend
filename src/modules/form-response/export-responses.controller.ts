@@ -32,10 +32,17 @@ export class ExportResponsesController {
       throw new ForbiddenError();
     }
 
+    const idempotencyKey = req.header("Idempotency-Key");
+
     const job = await this.jobService.enqueue({
       type: EXPORT_RESPONSES_JOB_TYPE,
       userId: req.user.id,
       payload: { formId: form.id },
+      ...(idempotencyKey
+        ? {
+            idempotencyKey: `${EXPORT_RESPONSES_JOB_TYPE}:${req.user.id}:${idempotencyKey}`,
+          }
+        : {}),
     });
 
     res.status(202).json(jobMapper.toResponse(job));
