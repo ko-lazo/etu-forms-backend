@@ -14,6 +14,7 @@ import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import { FindContext } from "@/core/repositories/repository.interface.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import { FormPolicy } from "@/modules/form/form.policy.js";
+import { formMapper } from "@/modules/form/form.mapper.js";
 
 export class FormController extends BaseController<
   Form,
@@ -22,7 +23,7 @@ export class FormController extends BaseController<
   FormResponseDto
 > {
   constructor(formService: FormService, formPolicy: FormPolicy) {
-    super(formService, formPolicy);
+    super(formService, formPolicy, formMapper);
   }
 
   protected override getFindAllOptions(req: Request): FindContext<Form> {

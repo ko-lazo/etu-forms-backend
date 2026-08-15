@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createFindSchema, ModuleDto } from "@/core/dto/dto.types.js";
 import { formSchemaObject } from "./schema/form-schema.schema.js";
+import { FORM_STATUS } from "./form.domain.js";
 
 export const formDto = {
   createSchema: z.object({
@@ -22,8 +23,12 @@ export const formDto = {
     title: z.string().trim().min(1).max(500),
     schema: formSchemaObject,
     settings: z.record(z.string(), z.unknown()).default({}),
-    publishedAt: z.date(),
-    archivedAt: z.date(),
+
+    status: z.enum(FORM_STATUS),
+    isPublic: z.boolean(),
+
+    publishedAt: z.date().nullable(),
+    archivedAt: z.date().nullable(),
     createdAt: z.date(),
   }),
 
