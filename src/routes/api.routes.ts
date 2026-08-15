@@ -6,6 +6,9 @@ import { createUserRoutes } from "@/modules/user/user.routes.js";
 import { createFormRoutes } from "@/modules/form/form.routes.js";
 import { createAuthRoutes } from "@/modules/auth/auth.routes.js";
 import { createFormResponseRoutes } from "@/modules/form-response/form-response.routes.js";
+import { createJobRoutes } from "@/modules/job/api/job.routes.js";
+import { createExportResponsesRoutes } from "@/modules/form-response/export-responses.routes.js";
+import { createImportFormRoutes } from "@/modules/form/import-form.routes.js";
 
 export function createApiRoutes(): Router {
   const apiRoutes = Router();
@@ -17,6 +20,7 @@ export function createApiRoutes(): Router {
   const { controller: userController } = container.user;
   const { controller: formController } = container.form;
   const { controller: formResponseController } = container.formResponse;
+  const { controller: jobController } = container.job;
 
   apiRoutes.use("/auth", createAuthRoutes(authController, authMiddleware));
   apiRoutes.use(
@@ -32,6 +36,7 @@ export function createApiRoutes(): Router {
     "/forms/:formId/responses",
     createFormResponseRoutes(formResponseController, authMiddleware),
   );
+  apiRoutes.use("/jobs", createJobRoutes(jobController, authMiddleware));
 
   return apiRoutes;
 }

@@ -109,6 +109,30 @@ CREATE TABLE public.forms (
 
 
 --
+-- Name: jobs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.jobs (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    type character varying(100) NOT NULL,
+    status character varying(20) DEFAULT 'pending'::character varying NOT NULL,
+    user_id uuid,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    result jsonb,
+    error jsonb,
+    idempotency_key character varying(255),
+    processed_count integer DEFAULT 0 NOT NULL,
+    total_count integer,
+    cancel_requested_at timestamp with time zone,
+    started_at timestamp with time zone,
+    finished_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT jobs_status_check CHECK (((status)::text = ANY ((ARRAY['pending'::character varying, 'running'::character varying, 'succeeded'::character varying, 'failed'::character varying, 'cancelled'::character varying])::text[])))
+);
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -163,6 +187,22 @@ ALTER TABLE ONLY public.forms
 
 
 --
+-- Name: jobs jobs_idempotency_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.jobs
+    ADD CONSTRAINT jobs_idempotency_key_key UNIQUE (idempotency_key);
+
+
+--
+-- Name: jobs jobs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.jobs
+    ADD CONSTRAINT jobs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -201,6 +241,13 @@ CREATE INDEX idx_forms_user_id ON public.forms USING btree (user_id);
 
 
 --
+-- Name: idx_jobs_user_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_jobs_user_id ON public.jobs USING btree (user_id, created_at DESC);
+
+
+--
 -- Name: form_responses form_responses_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -212,6 +259,13 @@ CREATE TRIGGER form_responses_set_updated_at BEFORE UPDATE ON public.form_respon
 --
 
 CREATE TRIGGER forms_set_updated_at BEFORE UPDATE ON public.forms FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: jobs jobs_set_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER jobs_set_updated_at BEFORE UPDATE ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
 
 --
@@ -246,6 +300,14 @@ ALTER TABLE ONLY public.forms
 
 
 --
+-- Name: jobs jobs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.jobs
+    ADD CONSTRAINT jobs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
@@ -258,4 +320,5 @@ ALTER TABLE ONLY public.forms
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260725100225'),
-    ('20260725102651');
+    ('20260725102651'),
+    ('20260813225848');
