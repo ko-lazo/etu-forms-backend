@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { conditionSchema } from "@/modules/form/schema/condition.schema.js";
+import { conditionSchema } from "./condition.schema.js";
 
 const baseFieldSchema = z.object({
   name: z
@@ -53,6 +53,7 @@ const selectFieldSchema = baseFieldSchema.extend({
   choices: z.array(choiceOptionSchema).min(1),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const fileFieldSchema = baseFieldSchema.extend({
   type: z.literal("file"),
   validation: fileValidation.optional(),

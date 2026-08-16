@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { ExportController } from "./export.controller.js";
-import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
+import { type AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
 
 export function createExportRoutes(
   controller: ExportController,

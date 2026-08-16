@@ -1,6 +1,10 @@
-import { User, UserRegistration, UserUpdate } from "./user.types.js";
-import { UserRepository } from "./db/user.repository.js";
-import { PasswordHasher } from "@/shared/security/password-hasher.js";
+import {
+  type User,
+  type UserRegistration,
+  type UserUpdate,
+} from "./user.types.js";
+import { type UserRepository } from "./db/user.repository.js";
+import { type PasswordHasher } from "@/shared/security/password-hasher.js";
 import { BaseService } from "@/core/services/base.service.js";
 
 export class UserService extends BaseService<
@@ -22,7 +26,7 @@ export class UserService extends BaseService<
   override async create(data: UserRegistration): Promise<User> {
     const passwordHash = await this.passwordHasher.hash(data.password);
 
-    return this.repository.create({
+    return await this.repository.create({
       email: data.email,
       password: passwordHash,
     });

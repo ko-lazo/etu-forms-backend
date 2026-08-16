@@ -89,7 +89,7 @@ export class DatabaseClient {
     fn: (tx: DatabaseClient) => Promise<T>,
   ): Promise<T> {
     if (!isPool(this.queryable)) {
-      return fn(this);
+      return await fn(this);
     }
 
     const client = await this.queryable.connect();
@@ -119,6 +119,7 @@ export class DatabaseClient {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   private mapToEntity<T>(
     row: QueryResultRow,
     columns: Record<string, string | undefined>,

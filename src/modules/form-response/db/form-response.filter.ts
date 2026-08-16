@@ -1,7 +1,7 @@
 import { BaseFilter } from "@/core/repositories/base.filter.js";
-import { FindFormResponseDto } from "../api/form-response.dto.js";
+import { type FindFormResponseDto } from "../api/form-response.dto.js";
 import { formResponseMetadata } from "./form-response.metadata.js";
-import { FormResponse } from "../form-response.types.js";
+import { type FormResponse } from "../form-response.types.js";
 
 export class FormResponseFilter extends BaseFilter<FormResponse> {
   constructor(query: FindFormResponseDto) {

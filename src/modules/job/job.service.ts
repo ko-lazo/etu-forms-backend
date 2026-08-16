@@ -5,7 +5,7 @@ import type { JobQueueData } from "@/core/queue/job-queue.js";
 import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 import { ServiceUnavailableError } from "@/shared/errors/service-unavailable.error.js";
 import { logger, serializeError } from "@/shared/logger/logger.js";
-import { JobRepository } from "./db/job.repository.js";
+import { type JobRepository } from "./db/job.repository.js";
 import { isTerminal } from "./job.domain.js";
 import { type Job, type JobCreate, type JobUpdate } from "./job.types.js";
 

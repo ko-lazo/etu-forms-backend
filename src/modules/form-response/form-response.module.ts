@@ -1,5 +1,5 @@
 import { dbClient } from "@/core/database/pool.js";
-import { FormService } from "@/modules/form/form.service.js";
+import type { FormService } from "@/modules/form/index.js";
 import { FormResponseController } from "./api/form-response.controller.js";
 import { FormResponseRepository } from "./db/form-response.repository.js";
 import { FormResponseService } from "./form-response.service.js";

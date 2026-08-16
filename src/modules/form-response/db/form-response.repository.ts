@@ -1,9 +1,9 @@
 import { BaseRepository } from "@/core/repositories/base.repository.js";
-import { DatabaseClient } from "@/core/database/database.client.js";
+import { type DatabaseClient } from "@/core/database/database.client.js";
 import {
-  FormResponse,
-  FormResponseCreate,
-  FormResponseUpdate,
+  type FormResponse,
+  type FormResponseCreate,
+  type FormResponseUpdate,
 } from "../form-response.types.js";
 import type { ExportedResponseRow } from "../export/export.types.js";
 import { formResponseMetadata } from "./form-response.metadata.js";

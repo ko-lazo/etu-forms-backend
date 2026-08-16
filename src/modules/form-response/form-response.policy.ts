@@ -1,7 +1,6 @@
-import { ISubResourcePolicy } from "@/core/policies/policy.interface.js";
+import { type ISubResourcePolicy } from "@/core/policies/policy.interface.js";
 import type { FormResponse } from "./form-response.types.js";
-import type { FormService } from "@/modules/form/form.service.js";
-import type { FormPolicy } from "@/modules/form/form.policy.js";
+import type { FormPolicy, FormService } from "@/modules/form/index.js";
 
 export class FormResponsePolicy implements ISubResourcePolicy<FormResponse> {
   constructor(

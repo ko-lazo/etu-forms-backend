@@ -1,7 +1,7 @@
 import { makeFormResponse } from "./form-response.factory.js";
 import type { FormResponseCreate } from "../form-response.types.js";
 import type { FormResponseRepository } from "./form-response.repository.js";
-import type { Form } from "@/modules/form/form.types.js";
+import type { Form } from "@/modules/form/index.js";
 
 /** Сколько ответов уходит в БД одним INSERT. */
 const INSERT_BATCH_SIZE = 500;

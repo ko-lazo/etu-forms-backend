@@ -1,6 +1,6 @@
 import { BaseFilter } from "@/core/repositories/base.filter.js";
-import { Form } from "../form.types.js";
-import { FindFormDto } from "../api/form.dto.js";
+import { type Form } from "../form.types.js";
+import { type FindFormDto } from "../api/form.dto.js";
 import { formMetadata } from "./form.metadata.js";
 
 export class FormFilter extends BaseFilter<Form> {

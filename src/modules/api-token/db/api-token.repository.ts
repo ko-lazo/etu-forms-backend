@@ -1,9 +1,9 @@
 import { BaseRepository } from "@/core/repositories/base.repository.js";
-import { DatabaseClient } from "@/core/database/database.client.js";
+import { type DatabaseClient } from "@/core/database/database.client.js";
 import {
-  ApiToken,
-  ApiTokenCreate,
-  ApiTokenUpdate,
+  type ApiToken,
+  type ApiTokenCreate,
+  type ApiTokenUpdate,
 } from "../api-token.types.js";
 import { apiTokenMetadata } from "./api-token.metadata.js";
 
@@ -17,7 +17,7 @@ export class ApiTokenRepository extends BaseRepository<
   }
 
   async findByToken(hashedToken: string): Promise<ApiToken | null> {
-    return this.db.queryOne<ApiToken>(
+    return await this.db.queryOne<ApiToken>(
       `SELECT * FROM ${this.table} WHERE ${this.col("token")} = $1 LIMIT 1`,
       [hashedToken],
       this.metadata.columns,

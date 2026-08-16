@@ -6,7 +6,7 @@ import { getRouteParam } from "@/shared/http/http.params.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import { ForbiddenError } from "@/shared/errors/forbidden.error.js";
-import { ISubResourcePolicy } from "@/core/policies/policy.interface.js";
+import { type ISubResourcePolicy } from "@/core/policies/policy.interface.js";
 
 // todo refactor
 export abstract class BaseSubController<

@@ -1,12 +1,12 @@
 import { BaseService } from "@/core/services/base.service.js";
 import {
-  ApiToken,
-  ApiTokenCreate,
-  ApiTokenUpdate,
+  type ApiToken,
+  type ApiTokenCreate,
+  type ApiTokenUpdate,
 } from "./api-token.types.js";
-import { ApiTokenRepository } from "./db/api-token.repository.js";
-import { TokenHasher } from "@/shared/security/token-hasher.js";
-import { IAuthTokenValidator } from "@/shared/http/auth-service.interface.js";
+import { type ApiTokenRepository } from "./db/api-token.repository.js";
+import { type TokenHasher } from "@/shared/security/token-hasher.js";
+import { type IAuthTokenValidator } from "@/shared/http/auth-service.interface.js";
 
 export class ApiTokenService
   extends BaseService<ApiToken, ApiTokenCreate, ApiTokenUpdate>

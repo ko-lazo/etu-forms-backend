@@ -82,6 +82,7 @@ async function processJob(
 
     jobLogger.info("Job completed");
   } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (cancelled) {
       await jobRepository.cancel(started.id);
       jobLogger.info("Job cancelled");

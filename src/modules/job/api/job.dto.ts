@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createFindSchema, ModuleDto } from "@/core/dto/dto.types.js";
+import { createFindSchema, type ModuleDto } from "@/core/dto/dto.types.js";
 import { JOB_STATUSES } from "../job.types.js";
 
 const jobTypeSchema = z.string().trim().min(1).max(100);
@@ -56,7 +56,7 @@ export const jobDto = {
     status: z.enum(JOB_STATUSES).optional(),
     type: jobTypeSchema.optional(),
   }),
-} satisfies ModuleDto<z.ZodTypeAny, z.ZodTypeAny, z.ZodTypeAny>;
+} satisfies ModuleDto<z.ZodType, z.ZodType, z.ZodType>;
 
 export type CreateJobDto = z.infer<typeof jobDto.createSchema>;
 export type JobResponseDto = z.infer<typeof jobDto.responseSchema>;

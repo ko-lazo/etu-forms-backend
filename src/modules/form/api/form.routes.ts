@@ -2,8 +2,8 @@ import { Router } from "express";
 import type { FormController } from "./form.controller.js";
 import { validate } from "@/shared/http/middleware/validate.middleware.js";
 import { formDto } from "./form.dto.js";
-import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
-import { OptionalAuthMiddleware } from "@/shared/http/middleware/optional-auth.middleware.js";
+import { type AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
+import { type OptionalAuthMiddleware } from "@/shared/http/middleware/optional-auth.middleware.js";
 
 export function createFormRoutes(
   controller: FormController,

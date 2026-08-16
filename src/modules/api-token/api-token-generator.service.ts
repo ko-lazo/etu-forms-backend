@@ -1,7 +1,7 @@
-import { ApiTokenRepository } from "./db/api-token.repository.js";
-import { TokenGenerator } from "@/shared/security/token-generator.js";
-import { TokenHasher } from "@/shared/security/token-hasher.js";
-import {ApiToken, ApiTokenIssuance } from "./api-token.types.js";
+import { type ApiTokenRepository } from "./db/api-token.repository.js";
+import { type TokenGenerator } from "@/shared/security/token-generator.js";
+import { type TokenHasher } from "@/shared/security/token-hasher.js";
+import { type ApiToken, type ApiTokenIssuance } from "./api-token.types.js";
 
 export class ApiTokenGeneratorService {
   constructor(

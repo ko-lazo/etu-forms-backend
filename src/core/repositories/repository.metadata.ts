@@ -1,5 +1,5 @@
-import { QueryResultRow } from "pg";
-import { ColumnMap } from "./types.js";
+import { type QueryResultRow } from "pg";
+import { type ColumnMap } from "./types.js";
 
 type StringKeyOf<T> = Extract<keyof T, string>;
 

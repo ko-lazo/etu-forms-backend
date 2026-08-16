@@ -1,6 +1,6 @@
-import { Request, Response } from "express";
-import { NextFunction } from "express";
-import { IAuthTokenValidator } from "@/shared/http/auth-service.interface.js";
+import { type Request, type Response } from "express";
+import { type NextFunction } from "express";
+import { type IAuthTokenValidator } from "@/shared/http/auth-service.interface.js";
 
 export class AuthMiddleware {
   constructor(private readonly tokenValidator: IAuthTokenValidator) {}

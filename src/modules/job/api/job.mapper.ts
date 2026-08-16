@@ -1,7 +1,7 @@
-import { IMapper } from "@/core/dto/mapper.interface.js";
+import { type IMapper } from "@/core/dto/mapper.interface.js";
 import { computeProgress } from "../job.domain.js";
 import { type Job } from "../job.types.js";
-import { jobDto, JobResponseDto } from "./job.dto.js";
+import { jobDto, type JobResponseDto } from "./job.dto.js";
 
 export const jobMapper: IMapper<Job, JobResponseDto> = {
   toResponse(job: Job): JobResponseDto {

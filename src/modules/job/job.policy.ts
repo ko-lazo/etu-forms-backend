@@ -1,5 +1,5 @@
-import { IResourcePolicy } from "@/core/policies/policy.interface.js";
-import { Job } from "./job.types.js";
+import { type IResourcePolicy } from "@/core/policies/policy.interface.js";
+import { type Job } from "./job.types.js";
 
 export class JobPolicy implements IResourcePolicy<Job> {
   view(userId: string | undefined, job: Job): boolean {

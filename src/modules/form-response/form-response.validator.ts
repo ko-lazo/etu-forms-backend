@@ -1,4 +1,4 @@
-import type { FormSchema } from "@/modules/form/schema/form-schema.schema.js";
+import type { FormSchema } from "@/modules/form/index.js";
 import type {
   FormResponseAnswer as Answer,
   FormResponseAnswers as Answers,

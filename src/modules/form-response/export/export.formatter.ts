@@ -2,7 +2,7 @@ import { Writable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import ExcelJS from "exceljs";
 
-import type { FormSchema } from "@/modules/form/schema/form-schema.schema.js";
+import type { FormSchema } from "@/modules/form/index.js";
 
 import type {
   ExportColumn,

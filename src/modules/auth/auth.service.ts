@@ -1,10 +1,11 @@
-import { LoginDto } from "./auth.dto.js";
-import { UserService } from "@/modules/user/user.service.js";
-import { PasswordHasher } from "@/shared/security/password-hasher.js";
-import { ApiTokenGeneratorService } from "@/modules/api-token/api-token-generator.service.js";
-import { ApiToken } from "@/modules/api-token/api-token.types.js";
+import { type LoginDto } from "./auth.dto.js";
+import type { User, UserService } from "@/modules/user/index.js";
+import { type PasswordHasher } from "@/shared/security/password-hasher.js";
+import type {
+  ApiToken,
+  ApiTokenGeneratorService,
+} from "@/modules/api-token/index.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
-import { User } from "@/modules/user/user.types.js";
 
 export class AuthService {
   constructor(

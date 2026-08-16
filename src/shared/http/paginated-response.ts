@@ -1,5 +1,3 @@
-import { BasePagination } from "@/core/repositories/base.pagination.js";
-
 export interface IPaginatedResult<TEntity> {
   data: TEntity[];
   meta: {
@@ -10,20 +8,18 @@ export interface IPaginatedResult<TEntity> {
   };
 }
 
-export class PaginatedResponse {
-  public static create<T>(
-    data: T[],
-    total: number,
-    pagination: BasePagination,
-  ): IPaginatedResult<T> {
-    return {
-      data,
-      meta: {
-        total,
-        page: pagination.page,
-        limit: pagination.limit,
-        totalPages: Math.ceil(total / pagination.limit),
-      },
-    };
-  }
+export function paginatedResponse<T>(
+  data: T[],
+  total: number,
+  pagination: { readonly page: number; readonly limit: number },
+): IPaginatedResult<T> {
+  return {
+    data,
+    meta: {
+      total,
+      page: pagination.page,
+      limit: pagination.limit,
+      totalPages: Math.ceil(total / pagination.limit),
+    },
+  };
 }

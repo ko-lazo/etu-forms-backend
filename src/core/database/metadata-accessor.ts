@@ -1,4 +1,4 @@
-import { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
+import { type RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
 
 export class MetadataAccessor<
   TEntity extends object,
@@ -10,8 +10,7 @@ export class MetadataAccessor<
   ) {}
 
   public col(property: keyof TEntity): string {
-    const column =
-      this.metadata.columns[property as keyof typeof this.metadata.columns];
+    const column = this.metadata.columns[property];
     if (!column) {
       throw new Error(`Unknown column "${String(property)}"`);
     }

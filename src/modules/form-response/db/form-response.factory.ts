@@ -1,7 +1,7 @@
 import { fakerRU as faker } from "@faker-js/faker";
-import type { FormSchema } from "@/modules/form/schema/form-schema.schema.js";
+import type { FormSchema } from "@/modules/form/index.js";
 import {
-  FormResponseCreate,
+  type FormResponseCreate,
   type FormResponseAnswer as Answer,
 } from "../form-response.types.js";
 

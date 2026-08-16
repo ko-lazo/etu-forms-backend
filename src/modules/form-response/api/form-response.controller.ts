@@ -23,6 +23,7 @@ export class FormResponseController extends BaseSubController<
   FormResponseUpdate,
   FormResponseDto
 > {
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
   constructor(formResponseService: FormResponseService) {
     super(formResponseService);
   }

@@ -3,8 +3,8 @@ import { Router } from "express";
 import { validate } from "@/shared/http/middleware/validate.middleware.js";
 import { loginRateLimit } from "@/shared/http/middleware/rate-limit.middleware.js";
 import { authDto } from "./auth.dto.js";
-import { AuthController } from "./auth.controller.js";
-import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
+import { type AuthController } from "./auth.controller.js";
+import { type AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
 
 export function createAuthRoutes(
   controller: AuthController,
