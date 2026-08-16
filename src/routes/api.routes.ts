@@ -20,6 +20,7 @@ export function createApiRoutes(): Router {
   const { controller: userController } = container.user;
   const { controller: formController } = container.form;
   const { controller: formResponseController } = container.formResponse;
+  const { controller: exportController } = container.exportResponses;
   const { controller: jobController } = container.job;
 
   apiRoutes.use("/auth", createAuthRoutes(authController, authMiddleware));
@@ -35,6 +36,10 @@ export function createApiRoutes(): Router {
   apiRoutes.use(
     "/forms/:formId/responses",
     createFormResponseRoutes(formResponseController, authMiddleware),
+  );
+  apiRoutes.use(
+    "/forms/:formId/export",
+    createExportResponsesRoutes(exportController, authMiddleware),
   );
   apiRoutes.use("/jobs", createJobRoutes(jobController, authMiddleware));
 

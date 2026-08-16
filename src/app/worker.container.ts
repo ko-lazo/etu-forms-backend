@@ -14,7 +14,8 @@ export type WorkerContainer = {
 export function createWorkerContainer(): WorkerContainer {
   container.init();
 
-  const registry = new JobRegistry();
+  const registry = new JobRegistry()
+    .register(container.exportResponses.handler)
 
   return {
     jobRepository: container.job.repository,

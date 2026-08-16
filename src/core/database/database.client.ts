@@ -1,4 +1,6 @@
+import { finished } from "node:stream/promises";
 import type { Pool, PoolClient, QueryResultRow } from "pg";
+import QueryStream from "pg-query-stream";
 
 export type Queryable = Pool | PoolClient;
 
@@ -33,6 +35,31 @@ export class DatabaseClient {
 
   public async execute(sql: string, params: unknown[] = []): Promise<void> {
     await this.queryable.query(sql, params);
+  }
+
+  /**
+   * Стримит результаты SQL-запроса через асинхронный генератор.
+   * Автоматически управляет соединением и уничтожает поток после обработки.
+   */
+  public async *stream<T extends QueryResultRow = QueryResultRow>(
+    sql: string,
+    params: unknown[] = [],
+    options: { batchSize?: number } = {},
+  ): AsyncGenerator<T> {
+    if (!isPool(this.queryable)) {
+      throw new Error("No pool is presented for dedicated connection");
+    }
+
+    const client = await this.queryable.connect();
+    const stream = client.query(new QueryStream(sql, params, options));
+
+    try {
+      yield* stream;
+    } finally {
+      stream.destroy();
+      await finished(stream).catch(() => undefined);
+      client.release();
+    }
   }
 
   /**
