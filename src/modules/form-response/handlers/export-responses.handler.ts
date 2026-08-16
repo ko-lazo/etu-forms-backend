@@ -17,12 +17,14 @@ import type { Form } from "@/modules/form/form.types.js";
 import type { FormSchemaDto } from "@/modules/form/schema/form-schema.schema.js";
 
 import type { FormResponseRepository } from "../form-response.repository.js";
-import { FormResponseExportRow } from "@/modules/form-response/form-response.types.js";
+import type { FormResponseExportRow } from "@/modules/form-response/form-response.types.js";
 
 export const EXPORT_RESPONSES_JOB_TYPE = "form-responses.export";
 
 export const XLSX_MIME =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+export const MAX_EXPORT_ROWS = 500_000;
 
 export const exportResponsesPayloadSchema = z.object({
   formId: z.uuid(),
@@ -94,6 +96,15 @@ export class ExportResponsesHandler implements JobHandler<ExportResponsesPayload
     }
 
     const total = await this.responseRepository.countByFormId(form.id);
+
+    // todo поддержка крупных экспортов (сделать через csv)
+    if (total > MAX_EXPORT_ROWS) {
+      throw new PermanentJobError(
+          "EXPORT_TOO_LARGE",
+          `Large exports are not supported yet: ${total} rows`,
+      );
+    }
+
     context.reportProgress(0, total);
 
     const keys: ExportFileKeys = {
@@ -154,7 +165,7 @@ export class ExportResponsesHandler implements JobHandler<ExportResponsesPayload
 }
 
 /**
- * Наполняет workbook строками и закрывает её.
+ * Наполняет XLSX workbook строками
  * @returns число записанных строк
  */
 async function writeWorkbook({
