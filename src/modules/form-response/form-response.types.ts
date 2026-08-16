@@ -19,3 +19,10 @@ export type FormResponseUpdate = Pick<
   FormResponse,
   "answers" | "metadata" | "submittedAt"
 >;
+
+export type FormResponseExportRow = {
+  readonly id: string;
+  readonly answers: Record<string, unknown>;
+  readonly createdAt: Date;
+  readonly submittedAt: Date | null;
+};

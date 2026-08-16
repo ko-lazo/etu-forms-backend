@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Writable, type Readable } from "node:stream";
+import { Writable } from "node:stream";
 import { finished, pipeline } from "node:stream/promises";
 import { z } from "zod";
 import ExcelJS from "exceljs";
@@ -16,6 +16,7 @@ import type { Form } from "@/modules/form/form.types.js";
 import type { FormSchemaDto } from "@/modules/form/schema/form-schema.schema.js";
 
 import type { FormResponseRepository } from "../form-response.repository.js";
+import { FormResponseExportRow } from "@/modules/form-response/form-response.types.js";
 
 export const EXPORT_RESPONSES_JOB_TYPE = "form-responses.export";
 
@@ -29,13 +30,6 @@ export const exportResponsesPayloadSchema = z.object({
 export type ExportResponsesPayload = z.infer<
   typeof exportResponsesPayloadSchema
 >;
-
-export type ExportedResponseRow = {
-  readonly id: string;
-  readonly answers: Record<string, unknown>;
-  readonly createdAt: Date;
-  readonly submittedAt: Date | null;
-};
 
 type ExportColumn = {
   readonly name: string;
@@ -53,7 +47,7 @@ type WriteWorkbookOptions = {
   readonly output: Writable;
 
   /** Откуда берём строки для записи в файл */
-  readonly rows: Readable;
+  readonly rows: AsyncIterable<FormResponseExportRow>;
 
   /** Колонки ответов */
   readonly columns: readonly ExportColumn[];
@@ -63,7 +57,6 @@ type WriteWorkbookOptions = {
   /** Вызывается после каждой строки с их накопленным числом */
   readonly onProgress: (processed: number) => void;
 };
-
 
 /**
  * Воркер для выгрузки ответов формы в Excel.
@@ -141,17 +134,13 @@ export class ExportResponsesHandler implements JobHandler<ExportResponsesPayload
     const output = await this.storage.createWriteStream(keys.temporary);
 
     try {
-      const rowCount = await this.responseRepository.streamByFormId(
-        form.id,
-        (rows) =>
-          writeWorkbook({
-            output,
-            rows,
-            columns,
-            signal: context.signal,
-            onProgress: (processed) => context.reportProgress(processed),
-          }),
-      );
+      const rowCount = await writeWorkbook({
+        output,
+        rows: this.responseRepository.streamByFormId(form.id),
+        columns,
+        signal: context.signal,
+        onProgress: (processed) => context.reportProgress(processed),
+      });
 
       await finished(output);
       await this.storage.move(keys.temporary, keys.final);
@@ -196,7 +185,7 @@ async function writeWorkbook({
 
   const writer = new Writable({
     objectMode: true,
-    write: (row: ExportedResponseRow, _encoding, callback) => {
+    write: (row: FormResponseExportRow, _encoding, callback) => {
       try {
         sheet.addRow(toRowValues(row, columns)).commit();
 
@@ -210,7 +199,6 @@ async function writeWorkbook({
     },
   });
 
-  // todo ExcelJS streaming writer не является частью Node stream backpressure chain ?
   await pipeline(rows, writer, { signal });
 
   await workbook.commit();
@@ -234,7 +222,7 @@ function collectColumns(schema: FormSchemaDto): ExportColumn[] {
  * Превращает сырую строку ответа на форму из БД в массив значений для вставки в Excel
  */
 function toRowValues(
-  row: ExportedResponseRow,
+  row: FormResponseExportRow,
   columns: readonly ExportColumn[],
 ): unknown[] {
   return [
