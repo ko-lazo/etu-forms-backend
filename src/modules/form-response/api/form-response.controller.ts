@@ -11,9 +11,9 @@ import type {
   FormResponse,
   FormResponseCreate,
   FormResponseUpdate,
-} from "./form-response.types.js";
-import type { FormResponseService } from "./form-response.service.js";
-import { FormResponseScope } from "./form-response.scope.js";
+} from "../form-response.types.js";
+import type { FormResponseService } from "../form-response.service.js";
+import { FormResponseScope } from "../db/form-response.scope.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 
 // todo refactor

@@ -3,7 +3,7 @@ import {
   FormResponse,
   FormResponseCreate,
   FormResponseUpdate,
-} from "./form-response.types.js";
+} from "../form-response.types.js";
 
 export const formResponseMetadata = {
   tableName: "form_responses",

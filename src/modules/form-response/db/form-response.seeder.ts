@@ -1,5 +1,5 @@
 import { makeFormResponse } from "./form-response.factory.js";
-import type { FormResponseCreate } from "./form-response.types.js";
+import type { FormResponseCreate } from "../form-response.types.js";
 import type { FormResponseRepository } from "./form-response.repository.js";
 import type { Form } from "@/modules/form/form.types.js";
 

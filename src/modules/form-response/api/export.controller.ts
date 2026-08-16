@@ -7,9 +7,9 @@ import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import type { FormService } from "@/modules/form/form.service.js";
 import type { FormPolicy } from "@/modules/form/form.policy.js";
 import { jobMapper, type JobService } from "@/modules/job/index.js";
-import { EXPORT_RESPONSES_JOB_TYPE } from "./handlers/export-responses.handler.js";
+import { EXPORT_JOB_TYPE } from "../export/export.types.js";
 
-export class ExportResponsesController {
+export class ExportController {
   constructor(
     private readonly formService: FormService,
     private readonly formPolicy: FormPolicy,
@@ -35,12 +35,12 @@ export class ExportResponsesController {
     const idempotencyKey = req.header("Idempotency-Key");
 
     const job = await this.jobService.enqueue({
-      type: EXPORT_RESPONSES_JOB_TYPE,
+      type: EXPORT_JOB_TYPE,
       userId: req.user.id,
       payload: { formId: form.id },
       ...(idempotencyKey
         ? {
-            idempotencyKey: `${EXPORT_RESPONSES_JOB_TYPE}:${req.user.id}:${idempotencyKey}`,
+            idempotencyKey: `${EXPORT_JOB_TYPE}:${req.user.id}:${idempotencyKey}`,
           }
         : {}),
     });

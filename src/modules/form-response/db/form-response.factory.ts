@@ -1,9 +1,9 @@
 import { fakerRU as faker } from "@faker-js/faker";
 import type { FormSchemaDto } from "@/modules/form/schema/form-schema.schema.js";
-import type { FormResponseDto } from "./form-response.dto.js";
-import { FormResponseCreate } from "@/modules/form-response/form-response.types.js";
-
-type Answer = FormResponseDto["answers"][string];
+import {
+  FormResponseCreate,
+  type FormResponseAnswer as Answer,
+} from "../form-response.types.js";
 
 type FormElement = FormSchemaDto["pages"][number]["elements"][number];
 

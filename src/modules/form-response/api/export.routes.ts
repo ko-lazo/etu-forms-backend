@@ -1,9 +1,9 @@
 import { Router } from "express";
-import type { ExportResponsesController } from "./export-responses.controller.js";
+import type { ExportController } from "./export.controller.js";
 import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
 
-export function createExportResponsesRoutes(
-  controller: ExportResponsesController,
+export function createExportRoutes(
+  controller: ExportController,
   authMiddleware: AuthMiddleware,
 ): Router {
   const router = Router({ mergeParams: true });

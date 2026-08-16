@@ -1,7 +1,7 @@
 import { dbClient } from "@/core/database/pool.js";
 import { FormService } from "@/modules/form/form.service.js";
-import { FormResponseController } from "./form-response.controller.js";
-import { FormResponseRepository } from "./form-response.repository.js";
+import { FormResponseController } from "./api/form-response.controller.js";
+import { FormResponseRepository } from "./db/form-response.repository.js";
 import { FormResponseService } from "./form-response.service.js";
 
 export type FormResponseModuleDeps = {

@@ -1,8 +1,8 @@
 import type { FormSchemaDto } from "@/modules/form/schema/form-schema.schema.js";
-import type { FormResponseDto } from "./form-response.dto.js";
-
-type Answers = FormResponseDto["answers"];
-type Answer = Answers[string];
+import type {
+  FormResponseAnswer as Answer,
+  FormResponseAnswers as Answers,
+} from "./form-response.types.js";
 
 type FormElement = FormSchemaDto["pages"][number]["elements"][number];
 

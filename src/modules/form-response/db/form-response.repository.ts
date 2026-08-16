@@ -3,10 +3,10 @@ import { DatabaseClient } from "@/core/database/database.client.js";
 import {
   FormResponse,
   FormResponseCreate,
-  FormResponseExportRow,
   FormResponseUpdate,
-} from "./form-response.types.js";
-import { formResponseMetadata } from "@/modules/form-response/form-response.metadata.js";
+} from "../form-response.types.js";
+import type { ExportedResponseRow } from "../export/export.types.js";
+import { formResponseMetadata } from "./form-response.metadata.js";
 
 export class FormResponseRepository extends BaseRepository<
   FormResponse,
@@ -31,8 +31,8 @@ export class FormResponseRepository extends BaseRepository<
    * Используется для выгрузки больших объемов данных без перегрузки памяти.
    * @param formId Идентификатор формы
    */
-  streamByFormId(formId: string): AsyncIterable<FormResponseExportRow> {
-    return this.db.stream<FormResponseExportRow>(
+  streamByFormId(formId: string): AsyncIterable<ExportedResponseRow> {
+    return this.db.stream<ExportedResponseRow>(
       `SELECT id,
               answers,
               created_at AS "createdAt",

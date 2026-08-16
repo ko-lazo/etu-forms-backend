@@ -1,12 +1,14 @@
 import { z } from "zod";
 import { createFindSchema, ModuleDto } from "@/core/dto/dto.types.js";
+import type { FormResponseAnswer } from "../form-response.types.js";
 
+/** Проверяет формат ответа на входе; сам тип объявлен в form-response.types.ts */
 const answerSchema = z.union([
   z.string(),
   z.number(),
   z.boolean(),
   z.array(z.string()),
-]);
+]) satisfies z.ZodType<FormResponseAnswer>;
 
 export const formResponseDto = {
   createSchema: z.object({

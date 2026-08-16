@@ -4,7 +4,7 @@ import type {
   FormResponseCreate,
   FormResponseUpdate,
 } from "./form-response.types.js";
-import { FormResponseRepository } from "./form-response.repository.js";
+import { FormResponseRepository } from "./db/form-response.repository.js";
 import { FormService } from "@/modules/form/form.service.js";
 import { validateFormResponse } from "./form-response.validator.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
