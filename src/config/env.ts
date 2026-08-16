@@ -1,7 +1,8 @@
 import dotenv from "dotenv";
+import { expand } from "dotenv-expand";
 import { z } from "zod";
 
-dotenv.config();
+expand(dotenv.config());
 
 const envSchema = z.object({
   NODE_ENV: z
