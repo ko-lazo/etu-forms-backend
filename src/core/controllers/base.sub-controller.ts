@@ -69,14 +69,10 @@ export abstract class BaseSubController<
     }
 
     if (this.policy) {
-      if (!req.user) {
-        throw new UnauthorizedError();
-      }
-
-      const allowed = await this.policy.view(req.user.id, entity);
+      const allowed = await this.policy.view(req.user?.id, entity);
 
       if (!allowed) {
-        throw new ForbiddenError();
+        throw req.user ? new ForbiddenError() : new UnauthorizedError();
       }
     }
 
@@ -96,14 +92,10 @@ export abstract class BaseSubController<
     }
 
     if (this.policy) {
-      if (!req.user) {
-        throw new UnauthorizedError();
-      }
-
-      const allowed = await this.policy.update(req.user.id, entity);
+      const allowed = await this.policy.update(req.user?.id, entity);
 
       if (!allowed) {
-        throw new ForbiddenError();
+        throw req.user ? new ForbiddenError() : new UnauthorizedError();
       }
     }
 

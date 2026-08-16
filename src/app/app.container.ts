@@ -35,6 +35,7 @@ class AppContainer {
     this.form = createFormModule();
     this.formResponse = createFormResponseModule({
       formService: this.form.service,
+      formPolicy: this.form.policy,
     });
 
     this.job = createJobModule();

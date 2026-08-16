@@ -15,6 +15,8 @@ import type {
 import type { FormResponseService } from "../form-response.service.js";
 import { FormResponseScope } from "../db/form-response.scope.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
+import { type FormResponsePolicy } from "../form-response.policy.js";
+import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 
 // todo refactor?
 export class FormResponseController extends BaseSubController<
@@ -24,8 +26,11 @@ export class FormResponseController extends BaseSubController<
   FormResponseDto
 > {
   // eslint-disable-next-line @typescript-eslint/no-useless-constructor
-  constructor(formResponseService: FormResponseService) {
-    super(formResponseService);
+  constructor(
+    formResponseService: FormResponseService,
+    formResponsePolicy: FormResponsePolicy,
+  ) {
+    super(formResponseService, formResponsePolicy);
   }
 
   protected override getParentId(req: Request): string {
@@ -57,8 +62,12 @@ export class FormResponseController extends BaseSubController<
   ): FindContext<FormResponse> {
     const formId = this.getParentId(req);
 
+    if (!req.user) {
+      throw new UnauthorizedError();
+    }
+
     return {
-      scope: new FormResponseScope(formId),
+      scope: new FormResponseScope(formId, req.user.id),
       pagination: new BasePagination({
         page: req.query.page ? Number(req.query.page) : undefined,
         limit: req.query.limit ? Number(req.query.limit) : undefined,

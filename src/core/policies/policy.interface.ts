@@ -11,4 +11,9 @@ export interface ISubResourcePolicy<TEntity> extends IResourcePolicy<TEntity> {
     userId: string | undefined,
     parentId: string,
   ): boolean | Promise<boolean>;
+
+  update(
+    userId: string | undefined,
+    entity: TEntity,
+  ): boolean | Promise<boolean>;
 }
