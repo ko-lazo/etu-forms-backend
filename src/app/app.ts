@@ -6,11 +6,16 @@ import { container } from "@/app/app.container.js";
 import { createApiRoutes } from "@/routes/api.routes.js";
 import cors from "cors";
 import { corsConfig } from "@/config/cors.config.js";
+import { appConfig } from "@/config/app.config.js";
 
 export function createApp() {
   container.init();
 
   const app = express();
+
+  if (appConfig.isProduction) {
+    app.set("trust proxy", 1);
+  }
 
   app.use(cors(corsConfig));
 
