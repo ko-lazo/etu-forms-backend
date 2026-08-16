@@ -1,6 +1,6 @@
 import { BaseRepository } from "@/core/repositories/base.repository.js";
 import { formMetadata } from "./form.metadata.js";
-import type { Form, FormCreate, FormUpdate } from "./form.types.js";
+import type { Form, FormCreate, FormUpdate } from "../form.types.js";
 import { DatabaseClient } from "@/core/database/database.client.js";
 
 export class FormRepository extends BaseRepository<

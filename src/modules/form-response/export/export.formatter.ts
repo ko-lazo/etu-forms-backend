@@ -2,7 +2,7 @@ import { Writable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import ExcelJS from "exceljs";
 
-import type { FormSchemaDto } from "@/modules/form/schema/form-schema.schema.js";
+import type { FormSchema } from "@/modules/form/schema/form-schema.schema.js";
 
 import type {
   ExportColumn,
@@ -67,7 +67,7 @@ export async function writeWorkbook({
 /**
  * Собирает список колонок для Excel из JSON-схемы формы
  */
-export function collectColumns(schema: FormSchemaDto): ExportColumn[] {
+export function collectColumns(schema: FormSchema): ExportColumn[] {
   return schema.pages.flatMap((page) =>
     page.elements.map((element) => ({
       name: element.name,

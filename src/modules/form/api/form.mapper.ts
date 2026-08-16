@@ -1,6 +1,6 @@
 import { IMapper } from "@/core/dto/mapper.interface.js";
-import { isPubliclyVisible, resolveFormStatus } from "./form.domain.js";
-import { type Form } from "./form.types.js";
+import { isPubliclyVisible, resolveFormStatus } from "../form.domain.js";
+import { type Form } from "../form.types.js";
 import { formDto, FormResponseDto } from "./form.dto.js";
 
 export const formMapper: IMapper<Form, FormResponseDto> = {

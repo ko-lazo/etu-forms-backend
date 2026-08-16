@@ -1,8 +1,8 @@
 import { fakerRU as faker } from "@faker-js/faker";
-import { FormSchemaDto } from "./schema/form-schema.schema.js";
-import { CreateFormDto } from "@/modules/form/form.dto.js";
+import { FormSchema } from "../schema/form-schema.schema.js";
+import type { FormCreate } from "../form.types.js";
 
-type FormElement = FormSchemaDto["pages"][number]["elements"][number];
+type FormElement = FormSchema["pages"][number]["elements"][number];
 
 function makeValidName(prefix: string): string {
   return `${prefix}_${faker.string.alphanumeric({ length: 5, casing: "mixed" })}`;
@@ -98,7 +98,7 @@ function makeRandomField(): FormElement {
   }
 }
 
-export function makeFormSchema(): FormSchemaDto {
+export function makeFormSchema(): FormSchema {
   const pagesCount = faker.number.int({ min: 1, max: 4 });
 
   const pages = Array.from({ length: pagesCount }, (_, index) => {
@@ -119,9 +119,7 @@ export function makeFormSchema(): FormSchemaDto {
   return { pages };
 }
 
-export function makeForm(
-  overrides: Partial<CreateFormDto> = {},
-): CreateFormDto {
+export function makeForm(overrides: Partial<FormCreate> = {}): FormCreate {
   return {
     userId: faker.string.uuid(),
     title: faker.lorem.sentence({ min: 3, max: 10 }),
@@ -133,7 +131,7 @@ export function makeForm(
 
 export function makeForms(
   count: number,
-  overrides: Partial<CreateFormDto> = {},
-): CreateFormDto[] {
+  overrides: Partial<FormCreate> = {},
+): FormCreate[] {
   return Array.from({ length: count }, (_, index) => makeForm(overrides));
 }

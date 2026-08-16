@@ -77,4 +77,4 @@ export const formSchemaObject = z.object({
   pages: z.array(formPageSchema).min(1),
 });
 
-export type FormSchemaDto = z.infer<typeof formSchemaObject>;
+export type FormSchema = z.infer<typeof formSchemaObject>;

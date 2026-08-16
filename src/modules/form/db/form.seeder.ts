@@ -1,5 +1,5 @@
 import { makeForms } from "./form.factory.js";
-import type { Form } from "./form.types.js";
+import type { Form } from "../form.types.js";
 import type { FormRepository } from "./form.repository.js";
 import type { User } from "@/modules/user/user.types.js";
 

@@ -16,7 +16,7 @@ import type { FormResponseService } from "../form-response.service.js";
 import { FormResponseScope } from "../db/form-response.scope.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 
-// todo refactor
+// todo refactor?
 export class FormResponseController extends BaseSubController<
   FormResponse,
   FormResponseCreate,

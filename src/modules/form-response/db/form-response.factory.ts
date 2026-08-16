@@ -1,11 +1,11 @@
 import { fakerRU as faker } from "@faker-js/faker";
-import type { FormSchemaDto } from "@/modules/form/schema/form-schema.schema.js";
+import type { FormSchema } from "@/modules/form/schema/form-schema.schema.js";
 import {
   FormResponseCreate,
   type FormResponseAnswer as Answer,
 } from "../form-response.types.js";
 
-type FormElement = FormSchemaDto["pages"][number]["elements"][number];
+type FormElement = FormSchema["pages"][number]["elements"][number];
 
 function makeAnswer(element: FormElement): Answer {
   switch (element.type) {
@@ -81,7 +81,7 @@ function makeAnswer(element: FormElement): Answer {
 
 export function makeFormResponse(
   formId: string,
-  schema: FormSchemaDto,
+  schema: FormSchema,
 ): FormResponseCreate {
   const answers: Record<string, Answer> = {};
 

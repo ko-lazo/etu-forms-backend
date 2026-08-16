@@ -1,10 +1,10 @@
-import type { FormSchemaDto } from "@/modules/form/schema/form-schema.schema.js";
+import type { FormSchema } from "@/modules/form/schema/form-schema.schema.js";
 import type {
   FormResponseAnswer as Answer,
   FormResponseAnswers as Answers,
 } from "./form-response.types.js";
 
-type FormElement = FormSchemaDto["pages"][number]["elements"][number];
+type FormElement = FormSchema["pages"][number]["elements"][number];
 
 export interface FormResponseValidationError {
   field: string;
@@ -12,7 +12,7 @@ export interface FormResponseValidationError {
 }
 
 export function validateFormResponse(
-  schema: FormSchemaDto,
+  schema: FormSchema,
   answers: Answers,
 ): FormResponseValidationError[] {
   const errors: FormResponseValidationError[] = [];

@@ -3,7 +3,7 @@ import { container } from "@/app/app.container.js";
 
 import { createApiTokenRoutes } from "@/modules/api-token/api-token.routes.js";
 import { createUserRoutes } from "@/modules/user/user.routes.js";
-import { createFormRoutes } from "@/modules/form/form.routes.js";
+import { createFormRoutes } from "@/modules/form/api/form.routes.js";
 import { createAuthRoutes } from "@/modules/auth/auth.routes.js";
 import { createFormResponseRoutes } from "@/modules/form-response/api/form-response.routes.js";
 import { createJobRoutes } from "@/modules/job/api/job.routes.js";

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createFindSchema, ModuleDto } from "@/core/dto/dto.types.js";
-import { formSchemaObject } from "./schema/form-schema.schema.js";
-import { FORM_STATUS } from "./form.domain.js";
+import { formSchemaObject } from "../schema/form-schema.schema.js";
+import { FORM_STATUS } from "../form.domain.js";
 
 export const formDto = {
   createSchema: z.object({

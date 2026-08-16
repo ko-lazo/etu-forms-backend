@@ -1,10 +1,10 @@
-import { FormSchemaDto } from "./schema/form-schema.schema.js";
+import { FormSchema } from "./schema/form-schema.schema.js";
 
 export interface Form {
   readonly id: string;
   readonly userId: string;
   readonly title: string;
-  readonly schema: FormSchemaDto;
+  readonly schema: FormSchema;
   readonly settings: Record<string, unknown>;
   readonly publishedAt: Date | null;
   readonly archivedAt: Date | null;
