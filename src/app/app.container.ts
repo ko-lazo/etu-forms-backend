@@ -46,7 +46,7 @@ class AppContainer {
     });
 
     this.auth = createAuthModule({
-      userRepository: this.user.repository,
+      userService: this.user.service,
       tokenGenerator: this.apiToken.generatorService,
       authMiddleware: this.authMiddleware,
     });

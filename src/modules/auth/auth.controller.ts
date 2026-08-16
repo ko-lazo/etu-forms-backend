@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import { AuthService } from "./auth.service.js";
 import { LoginDto } from "./auth.dto.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
-import { userMapper } from "@/modules/user/user.mapper.js";
+import { userMapper } from "@/modules/user/api/user.mapper.js";
 
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

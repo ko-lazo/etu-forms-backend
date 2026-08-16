@@ -8,3 +8,8 @@ export interface User {
 
 export type UserCreate = Pick<User, "email" | "password">;
 export type UserUpdate = Partial<Pick<User, "email">>;
+
+export type UserRegistration = {
+  readonly email: string;
+  readonly password: string;
+};

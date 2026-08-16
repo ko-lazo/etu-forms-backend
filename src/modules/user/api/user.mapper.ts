@@ -1,4 +1,4 @@
-import { User } from "./user.types.js";
+import { User } from "../user.types.js";
 import { userDto, UserResponseDto } from "./user.dto.js";
 import { IMapper } from "@/core/dto/mapper.interface.js";
 

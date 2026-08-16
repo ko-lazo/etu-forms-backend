@@ -1,13 +1,12 @@
-import { User } from "./user.types.js";
-import { UserRepository } from "./user.repository.js";
+import { User, UserRegistration, UserUpdate } from "./user.types.js";
+import { UserRepository } from "./db/user.repository.js";
 import { PasswordHasher } from "@/shared/security/password-hasher.js";
 import { BaseService } from "@/core/services/base.service.js";
-import { CreateUserDto, UpdateUserDto } from "@/modules/user/user.dto.js";
 
 export class UserService extends BaseService<
   User,
-  CreateUserDto,
-  UpdateUserDto
+  UserRegistration,
+  UserUpdate
 > {
   constructor(
     protected override readonly repository: UserRepository,
@@ -16,11 +15,15 @@ export class UserService extends BaseService<
     super(repository);
   }
 
-  override async create(data: CreateUserDto): Promise<User> {
+  findByEmail(email: string): Promise<User | null> {
+    return this.repository.findByEmail(email);
+  }
+
+  override async create(data: UserRegistration): Promise<User> {
     const passwordHash = await this.passwordHasher.hash(data.password);
 
     return this.repository.create({
-      ...data,
+      email: data.email,
       password: passwordHash,
     });
   }

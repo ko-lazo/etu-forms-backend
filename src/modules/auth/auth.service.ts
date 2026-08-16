@@ -1,21 +1,20 @@
 import { LoginDto } from "./auth.dto.js";
-import { UserRepository } from "@/modules/user/user.repository.js";
+import { UserService } from "@/modules/user/user.service.js";
 import { PasswordHasher } from "@/shared/security/password-hasher.js";
 import { ApiTokenGeneratorService } from "@/modules/api-token/api-token-generator.service.js";
 import { ApiToken } from "@/modules/api-token/api-token.types.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
-import { UserResponseDto } from "@/modules/user/user.dto.js";
 import { User } from "@/modules/user/user.types.js";
 
 export class AuthService {
   constructor(
-    private readonly userRepository: UserRepository,
+    private readonly userService: UserService,
     private readonly passwordHasher: PasswordHasher,
     private readonly tokenGenerator: ApiTokenGeneratorService,
   ) {}
 
   async login(dto: LoginDto): Promise<ApiToken & { token: string }> {
-    const user = await this.userRepository.findByEmail(dto.email);
+    const user = await this.userService.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedError();
     }
@@ -38,7 +37,7 @@ export class AuthService {
   }
 
   async getMe(userId: string): Promise<User> {
-    const user = await this.userRepository.findById(userId);
+    const user = await this.userService.findById(userId);
     if (!user) {
       throw new UnauthorizedError();
     }

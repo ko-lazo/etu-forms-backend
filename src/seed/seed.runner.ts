@@ -3,7 +3,7 @@ import { createUserModule } from "@/modules/user/user.module.js";
 import { createFormModule } from "@/modules/form/form.module.js";
 import { FormResponseRepository } from "@/modules/form-response/db/form-response.repository.js";
 import { PasswordHasher } from "@/shared/security/password-hasher.js";
-import { seedUsers } from "@/modules/user/user.seeder.js";
+import { seedUsers } from "@/modules/user/db/user.seeder.js";
 import { seedForms } from "@/modules/form/db/form.seeder.js";
 import { seedFormResponses } from "@/modules/form-response/db/form-response.seeder.js";
 import { counter, type SeedScenario } from "./seed.scenario.js";

@@ -1,5 +1,5 @@
 import { makeUsers } from "./user.factory.js";
-import type { User } from "./user.types.js";
+import type { User } from "../user.types.js";
 import type { UserRepository } from "./user.repository.js";
 import type { PasswordHasher } from "@/shared/security/password-hasher.js";
 

@@ -1,5 +1,5 @@
 import { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
-import { User, UserCreate, UserUpdate } from "./user.types.js";
+import { User, UserCreate, UserUpdate } from "../user.types.js";
 
 export const userMetadata = {
   tableName: "users",
