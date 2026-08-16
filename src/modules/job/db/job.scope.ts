@@ -1,5 +1,5 @@
 import { BaseScope } from "@/core/repositories/base.scope.js";
-import { Job } from "../job.types.js";
+import { type Job } from "../job.types.js";
 import { jobMetadata } from "./job.metadata.js";
 
 export class JobScope extends BaseScope<Job> {

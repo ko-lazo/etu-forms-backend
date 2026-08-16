@@ -1,6 +1,6 @@
-import { User } from "../user.types.js";
-import { userDto, UserResponseDto } from "./user.dto.js";
-import { IMapper } from "@/core/dto/mapper.interface.js";
+import { type User } from "../user.types.js";
+import { userDto, type UserResponseDto } from "./user.dto.js";
+import { type IMapper } from "@/core/dto/mapper.interface.js";
 
 export const userMapper: IMapper<User, UserResponseDto> = {
   toResponse(user: User): UserResponseDto {

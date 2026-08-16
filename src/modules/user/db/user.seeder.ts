@@ -12,5 +12,5 @@ export async function seedUsers(
 ): Promise<User[]> {
   const password = await hasher.hash(SEED_PASSWORD);
 
-  return repository.createMany(makeUsers(count, { password }));
+  return await repository.createMany(makeUsers(count, { password }));
 }

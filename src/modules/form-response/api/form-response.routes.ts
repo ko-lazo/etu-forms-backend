@@ -2,7 +2,7 @@ import { Router } from "express";
 import type { FormResponseController } from "./form-response.controller.js";
 import { validate } from "@/shared/http/middleware/validate.middleware.js";
 import { formResponseDto } from "./form-response.dto.js";
-import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
+import { type AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
 
 export function createFormResponseRoutes(
   controller: FormResponseController,

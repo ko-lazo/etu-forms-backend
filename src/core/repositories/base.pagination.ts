@@ -1,4 +1,4 @@
-import { PaginationQuery } from "./repository.interface.js";
+import { type PaginationQuery } from "./repository.interface.js";
 
 export class BasePagination {
   readonly page: number;

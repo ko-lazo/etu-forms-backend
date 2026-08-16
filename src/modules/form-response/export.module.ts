@@ -1,6 +1,5 @@
 import { fileStorage } from "@/core/storage/storage.js";
-import type { FormService } from "@/modules/form/form.service.js";
-import type { FormPolicy } from "@/modules/form/form.policy.js";
+import type { FormPolicy, FormService } from "@/modules/form/index.js";
 import type { JobService } from "@/modules/job/index.js";
 import type { FormResponseRepository } from "./db/form-response.repository.js";
 import { ExportController } from "./api/export.controller.js";

@@ -9,8 +9,7 @@ import {
   type JobResult,
 } from "@/modules/job/index.js";
 import type { IFileStorage } from "@/core/storage/file-storage.interface.js";
-import type { FormService } from "@/modules/form/form.service.js";
-import type { Form } from "@/modules/form/form.types.js";
+import type { Form, FormService } from "@/modules/form/index.js";
 
 import type { FormResponseRepository } from "../db/form-response.repository.js";
 import {

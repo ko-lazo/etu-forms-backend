@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ModuleDto } from "@/core/dto/dto.types.js";
+import { type ModuleDto } from "@/core/dto/dto.types.js";
 
 export const userDto = {
   createSchema: z.object({
@@ -16,7 +16,7 @@ export const userDto = {
     email: z.email(),
     createdAt: z.date(),
   }),
-} satisfies ModuleDto<z.ZodTypeAny, z.ZodTypeAny, z.ZodTypeAny>;
+} satisfies ModuleDto<z.ZodType, z.ZodType, z.ZodType>;
 
 export type CreateUserDto = z.infer<typeof userDto.createSchema>;
 export type UpdateUserDto = z.infer<typeof userDto.updateSchema>;

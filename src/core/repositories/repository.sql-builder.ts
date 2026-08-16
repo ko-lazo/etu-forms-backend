@@ -1,8 +1,8 @@
 import type { QueryResultRow } from "pg";
-import { SqlCondition } from "@/core/database/sql-condition.interface.js";
-import { BasePagination } from "@/core/repositories/base.pagination.js";
-import { MetadataAccessor } from "@/core/database/metdata-accessor.js";
-import { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
+import { type SqlCondition } from "@/core/database/sql-condition.interface.js";
+import { type BasePagination } from "@/core/repositories/base.pagination.js";
+import { type MetadataAccessor } from "@/core/database/metdata-accessor.js";
+import { type RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
 
 export class SqlQueryBuilder<
   TEntity extends QueryResultRow,
@@ -42,7 +42,7 @@ export class SqlQueryBuilder<
       ? `LIMIT $${nextIndex} OFFSET $${nextIndex + 1}`
       : "";
     const paginationData = pagination
-      ? [pagination?.limit, pagination?.offset]
+      ? [pagination.limit, pagination.offset]
       : [];
 
     return {
@@ -152,8 +152,8 @@ export class SqlQueryBuilder<
     };
   }
 
-  private getAllowedEntries<TInput extends object>(
-    data: TInput,
+  private getAllowedEntries(
+    data: object,
     allowed: readonly (keyof TEntity)[],
   ): [keyof TEntity, unknown][] {
     return Object.entries(data)
@@ -170,6 +170,15 @@ export class SqlQueryBuilder<
   }
 
   private getCol(property: keyof TEntity): string {
-    return this.metadata.columns[property]!;
+    const column = this.metadata.columns[property];
+
+    // Without this the property would be interpolated as "undefined" into SQL.
+    if (!column) {
+      throw new Error(
+        `No column mapped for property "${String(property)}" on ${this.metadata.tableName}`,
+      );
+    }
+
+    return column;
   }
 }

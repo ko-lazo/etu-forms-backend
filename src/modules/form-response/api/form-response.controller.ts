@@ -23,6 +23,8 @@ export class FormResponseController extends BaseSubController<
   FormResponseUpdate,
   FormResponseDto
 > {
+  // Widens the protected base constructor to public so the module can build it.
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
   constructor(formResponseService: FormResponseService) {
     super(formResponseService);
   }

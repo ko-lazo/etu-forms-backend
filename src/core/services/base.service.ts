@@ -1,6 +1,6 @@
 import {
-  FindContext,
-  Repository,
+  type FindContext,
+  type Repository,
 } from "@/core/repositories/repository.interface.js";
 
 export abstract class BaseService<TEntity extends object, TCreate, TUpdate> {

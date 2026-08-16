@@ -39,7 +39,7 @@ export async function seedDatabase(scenario: SeedScenario): Promise<void> {
 }
 
 async function clearDatabase(): Promise<void> {
-  const res = await pool.query(`
+  const res = await pool.query<{ table_name: string }>(`
   SELECT table_name
   FROM information_schema.tables
   WHERE table_schema = 'public'

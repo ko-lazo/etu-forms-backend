@@ -1,17 +1,20 @@
 import type { Request, Response } from "express";
 import { BaseController } from "@/core/controllers/base.controller.js";
 import {
-  ApiToken,
-  ApiTokenCreate,
-  ApiTokenUpdate,
+  type ApiToken,
+  type ApiTokenCreate,
+  type ApiTokenUpdate,
 } from "../api-token.types.js";
-import { ApiTokenResponseDto, CreateApiTokenDto } from "./api-token.dto.js";
-import { ApiTokenService } from "../api-token.service.js";
-import { ApiTokenGeneratorService } from "../api-token-generator.service.js";
+import {
+  type ApiTokenResponseDto,
+  type CreateApiTokenDto,
+} from "./api-token.dto.js";
+import { type ApiTokenService } from "../api-token.service.js";
+import { type ApiTokenGeneratorService } from "../api-token-generator.service.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
-import { FindContext } from "@/core/repositories/repository.interface.js";
+import { type FindContext } from "@/core/repositories/repository.interface.js";
 import { ApiTokenScope } from "../db/api-token.scope.js";
-import { ApiTokenPolicy } from "../api-token.policy.js";
+import { type ApiTokenPolicy } from "../api-token.policy.js";
 
 export class ApiTokenController extends BaseController<
   ApiToken,
@@ -29,7 +32,7 @@ export class ApiTokenController extends BaseController<
 
   override create = async (req: Request, res: Response): Promise<void> => {
     const userId = req.user?.id;
-    const dto: CreateApiTokenDto = req.body;
+    const dto = req.body as CreateApiTokenDto;
 
     if (!userId) {
       throw new UnauthorizedError();

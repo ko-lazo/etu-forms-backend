@@ -2,9 +2,9 @@ import { z } from "zod";
 import { paginationQuerySchema } from "./pagination.schema.js";
 
 export interface ModuleDto<
-  TCreateSchema extends z.ZodTypeAny,
-  TUpdateSchema extends z.ZodTypeAny,
-  TResponseSchema extends z.ZodTypeAny,
+  TCreateSchema extends z.ZodType,
+  TUpdateSchema extends z.ZodType,
+  TResponseSchema extends z.ZodType,
 > {
   /** Схема валидации при создании экземпляра */
   readonly createSchema: TCreateSchema;

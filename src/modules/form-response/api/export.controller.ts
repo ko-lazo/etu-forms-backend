@@ -4,8 +4,7 @@ import { getRouteParam } from "@/shared/http/http.params.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { ForbiddenError } from "@/shared/errors/forbidden.error.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
-import type { FormService } from "@/modules/form/form.service.js";
-import type { FormPolicy } from "@/modules/form/form.policy.js";
+import type { FormPolicy, FormService } from "@/modules/form/index.js";
 import { jobMapper, type JobService } from "@/modules/job/index.js";
 import { EXPORT_JOB_TYPE } from "../export/export.types.js";
 

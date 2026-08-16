@@ -1,9 +1,7 @@
 import { faker } from "@faker-js/faker";
 import type { UserCreate } from "../user.types.js";
 
-export function makeUser(
-  overrides: Partial<UserCreate> = {},
-): UserCreate {
+export function makeUser(overrides: Partial<UserCreate> = {}): UserCreate {
   return {
     email: faker.internet.email().toLowerCase(),
     password: "password",
@@ -15,9 +13,9 @@ export function makeUsers(
   count: number,
   overrides: Partial<UserCreate> = {},
 ): UserCreate[] {
-  return Array.from({ length: count }, (_, index) =>
+  return Array.from({ length: count }, () =>
     makeUser({
-      email: `${faker.internet.email().toLowerCase()}`,
+      email: faker.internet.email().toLowerCase(),
       ...overrides,
     }),
   );

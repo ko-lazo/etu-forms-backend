@@ -1,20 +1,26 @@
 import {
-  IConditionProvider,
-  SqlCondition,
+  type IConditionProvider,
+  type SqlCondition,
 } from "@/core/database/sql-condition.interface.js";
 import { MetadataAccessor } from "@/core/database/metdata-accessor.js";
-import { DatabaseClient } from "@/core/database/database.client.js";
 import type { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
-import { SqlQueryBuilder } from "@/core/repositories/repository.sql-builder.js";
 
 export abstract class BaseConditionProvider<
   TEntity extends object,
 > implements IConditionProvider {
   private readonly conditions: SqlCondition[] = [];
-  protected readonly metadataAccessor: MetadataAccessor<TEntity, any, any>;
+  protected readonly metadataAccessor: MetadataAccessor<
+    TEntity,
+    Partial<TEntity>,
+    TEntity
+  >;
 
   protected constructor(
-    protected readonly metadata: RepositoryMetadata<TEntity, any, any>,
+    protected readonly metadata: RepositoryMetadata<
+      TEntity,
+      Partial<TEntity>,
+      TEntity
+    >,
   ) {
     this.metadataAccessor = new MetadataAccessor(metadata);
   }

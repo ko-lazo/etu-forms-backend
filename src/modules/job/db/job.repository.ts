@@ -1,5 +1,5 @@
 import { BaseRepository } from "@/core/repositories/base.repository.js";
-import { DatabaseClient } from "@/core/database/database.client.js";
+import { type DatabaseClient } from "@/core/database/database.client.js";
 import { jobMetadata } from "./job.metadata.js";
 import { JOB_STATUS } from "../job.types.js";
 import type {
@@ -68,7 +68,7 @@ export class JobRepository
    * Возвращает null, если она уже завершена или отменена.
    */
   async start(id: string): Promise<Job | null> {
-    return this.db.queryOne<Job>(
+    return await this.db.queryOne<Job>(
       `UPDATE jobs
              SET status = $2,
                  started_at = COALESCE(started_at, NOW())
@@ -183,7 +183,7 @@ export class JobRepository
    * Ожидающая операция отменяется сразу, выполняющаяся — при следующей проверке.
    */
   async requestCancel(id: string): Promise<Job | null> {
-    return this.db.queryOne<Job>(
+    return await this.db.queryOne<Job>(
       `UPDATE jobs
              SET cancel_requested_at = NOW(),
                  status = CASE WHEN status = $2 THEN $3 ELSE status END,

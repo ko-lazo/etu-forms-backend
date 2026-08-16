@@ -1,6 +1,6 @@
-import { BaseScope } from "@/core/repositories/base.scope.js";
-import { BaseFilter } from "@/core/repositories/base.filter.js";
-import { BasePagination } from "@/core/repositories/base.pagination.js";
+import { type BaseScope } from "@/core/repositories/base.scope.js";
+import { type BaseFilter } from "@/core/repositories/base.filter.js";
+import { type BasePagination } from "@/core/repositories/base.pagination.js";
 
 export interface Repository<TEntity extends object, TCreate, TUpdate> {
   create(data: TCreate): Promise<TEntity>;

@@ -1,5 +1,5 @@
 import { fakerRU as faker } from "@faker-js/faker";
-import { FormSchema } from "../schema/form-schema.schema.js";
+import { type FormSchema } from "../schema/form-schema.schema.js";
 import type { FormCreate } from "../form.types.js";
 
 type FormElement = FormSchema["pages"][number]["elements"][number];
@@ -57,7 +57,7 @@ function makeRandomField(): FormElement {
           : undefined,
       };
 
-    case "dropdown":
+    case "dropdown": {
       const choicesCount = faker.number.int({ min: 2, max: 5 });
       const choices = Array.from({ length: choicesCount }, (_, i) => ({
         value: `val_${i + 1}`,
@@ -72,6 +72,7 @@ function makeRandomField(): FormElement {
         ] as const),
         choices,
       };
+    }
 
     // todo files
     // case "file":
@@ -133,5 +134,5 @@ export function makeForms(
   count: number,
   overrides: Partial<FormCreate> = {},
 ): FormCreate[] {
-  return Array.from({ length: count }, (_, index) => makeForm(overrides));
+  return Array.from({ length: count }, () => makeForm(overrides));
 }

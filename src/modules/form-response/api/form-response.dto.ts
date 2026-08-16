@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createFindSchema, ModuleDto } from "@/core/dto/dto.types.js";
+import { createFindSchema, type ModuleDto } from "@/core/dto/dto.types.js";
 import type { FormResponseAnswer } from "../form-response.types.js";
 
 const answerSchema = z.union([
@@ -35,7 +35,7 @@ export const formResponseDto = {
   findSchema: createFindSchema({
     formId: z.uuid().optional(),
   }),
-} satisfies ModuleDto<z.ZodTypeAny, z.ZodTypeAny, z.ZodTypeAny>;
+} satisfies ModuleDto<z.ZodType, z.ZodType, z.ZodType>;
 
 export type CreateFormResponseDto = z.infer<
   typeof formResponseDto.createSchema

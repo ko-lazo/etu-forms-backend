@@ -4,15 +4,14 @@ import type { QueryResultRow } from "pg";
 
 import { getRouteParam } from "@/shared/http/http.params.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
-import { BaseService } from "@/core/services/base.service.js";
-import { IMapper } from "@/core/dto/mapper.interface.js";
-import { FindContext } from "@/core/repositories/repository.interface.js";
-import { z } from "zod";
-import { PaginatedResponse } from "@/shared/http/paginated-response.js";
+import { type BaseService } from "@/core/services/base.service.js";
+import { type IMapper } from "@/core/dto/mapper.interface.js";
+import { type FindContext } from "@/core/repositories/repository.interface.js";
+import { paginatedResponse } from "@/shared/http/paginated-response.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import { ForbiddenError } from "@/shared/errors/forbidden.error.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
-import { IResourcePolicy } from "@/core/policies/policy.interface.js";
+import { type IResourcePolicy } from "@/core/policies/policy.interface.js";
 
 export abstract class BaseController<
   TEntity extends QueryResultRow,
@@ -45,15 +44,13 @@ export abstract class BaseController<
       const mappedData = this.mapper.toResponseCollection(entities);
       res
         .status(200)
-        .json(
-          PaginatedResponse.create<TResponse>(mappedData, total, pagination),
-        );
+        .json(paginatedResponse<TResponse>(mappedData, total, pagination));
       return;
     }
 
     res
       .status(200)
-      .json(PaginatedResponse.create<TEntity>(entities, total, pagination));
+      .json(paginatedResponse<TEntity>(entities, total, pagination));
   };
 
   protected getFindAllOptions(_req: Request): FindContext<TEntity> | undefined {

@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { pipeline } from "node:stream/promises";
 
 import { BaseController } from "@/core/controllers/base.controller.js";
-import { FindContext } from "@/core/repositories/repository.interface.js";
+import { type FindContext } from "@/core/repositories/repository.interface.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import type { IFileStorage } from "@/core/storage/file-storage.interface.js";
 import { getRouteParam } from "@/shared/http/http.params.js";

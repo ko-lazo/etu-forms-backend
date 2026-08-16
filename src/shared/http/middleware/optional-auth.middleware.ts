@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from "express";
-import { IAuthTokenValidator } from "@/shared/http/auth-service.interface.js";
+import { type Request, type Response, type NextFunction } from "express";
+import { type IAuthTokenValidator } from "@/shared/http/auth-service.interface.js";
 
 export class OptionalAuthMiddleware {
   constructor(private readonly tokenValidator: IAuthTokenValidator) {}
@@ -13,7 +13,8 @@ export class OptionalAuthMiddleware {
       const authHeader = req.headers.authorization;
 
       if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return next();
+        next();
+        return;
       }
 
       const parts = authHeader.split(" ");

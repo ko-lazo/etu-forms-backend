@@ -1,4 +1,4 @@
-import { FormSchema } from "./schema/form-schema.schema.js";
+import { type FormSchema } from "./schema/form-schema.schema.js";
 
 export interface Form {
   readonly id: string;

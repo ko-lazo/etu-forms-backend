@@ -1,8 +1,8 @@
-import { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
+import { type RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
 import {
-  FormResponse,
-  FormResponseCreate,
-  FormResponseUpdate,
+  type FormResponse,
+  type FormResponseCreate,
+  type FormResponseUpdate,
 } from "../form-response.types.js";
 
 export const formResponseMetadata = {

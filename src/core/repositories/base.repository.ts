@@ -1,8 +1,8 @@
-import type { Pool, QueryResultRow } from "pg";
+import type { QueryResultRow } from "pg";
 import type { FindContext, Repository } from "./repository.interface.js";
 import type { RepositoryMetadata } from "./repository.metadata.js";
 import { SqlQueryBuilder } from "./repository.sql-builder.js";
-import { DatabaseClient } from "@/core/database/database.client.js";
+import { type DatabaseClient } from "@/core/database/database.client.js";
 import { MetadataAccessor } from "@/core/database/metdata-accessor.js";
 
 export abstract class BaseRepository<
@@ -32,7 +32,7 @@ export abstract class BaseRepository<
   }
 
   async findById(id: string): Promise<TEntity | null> {
-    return this.db.queryOne<TEntity>(
+    return await this.db.queryOne<TEntity>(
       `SELECT * FROM ${this.table} WHERE ${this.col(this.metadata.primaryKey)} = $1 LIMIT 1`,
       [id],
       this.metadata.columns,
@@ -70,18 +70,25 @@ export abstract class BaseRepository<
 
   async create(data: TCreate): Promise<TEntity> {
     const { sql, values } = this.queryBuilder.insert(data);
-    return (await this.db.queryOne<TEntity>(
+    const entity = await this.db.queryOne<TEntity>(
       sql,
       values,
       this.metadata.columns,
-    ))!;
+    );
+
+    // INSERT ... RETURNING always yields a row; a miss means the SQL is wrong.
+    if (!entity) {
+      throw new Error(`Insert into ${this.metadata.tableName} returned no row`);
+    }
+
+    return entity;
   }
 
   async createMany(data: readonly TCreate[]): Promise<TEntity[]> {
     if (data.length === 0) return [];
 
     const { sql, values } = this.queryBuilder.insertMany(data);
-    return this.db.query<TEntity>(sql, values, this.metadata.columns);
+    return await this.db.query<TEntity>(sql, values, this.metadata.columns);
   }
 
   async update(id: string, data: TUpdate): Promise<TEntity> {

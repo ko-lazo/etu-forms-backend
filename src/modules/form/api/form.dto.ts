@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createFindSchema, ModuleDto } from "@/core/dto/dto.types.js";
+import { createFindSchema, type ModuleDto } from "@/core/dto/dto.types.js";
 import { formSchemaObject } from "../schema/form-schema.schema.js";
 import { FORM_STATUS } from "../form.domain.js";
 
@@ -34,7 +34,7 @@ export const formDto = {
   findSchema: createFindSchema({
     title: z.string().trim().min(1).max(500).optional(),
   }),
-} satisfies ModuleDto<z.ZodTypeAny, z.ZodTypeAny, z.ZodTypeAny>;
+} satisfies ModuleDto<z.ZodType, z.ZodType, z.ZodType>;
 
 export type CreateFormDto = z.infer<typeof formDto.createSchema>;
 export type UpdateFormDto = z.infer<typeof formDto.updateSchema>;

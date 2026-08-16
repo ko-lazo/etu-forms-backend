@@ -1,4 +1,4 @@
-import { QueryResultRow } from "pg";
+import { type QueryResultRow } from "pg";
 
 /**
  * Универсальный контракт для мапперов.

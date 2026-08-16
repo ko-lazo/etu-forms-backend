@@ -1,6 +1,6 @@
-import { IResourcePolicy } from "@/core/policies/policy.interface.js";
+import { type IResourcePolicy } from "@/core/policies/policy.interface.js";
 import { isPubliclyVisible } from "./form.domain.js";
-import { Form } from "./form.types.js";
+import { type Form } from "./form.types.js";
 
 export class FormPolicy implements IResourcePolicy<Form> {
   view(userId: string | undefined, form: Form): boolean {

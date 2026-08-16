@@ -25,16 +25,19 @@ export const logger: Logger = pino({
  * Раскладывает ошибку в контекст логов
  */
 export function serializeError(error: unknown): LogContext {
+  return { err: describeError(error) };
+}
+
+/** Nested causes are unwrapped so the chain survives in the logs. */
+function describeError(error: unknown): unknown {
   if (!(error instanceof Error)) {
-    return { err: String(error) };
+    return error;
   }
 
   return {
-    err: {
-      name: error.name,
-      message: error.message,
-      ...(error.stack ? { stack: error.stack } : {}),
-      ...(error.cause ? { cause: String(error.cause) } : {}),
-    },
+    name: error.name,
+    message: error.message,
+    ...(error.stack ? { stack: error.stack } : {}),
+    ...(error.cause ? { cause: describeError(error.cause) } : {}),
   };
 }

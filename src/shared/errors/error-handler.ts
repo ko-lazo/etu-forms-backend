@@ -1,35 +1,40 @@
 import type { ErrorRequestHandler } from "express";
 import { BaseError } from "./base-error.js";
 import { appConfig } from "@/config/index.js";
+import { logger, serializeError } from "@/shared/logger/logger.js";
+
+const formatStack = (stack?: string) =>
+  stack?.split("\n").map((line) => line.trim());
 
 export const errorHandler: ErrorRequestHandler = (
-  error,
+  error: unknown,
   _request,
   response,
   _next,
 ) => {
   const showDebugInfo = !appConfig.isProduction;
 
-  const formatStack = (stack?: string) => {
-    if (!stack) return undefined;
-    return stack.split("\n").map((line) => line.trim());
-  };
-
   if (error instanceof BaseError) {
     response.status(error.statusCode).json({
       code: error.code,
       message: error.message,
-      ...("details" in error ? { details: (error as any).details } : {}),
+      ...("details" in error ? { details: error.details } : {}),
       ...(showDebugInfo ? { stack: formatStack(error.stack) } : {}),
     });
     return;
   }
 
-  console.error(error);
+  logger.error(serializeError(error), "Unhandled error");
+
+  // Anything can be thrown, so never assume Error-shaped properties exist.
+  const debug =
+    showDebugInfo && error instanceof Error
+      ? { message: error.message, stack: formatStack(error.stack) }
+      : undefined;
 
   response.status(500).json({
     code: "INTERNAL_SERVER_ERROR",
-    message: showDebugInfo ? error.message : "Internal Server Error",
-    ...(showDebugInfo ? { stack: formatStack(error.stack) } : {}),
+    message: debug?.message ?? "Internal Server Error",
+    ...(debug ? { stack: debug.stack } : {}),
   });
 };
