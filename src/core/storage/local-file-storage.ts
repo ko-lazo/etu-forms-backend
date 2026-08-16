@@ -1,3 +1,4 @@
+import { once } from "node:events";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
@@ -17,7 +18,11 @@ export class LocalFileStorage implements IFileStorage {
 
     await fsp.mkdir(path.dirname(filePath), { recursive: true });
 
-    return fs.createWriteStream(filePath);
+    const stream = fs.createWriteStream(filePath);
+
+    await once(stream, "open");
+
+    return stream;
   }
 
   public createReadStream(key: string): Readable {
