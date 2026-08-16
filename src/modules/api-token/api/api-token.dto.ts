@@ -23,7 +23,12 @@ export const apiTokenDto = {
   findSchema: createFindSchema(),
 } satisfies ModuleDto<z.ZodType, z.ZodType, z.ZodType>;
 
+export const issuedApiTokenSchema = apiTokenDto.responseSchema.extend({
+  token: z.string(),
+});
+
 export type CreateApiTokenDto = z.infer<typeof apiTokenDto.createSchema>;
 export type UpdateApiTokenDto = z.infer<typeof apiTokenDto.updateSchema>;
 export type ApiTokenResponseDto = z.infer<typeof apiTokenDto.responseSchema>;
 export type FindApiTokenDto = z.infer<typeof apiTokenDto.findSchema>;
+export type IssuedApiTokenDto = z.infer<typeof issuedApiTokenSchema>;

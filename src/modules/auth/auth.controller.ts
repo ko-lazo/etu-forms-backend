@@ -4,6 +4,7 @@ import { type AuthService } from "./auth.service.js";
 import { type LoginDto } from "./auth.dto.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import { userMapper } from "@/modules/user/index.js";
+import { toIssuedApiTokenResponse } from "@/modules/api-token/index.js";
 
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -12,7 +13,7 @@ export class AuthController {
     const dto = req.body as LoginDto;
     const result = await this.authService.login(dto);
 
-    res.status(200).json(result);
+    res.status(200).json(toIssuedApiTokenResponse(result));
   };
 
   me = async (req: Request, res: Response): Promise<void> => {

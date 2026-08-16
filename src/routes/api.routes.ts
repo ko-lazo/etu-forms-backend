@@ -34,7 +34,11 @@ export function createApiRoutes(): Router {
   );
   apiRoutes.use(
     "/forms/:formId/responses",
-    createFormResponseRoutes(formResponseController, authMiddleware),
+    createFormResponseRoutes(
+      formResponseController,
+      authMiddleware,
+      optionalAuthMiddleware,
+    ),
   );
   apiRoutes.use(
     "/forms/:formId/export",

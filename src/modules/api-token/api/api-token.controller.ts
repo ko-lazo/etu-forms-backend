@@ -15,6 +15,10 @@ import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import { type FindContext } from "@/core/repositories/repository.interface.js";
 import { ApiTokenScope } from "../db/api-token.scope.js";
 import { type ApiTokenPolicy } from "../api-token.policy.js";
+import {
+  apiTokenMapper,
+  toIssuedApiTokenResponse,
+} from "./api-token.mapper.js";
 
 export class ApiTokenController extends BaseController<
   ApiToken,
@@ -27,7 +31,7 @@ export class ApiTokenController extends BaseController<
     policy: ApiTokenPolicy,
     private readonly generatorService: ApiTokenGeneratorService,
   ) {
-    super(service, policy);
+    super(service, policy, apiTokenMapper);
   }
 
   override create = async (req: Request, res: Response): Promise<void> => {
@@ -40,8 +44,7 @@ export class ApiTokenController extends BaseController<
 
     const result = await this.generatorService.generate(userId, dto);
 
-    const data = this.mapper ? this.mapper.toResponse(result) : result;
-    res.status(201).json(data);
+    res.status(201).json(toIssuedApiTokenResponse(result));
   };
 
   protected override getFindAllOptions(req: Request): FindContext<ApiToken> {
