@@ -4,8 +4,8 @@ import {
   ApiToken,
   ApiTokenCreate,
   ApiTokenUpdate,
-} from "@/modules/api-token/api-token.types.js";
-import { apiTokenMetadata } from "@/modules/api-token/api-token.metadata.js";
+} from "../api-token.types.js";
+import { apiTokenMetadata } from "./api-token.metadata.js";
 
 export class ApiTokenRepository extends BaseRepository<
   ApiToken,

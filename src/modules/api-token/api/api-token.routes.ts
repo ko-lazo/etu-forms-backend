@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { ApiTokenController } from "./api-token.controller.js";
 import { validate } from "@/shared/http/middleware/validate.middleware.js";
-import { apiTokenDto } from "@/modules/api-token/api-token.dto.js";
+import { apiTokenDto } from "./api-token.dto.js";
 import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
 
 export function createApiTokenRoutes(

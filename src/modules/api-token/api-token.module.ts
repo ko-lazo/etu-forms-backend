@@ -1,11 +1,11 @@
 import { dbClient } from "@/core/database/pool.js";
-import { ApiTokenRepository } from "./api-token.repository.js";
+import { ApiTokenRepository } from "./db/api-token.repository.js";
 import { ApiTokenService } from "./api-token.service.js";
 import { ApiTokenGeneratorService } from "./api-token-generator.service.js";
-import { ApiTokenController } from "./api-token.controller.js";
+import { ApiTokenController } from "./api/api-token.controller.js";
 import { TokenGenerator } from "@/shared/security/token-generator.js";
 import { TokenHasher } from "@/shared/security/token-hasher.js";
-import { ApiTokenPolicy } from "@/modules/api-token/api-token.policy.js";
+import { ApiTokenPolicy } from "./api-token.policy.js";
 
 export function createApiTokenModule() {
   const repository = new ApiTokenRepository(dbClient);

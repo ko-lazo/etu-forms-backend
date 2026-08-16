@@ -1,8 +1,7 @@
-import { ApiTokenRepository } from "@/modules/api-token/api-token.repository.js";
+import { ApiTokenRepository } from "./db/api-token.repository.js";
 import { TokenGenerator } from "@/shared/security/token-generator.js";
 import { TokenHasher } from "@/shared/security/token-hasher.js";
-import { CreateApiTokenDto } from "@/modules/api-token/api-token.dto.js";
-import { ApiToken } from "@/modules/api-token/api-token.types.js";
+import {ApiToken, ApiTokenIssuance } from "./api-token.types.js";
 
 export class ApiTokenGeneratorService {
   constructor(
@@ -13,12 +12,12 @@ export class ApiTokenGeneratorService {
 
   async generate(
     userId: string,
-    dto: CreateApiTokenDto,
+    data: ApiTokenIssuance,
   ): Promise<ApiToken & { token: string }> {
     const plainToken = this.generator.generate();
     const apiToken = await this.repository.create({
-      name: dto.name,
-      expiresAt: dto.expiresAt ?? null,
+      name: data.name,
+      expiresAt: data.expiresAt ?? null,
       userId,
       token: this.hasher.hash(plainToken),
     });

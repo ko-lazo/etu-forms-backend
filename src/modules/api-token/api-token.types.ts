@@ -13,3 +13,8 @@ export type ApiTokenCreate = Pick<
   "name" | "userId" | "token" | "expiresAt"
 >;
 export type ApiTokenUpdate = Partial<Pick<ApiToken, "name">>;
+
+export type ApiTokenIssuance = {
+  readonly name: string;
+  readonly expiresAt?: Date | null | undefined;
+};

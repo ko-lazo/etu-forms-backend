@@ -1,6 +1,6 @@
 import { BaseScope } from "@/core/repositories/base.scope.js";
-import { ApiToken } from "@/modules/api-token/api-token.types.js";
-import { apiTokenMetadata } from "@/modules/api-token/api-token.metadata.js";
+import { ApiToken } from "../api-token.types.js";
+import { apiTokenMetadata } from "./api-token.metadata.js";
 
 export class ApiTokenScope extends BaseScope<ApiToken> {
   constructor(userId: string) {

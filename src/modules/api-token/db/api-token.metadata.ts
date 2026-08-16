@@ -1,6 +1,6 @@
 import { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
 
-import { ApiToken, ApiTokenCreate, ApiTokenUpdate } from "./api-token.types.js";
+import { ApiToken, ApiTokenCreate, ApiTokenUpdate } from "../api-token.types.js";
 
 export const apiTokenMetadata = {
   tableName: "api_tokens",
