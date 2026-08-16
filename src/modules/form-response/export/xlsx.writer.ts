@@ -6,16 +6,6 @@ import type { FormResponseExportRow } from "../form-response.types.js";
 import { SERVICE_COLUMNS, toRowValues } from "./export-row.formatter.js";
 import type { WriteExportOptions } from "./export.types.js";
 
-/**
- * Наполняет XLSX workbook строками.
- *
- * Курсор притормаживать бесполезно: exceljs держит несжатый XML листа до
- * `commit()`, и пик памяти линеен по числу ячеек независимо от того,
- * успевает диск или нет. Ограничивать надо объём выгрузки, а не скорость
- * записи — этим занимается `maxCells` в описании формата.
- *
- * @returns число записанных строк
- */
 export async function writeWorkbook({
   output,
   rows,
@@ -56,8 +46,6 @@ export async function writeWorkbook({
 
   await pipeline(rows, writer, { signal });
 
-  // commit() сам закрывает незакоммиченные листы, ждёт, пока они допишутся
-  // в zip, и завершает output. Явный sheet.commit() это ожидание отключил бы.
   await workbook.commit();
 
   return processed;
