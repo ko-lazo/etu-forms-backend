@@ -16,6 +16,7 @@ export function createWorkerContainer(): WorkerContainer {
 
   const registry = new JobRegistry()
     .register(container.exportResponses.handler)
+    .register(container.formImport.handler);
 
   return {
     jobRepository: container.job.repository,
