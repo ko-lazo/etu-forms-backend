@@ -6,6 +6,7 @@ import ExcelJS from "exceljs";
 
 import {
   PermanentJobError,
+  type JobArtifact,
   type JobContext,
   type JobHandler,
   type JobResult,
@@ -74,8 +75,6 @@ export class ExportResponsesHandler implements JobHandler<ExportResponsesPayload
   ) {}
 
   /**
-   * todo refactor (JobResult не является четким типам,
-   *   при этом реальный return { ...JobArtifact, ... })
    * Запускает процесс экспорта: проверяет форму, создает стрим в хранилище,
    * формирует Excel и обновляет прогресс задачи
    */
@@ -110,15 +109,14 @@ export class ExportResponsesHandler implements JobHandler<ExportResponsesPayload
       throw new Error(`Export file ${keys.final} not found`);
     }
 
-    return {
-      artifact: {
-        key: keys.final,
-        name: buildFileName(form.title),
-        size: stored.size,
-        mimeType: XLSX_MIME,
-      },
-      rowCount,
+    const artifact: JobArtifact = {
+      key: keys.final,
+      name: buildFileName(form.title),
+      size: stored.size,
+      mimeType: XLSX_MIME,
     };
+
+    return { artifact, rowCount };
   }
 
   /**
