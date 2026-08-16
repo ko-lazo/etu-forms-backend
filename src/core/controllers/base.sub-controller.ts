@@ -2,7 +2,6 @@ import type { Request, Response } from "express";
 import type { QueryResultRow } from "pg";
 
 import { BaseController } from "./base.controller.js";
-import type { FindContext } from "@/core/repositories/repository.interface.js";
 import { getRouteParam } from "@/shared/http/http.params.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
@@ -33,7 +32,14 @@ export abstract class BaseSubController<
     parentId: string,
   ): boolean;
 
-  protected abstract buildCreateData(req: Request, parentId: string): TCreate;
+  protected override buildCreateData(req: Request): TCreate {
+    return this.buildCreateDataForParent(req, this.getParentId(req));
+  }
+
+  protected abstract buildCreateDataForParent(
+    req: Request,
+    parentId: string,
+  ): TCreate;
 
   override create = async (req: Request, res: Response): Promise<void> => {
     const parentId = this.getParentId(req);
@@ -45,7 +51,7 @@ export abstract class BaseSubController<
       }
     }
 
-    const data = this.buildCreateData(req, parentId);
+    const data = this.buildCreateDataForParent(req, parentId);
     const entity = await this.service.create(data);
     const response = this.mapper ? this.mapper.toResponse(entity) : entity;
 
@@ -101,7 +107,10 @@ export abstract class BaseSubController<
       }
     }
 
-    const updatedEntity = await this.service.update(id, req.body);
+    const updatedEntity = await this.service.update(
+      id,
+      this.buildUpdateData(req),
+    );
 
     const data = this.mapper
       ? this.mapper.toResponse(updatedEntity)

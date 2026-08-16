@@ -38,7 +38,7 @@ export class FormResponseController extends BaseSubController<
     return entity.formId === parentId;
   }
 
-  protected override buildCreateData(
+  protected override buildCreateDataForParent(
     req: Request,
     parentId: string,
   ): FormResponseCreate {

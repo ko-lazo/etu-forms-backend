@@ -80,8 +80,16 @@ export abstract class BaseController<
     res.status(200).json(data);
   };
 
+  protected buildCreateData(req: Request): TCreate {
+    return req.body as TCreate;
+  }
+
+  protected buildUpdateData(req: Request): TUpdate {
+    return req.body as TUpdate;
+  }
+
   create = async (req: Request, res: Response): Promise<void> => {
-    const entity = await this.service.create(req.body);
+    const entity = await this.service.create(this.buildCreateData(req));
     const data = this.mapper ? this.mapper.toResponse(entity) : entity;
     res.status(201).json(data);
   };
@@ -100,7 +108,10 @@ export abstract class BaseController<
       if (!allowed) throw new ForbiddenError();
     }
 
-    const updatedEntity = await this.service.update(id, req.body);
+    const updatedEntity = await this.service.update(
+      id,
+      this.buildUpdateData(req),
+    );
     const data = this.mapper
       ? this.mapper.toResponse(updatedEntity)
       : updatedEntity;
