@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Writable } from "node:stream";
+import { Writable, type Readable } from "node:stream";
 import { finished, pipeline } from "node:stream/promises";
 import { z } from "zod";
 import ExcelJS from "exceljs";
@@ -12,6 +12,7 @@ import {
 } from "@/modules/job/index.js";
 import type { IFileStorage } from "@/core/storage/file-storage.interface.js";
 import type { FormService } from "@/modules/form/form.service.js";
+import type { Form } from "@/modules/form/form.types.js";
 import type { FormSchemaDto } from "@/modules/form/schema/form-schema.schema.js";
 
 import type { FormResponseRepository } from "../form-response.repository.js";
@@ -41,8 +42,30 @@ type ExportColumn = {
   readonly label: string;
 };
 
+/** Куда пишем заготовку и куда публикуем готовый файл */
+type ExportFileKeys = {
+  readonly temporary: string;
+  readonly final: string;
+};
+
+type WriteWorkbookOptions = {
+  /** Куда пишем заготовку. `commit()` завершает этот поток */
+  readonly output: Writable;
+
+  /** Откуда берём строки для записи в файл */
+  readonly rows: Readable;
+
+  /** Колонки ответов */
+  readonly columns: readonly ExportColumn[];
+
+  readonly signal: AbortSignal;
+
+  /** Вызывается после каждой строки с их накопленным числом */
+  readonly onProgress: (processed: number) => void;
+};
+
+
 /**
- * todo refactor отделить код джобы от формирования xlsx?
  * Воркер для выгрузки ответов формы в Excel.
  * Построчно стримит данные из БД и сразу пишет в .xlsx.
  * Результат сохраняет во временный файл, затем перемещает в хранилище.
@@ -74,86 +97,125 @@ export class ExportResponsesHandler implements JobHandler<ExportResponsesPayload
     if (!form) {
       throw new PermanentJobError(
         "FORM_NOT_FOUND",
-        `Форма ${payload.formId} не найдена`,
+        `Form ${payload.formId} not found`,
       );
     }
 
     const total = await this.responseRepository.countByFormId(form.id);
     context.reportProgress(0, total);
 
-    const columns = collectColumns(form.schema);
+    const keys: ExportFileKeys = {
+      temporary: `tmp/${context.job.id}-${randomUUID()}.xlsx`,
+      final: `exports/${form.userId}/${context.job.id}.xlsx`,
+    };
 
-    const temporaryKey = `tmp/${context.job.id}-${randomUUID()}.xlsx`;
-    const finalKey = `exports/${form.userId}/${context.job.id}.xlsx`;
+    const rowCount = await this.writeExportFile(form, keys, context);
 
-    let processed = 0;
-
-    const output = await this.storage.createWriteStream(temporaryKey);
-
-    try {
-      const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
-        stream: output,
-        useStyles: false,
-        useSharedStrings: false,
-      });
-
-      const sheet = workbook.addWorksheet("Ответы");
-
-      // todo рефактор (хардкод)
-      sheet.columns = [
-        { header: "ID", width: 38 },
-        { header: "Создан", width: 22 },
-        { header: "Отправлен", width: 22 },
-        ...columns.map((column) => ({ header: column.label, width: 28 })),
-      ];
-
-      // todo refactor (вынести в функцию)
-      await this.responseRepository.streamByFormId(form.id, async (rows) => {
-        const writer = new Writable({
-          objectMode: true,
-          write: (row: ExportedResponseRow, _encoding, callback) => {
-            try {
-              sheet.addRow(toRowValues(row, columns)).commit();
-
-              processed += 1;
-              context.reportProgress(processed);
-
-              callback();
-            } catch (error) {
-              callback(error as Error);
-            }
-          },
-        });
-
-        await pipeline(rows, writer, { signal: context.signal });
-      });
-
-      await workbook.commit();
-      await finished(output);
-      await this.storage.move(temporaryKey, finalKey);
-    } catch (error) {
-      output.destroy();
-      await finished(output).catch(() => undefined);
-      await this.storage.delete(temporaryKey).catch(() => undefined);
-      throw error;
-    }
-
-    const stored = await this.storage.stat(finalKey);
+    const stored = await this.storage.stat(keys.final);
 
     if (!stored) {
-      throw new Error(`Export file ${finalKey} not found`);
+      throw new Error(`Export file ${keys.final} not found`);
     }
 
     return {
       artifact: {
-        key: finalKey,
+        key: keys.final,
         name: buildFileName(form.title),
         size: stored.size,
         mimeType: XLSX_MIME,
       },
-      rowCount: processed,
+      rowCount,
     };
   }
+
+  /**
+   * Пишет результат во временный файл и публикует его
+   * @returns Число выгруженных строк
+   */
+  private async writeExportFile(
+    form: Form,
+    keys: ExportFileKeys,
+    context: JobContext,
+  ): Promise<number> {
+    const columns = collectColumns(form.schema);
+    const output = await this.storage.createWriteStream(keys.temporary);
+
+    try {
+      const rowCount = await this.responseRepository.streamByFormId(
+        form.id,
+        (rows) =>
+          writeWorkbook({
+            output,
+            rows,
+            columns,
+            signal: context.signal,
+            onProgress: (processed) => context.reportProgress(processed),
+          }),
+      );
+
+      await finished(output);
+      await this.storage.move(keys.temporary, keys.final);
+
+      return rowCount;
+    } catch (error) {
+      output.destroy();
+      await finished(output).catch(() => undefined);
+      await this.storage.delete(keys.temporary).catch(() => undefined);
+      throw error;
+    }
+  }
+}
+
+/**
+ * Наполняет workbook строками и закрывает её.
+ * @returns число записанных строк
+ */
+async function writeWorkbook({
+  output,
+  rows,
+  columns,
+  signal,
+  onProgress,
+}: WriteWorkbookOptions): Promise<number> {
+  const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
+    stream: output,
+    useStyles: false,
+    useSharedStrings: false,
+  });
+
+  const sheet = workbook.addWorksheet("Ответы");
+
+  sheet.columns = [
+    { header: "ID", width: 38 },
+    { header: "Создан", width: 22 },
+    { header: "Отправлен", width: 22 },
+    ...columns.map((column) => ({ header: column.label, width: 28 })),
+  ];
+
+  let processed = 0;
+
+  const writer = new Writable({
+    objectMode: true,
+    write: (row: ExportedResponseRow, _encoding, callback) => {
+      try {
+        sheet.addRow(toRowValues(row, columns)).commit();
+
+        processed += 1;
+        onProgress(processed);
+
+        callback();
+      } catch (error) {
+        callback(error as Error);
+      }
+    },
+  });
+
+  // todo ExcelJS streaming writer не является частью Node stream backpressure chain ?
+  await pipeline(rows, writer, { signal });
+
+  await workbook.commit();
+
+  return processed;
 }
 
 /**
@@ -173,7 +235,7 @@ function collectColumns(schema: FormSchemaDto): ExportColumn[] {
  */
 function toRowValues(
   row: ExportedResponseRow,
-  columns: ExportColumn[],
+  columns: readonly ExportColumn[],
 ): unknown[] {
   return [
     row.id,
@@ -184,7 +246,6 @@ function toRowValues(
 }
 
 /**
- * todo form-response.domain?
  * Приводит разные типы ответов к плоскому виду
  */
 function formatAnswer(value: unknown): string | number | boolean | null {
