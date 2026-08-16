@@ -3,7 +3,7 @@ import type { FindContext, Repository } from "./repository.interface.js";
 import type { RepositoryMetadata } from "./repository.metadata.js";
 import { SqlQueryBuilder } from "./repository.sql-builder.js";
 import { type DatabaseClient } from "@/core/database/database.client.js";
-import { MetadataAccessor } from "@/core/database/metdata-accessor.js";
+import { MetadataAccessor } from "@/core/database/metadata-accessor.js";
 
 export abstract class BaseRepository<
   TEntity extends QueryResultRow,
@@ -76,7 +76,6 @@ export abstract class BaseRepository<
       this.metadata.columns,
     );
 
-    // INSERT ... RETURNING always yields a row; a miss means the SQL is wrong.
     if (!entity) {
       throw new Error(`Insert into ${this.metadata.tableName} returned no row`);
     }

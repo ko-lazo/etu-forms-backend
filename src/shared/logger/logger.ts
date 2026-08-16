@@ -28,7 +28,6 @@ export function serializeError(error: unknown): LogContext {
   return { err: describeError(error) };
 }
 
-/** Nested causes are unwrapped so the chain survives in the logs. */
 function describeError(error: unknown): unknown {
   if (!(error instanceof Error)) {
     return error;

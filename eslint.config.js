@@ -46,7 +46,6 @@ export default tseslint.config(
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
 
-  // This config file is plain JS — type-aware rules have no program to read.
   {
     files: ["**/*.js"],
     extends: [tseslint.configs.disableTypeChecked],
@@ -65,19 +64,15 @@ export default tseslint.config(
         "error",
         { fixStyle: "inline-type-imports" },
       ],
-      // Express handlers are typed as returning void, but async ones are fine.
       "@typescript-eslint/no-misused-promises": [
         "error",
         { checksVoidReturn: { arguments: false } },
       ],
-      // Keeps the awaited frame in async stack traces.
       "@typescript-eslint/return-await": ["error", "always"],
-      // Numbers in SQL placeholders and log messages stringify unambiguously.
       "@typescript-eslint/restrict-template-expressions": [
         "error",
         { allowNumber: true },
       ],
-      // `return next()` and `res.json()` shorthands are idiomatic Express.
       "@typescript-eslint/no-confusing-void-expression": [
         "error",
         { ignoreArrowShorthand: true, ignoreVoidReturningFunctions: true },
@@ -85,7 +80,6 @@ export default tseslint.config(
     },
   },
 
-  // A module is reachable only through its public API.
   {
     files: ["src/**/*.ts"],
     ignores: [...compositionRoot, "src/core/**", "src/shared/**"],
@@ -94,7 +88,6 @@ export default tseslint.config(
     },
   },
 
-  // Infrastructure layers sit below the feature modules.
   {
     files: ["src/core/**/*.ts", "src/shared/**/*.ts"],
     rules: {
@@ -105,7 +98,6 @@ export default tseslint.config(
     },
   },
 
-  // Augmentation files import types purely to become modules.
   {
     files: ["**/*.d.ts"],
     rules: {
@@ -113,7 +105,6 @@ export default tseslint.config(
     },
   },
 
-  // Seeders and dev scripts are CLI tools: stdout is their output channel.
   {
     files: ["src/seed.ts", "src/seed/**", "scripts/**"],
     rules: {

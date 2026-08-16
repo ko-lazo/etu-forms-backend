@@ -1,7 +1,7 @@
 import type { QueryResultRow } from "pg";
 import { type SqlCondition } from "@/core/database/sql-condition.interface.js";
 import { type BasePagination } from "@/core/repositories/base.pagination.js";
-import { type MetadataAccessor } from "@/core/database/metdata-accessor.js";
+import { type MetadataAccessor } from "@/core/database/metadata-accessor.js";
 import { type RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
 
 export class SqlQueryBuilder<
@@ -172,7 +172,6 @@ export class SqlQueryBuilder<
   private getCol(property: keyof TEntity): string {
     const column = this.metadata.columns[property];
 
-    // Without this the property would be interpolated as "undefined" into SQL.
     if (!column) {
       throw new Error(
         `No column mapped for property "${String(property)}" on ${this.metadata.tableName}`,

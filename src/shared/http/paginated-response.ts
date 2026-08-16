@@ -8,10 +8,6 @@ export interface IPaginatedResult<TEntity> {
   };
 }
 
-/**
- * Only the page window is needed, so this stays independent of the repository
- * layer and shared/ keeps depending on nothing above it.
- */
 export function paginatedResponse<T>(
   data: T[],
   total: number,

@@ -119,8 +119,6 @@ export class DatabaseClient {
     }
   }
 
-  // The row-to-entity cast is the trust boundary of a raw-SQL, no-ORM design:
-  // the caller names the shape its query returns.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   private mapToEntity<T>(
     row: QueryResultRow,

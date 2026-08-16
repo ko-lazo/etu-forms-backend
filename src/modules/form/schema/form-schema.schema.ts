@@ -53,7 +53,6 @@ const selectFieldSchema = baseFieldSchema.extend({
   choices: z.array(choiceOptionSchema).min(1),
 });
 
-// Kept ready for the file-upload work below; not part of the union yet.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const fileFieldSchema = baseFieldSchema.extend({
   type: z.literal("file"),

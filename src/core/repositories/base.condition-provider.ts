@@ -2,7 +2,7 @@ import {
   type IConditionProvider,
   type SqlCondition,
 } from "@/core/database/sql-condition.interface.js";
-import { MetadataAccessor } from "@/core/database/metdata-accessor.js";
+import { MetadataAccessor } from "@/core/database/metadata-accessor.js";
 import type { RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
 
 export abstract class BaseConditionProvider<

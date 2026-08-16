@@ -26,7 +26,6 @@ export const errorHandler: ErrorRequestHandler = (
 
   logger.error(serializeError(error), "Unhandled error");
 
-  // Anything can be thrown, so never assume Error-shaped properties exist.
   const debug =
     showDebugInfo && error instanceof Error
       ? { message: error.message, stack: formatStack(error.stack) }
