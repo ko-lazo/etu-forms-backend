@@ -1,13 +1,8 @@
 import type { Request, Response } from "express";
 import { BaseController } from "@/core/controllers/base.controller.js";
 import type { FormService } from "../form.service.js";
-import type { Form } from "../form.types.js";
-import {
-  CreateFormDto,
-  FindFormDto,
-  FormResponseDto,
-  UpdateFormDto,
-} from "./form.dto.js";
+import type { Form, FormCreate, FormUpdate } from "../form.types.js";
+import { CreateFormDto, FindFormDto, FormResponseDto } from "./form.dto.js";
 import { FormScope } from "../db/form.scope.js";
 import { FormFilter } from "../db/form.filter.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
@@ -18,12 +13,23 @@ import { formMapper } from "./form.mapper.js";
 
 export class FormController extends BaseController<
   Form,
-  CreateFormDto,
-  UpdateFormDto,
+  FormCreate,
+  FormUpdate,
   FormResponseDto
 > {
   constructor(formService: FormService, formPolicy: FormPolicy) {
     super(formService, formPolicy, formMapper);
+  }
+
+  protected override buildCreateData(req: Request): FormCreate {
+    if (!req.user) {
+      throw new UnauthorizedError();
+    }
+
+    return {
+      ...(req.body as CreateFormDto),
+      userId: req.user.id,
+    };
   }
 
   protected override getFindAllOptions(req: Request): FindContext<Form> {

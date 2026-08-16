@@ -5,7 +5,6 @@ import { FORM_STATUS } from "../form.domain.js";
 
 export const formDto = {
   createSchema: z.object({
-    userId: z.uuid(),
     title: z.string().trim().min(1).max(500),
     schema: formSchemaObject,
     settings: z.record(z.string(), z.unknown()).default({}),
