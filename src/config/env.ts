@@ -20,6 +20,8 @@ const envSchema = z.object({
   STORAGE_PATH: z.string().min(1).default("storage"),
   UPLOAD_MAX_SIZE_MB: z.coerce.number().int().positive().default(10),
 
+  REDIS_HOST: z.string().min(1).default("127.0.0.1"),
+  REDIS_PORT: z.coerce.number().int().positive().default(6379),
   REDIS_URL: z.string().min(1).default("redis://127.0.0.1:6379"),
 
   JOB_CONCURRENCY: z.coerce.number().int().positive().default(2),
