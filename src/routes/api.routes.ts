@@ -16,7 +16,6 @@ export function createApiRoutes(): Router {
   const { optionalAuthMiddleware } = container;
   const { controller: authController } = container.auth;
   const { controller: apiTokenController } = container.apiToken;
-  const { controller: userController } = container.user;
   const { controller: formController } = container.form;
   const { controller: formResponseController } = container.formResponse;
   const { controller: exportController } = container.exportResponses;
@@ -27,7 +26,7 @@ export function createApiRoutes(): Router {
     "/tokens",
     createApiTokenRoutes(apiTokenController, authMiddleware),
   );
-  apiRoutes.use("/users", createUserRoutes(userController, authMiddleware));
+  // apiRoutes.use("/users", createUserRoutes(authMiddleware));
   apiRoutes.use(
     "/forms",
     createFormRoutes(formController, authMiddleware, optionalAuthMiddleware),
