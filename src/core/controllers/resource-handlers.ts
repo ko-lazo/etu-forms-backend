@@ -2,7 +2,10 @@ import type { Request, Response } from "express";
 import type { QueryResultRow } from "pg";
 
 import { type IMapper } from "@/core/dto/mapper.interface.js";
-import { type IResourcePolicy } from "@/core/policies/policy.interface.js";
+import {
+  type IReadPolicy,
+  type IResourcePolicy,
+} from "@/core/policies/policy.interface.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import {
   type FindContext,
@@ -15,27 +18,27 @@ import { paginatedResponse } from "@/shared/http/paginated-response.js";
 
 export type Handler = (req: Request, res: Response) => Promise<void>;
 
-/** Интерфейс сервиса, необходимый для работы фабрики ресурсов */
-export type ResourceService<TEntity extends object, TCreate, TUpdate> = {
+export type ReadableService<TEntity extends object> = {
   findById(id: string): Promise<TEntity | null>;
   findAll(
     options?: FindContext<TEntity>,
   ): Promise<{ entities: TEntity[]; total: number }>;
+};
+
+export type ResourceService<
+  TEntity extends object,
+  TCreate,
+  TUpdate,
+> = ReadableService<TEntity> & {
   create(data: TCreate): Promise<TEntity>;
   update(id: string, data: TUpdate): Promise<TEntity>;
   delete(id: string): Promise<void>;
 };
 
-export type ResourceDefinition<
-  TEntity extends QueryResultRow,
-  TCreate,
-  TUpdate,
-  TResponse,
-  TCreateContext,
-> = {
-  readonly service: ResourceService<TEntity, TCreate, TUpdate>;
+type ReadDefinition<TEntity extends QueryResultRow, TResponse> = {
+  readonly service: ReadableService<TEntity>;
 
-  readonly policy: IResourcePolicy<TEntity, TCreateContext>;
+  readonly policy: IReadPolicy<TEntity>;
 
   /** Преобразование сущности БД в DTO ответа */
   readonly mapper: IMapper<TEntity, TResponse>;
@@ -43,39 +46,33 @@ export type ResourceDefinition<
   /** Сборка контекста выборки (область видимости, фильтрация, пагинация). */
   readonly buildFindContext: (req: Request) => FindContext<TEntity>;
 
-  readonly buildCreateContext: (req: Request) => TCreateContext;
-
-  readonly buildCreateData: (req: Request, context: TCreateContext) => TCreate;
-
-  readonly buildUpdateData?: (req: Request, entity: TEntity) => TUpdate;
-
   /** Принадлежность сущности маршруту, по которому её запрашивают */
   readonly belongsTo?: (entity: TEntity, req: Request) => boolean;
 };
 
-/**
- * Фабрика стандартных REST-обработчиков для CRUD-операций над ресурсом.
- */
-export function createResourceHandlers<
-  TEntity extends QueryResultRow & { id: string },
+type ResourceDefinition<
+  TEntity extends QueryResultRow,
   TCreate,
   TUpdate,
   TResponse,
   TCreateContext,
->(
-  definition: ResourceDefinition<
-    TEntity,
-    TCreate,
-    TUpdate,
-    TResponse,
-    TCreateContext
-  >,
-) {
-  const { service, policy, mapper, belongsTo } = definition;
-  const buildUpdateData =
-    definition.buildUpdateData ?? ((req: Request) => req.body as TUpdate);
+> = ReadDefinition<TEntity, TResponse> & {
+  readonly service: ResourceService<TEntity, TCreate, TUpdate>;
 
-  const findOrFail = async (req: Request): Promise<TEntity> => {
+  readonly policy: IResourcePolicy<TEntity, TCreateContext>;
+
+  readonly buildCreateContext: (req: Request) => TCreateContext;
+
+  readonly buildCreateData?: (req: Request, context: TCreateContext) => TCreate;
+
+  readonly buildUpdateData?: (req: Request, entity: TEntity) => TUpdate;
+};
+
+function createFindOrFail<TEntity extends object>(
+  service: ReadableService<TEntity>,
+  belongsTo?: (entity: TEntity, req: Request) => boolean,
+) {
+  return async (req: Request): Promise<TEntity> => {
     const entity = await service.findById(getRouteParam(req, "id"));
 
     if (!entity || (belongsTo && !belongsTo(entity, req))) {
@@ -84,6 +81,13 @@ export function createResourceHandlers<
 
     return entity;
   };
+}
+
+export function createReadHandlers<TEntity extends QueryResultRow, TResponse>(
+  definition: ReadDefinition<TEntity, TResponse>,
+) {
+  const { service, policy, mapper, belongsTo } = definition;
+  const findOrFail = createFindOrFail(service, belongsTo);
 
   const findAll: Handler = async (req, res) => {
     const context = definition.buildFindContext(req);
@@ -114,13 +118,36 @@ export function createResourceHandlers<
     res.status(200).json(mapper.toResponse(entity));
   };
 
+  return { findAll, findById };
+}
+
+export function createResourceHandlers<
+  TEntity extends QueryResultRow & { id: string },
+  TCreate,
+  TUpdate,
+  TResponse,
+  TCreateContext,
+>(
+  definition: ResourceDefinition<
+    TEntity,
+    TCreate,
+    TUpdate,
+    TResponse,
+    TCreateContext
+  >,
+) {
+  const { service, policy, mapper, belongsTo } = definition;
+  const findOrFail = createFindOrFail(service, belongsTo);
+  const buildCreateData =
+    definition.buildCreateData ?? ((req: Request) => req.body as TCreate);
+  const buildUpdateData =
+    definition.buildUpdateData ?? ((req: Request) => req.body as TUpdate);
+
   const create: Handler = async (req, res) => {
     const context = definition.buildCreateContext(req);
     ensureAllowed(req.user?.id, await policy.create(req.user?.id, context));
 
-    const entity = await service.create(
-      definition.buildCreateData(req, context),
-    );
+    const entity = await service.create(buildCreateData(req, context));
 
     res.status(201).json(mapper.toResponse(entity));
   };
@@ -146,5 +173,10 @@ export function createResourceHandlers<
     res.status(204).send();
   };
 
-  return { findAll, findById, create, update, delete: remove };
+  return {
+    ...createReadHandlers(definition),
+    create,
+    update,
+    delete: remove,
+  };
 }
