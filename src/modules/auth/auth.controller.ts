@@ -1,26 +1,25 @@
-import type { Request, Response } from "express";
-
-import { type AuthService } from "./auth.service.js";
-import { type LoginDto } from "./auth.dto.js";
-import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
-import { userMapper } from "@/modules/user/index.js";
+import { type Handler } from "@/core/controllers/resource-handlers.js";
 import { toIssuedApiTokenResponse } from "@/modules/api-token/index.js";
+import { userMapper } from "@/modules/user/index.js";
+import { requireUser } from "@/shared/http/authorize.js";
 
-export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+import { type LoginDto } from "./auth.dto.js";
+import { type AuthService } from "./auth.service.js";
 
-  login = async (req: Request, res: Response): Promise<void> => {
-    const dto = req.body as LoginDto;
-    const result = await this.authService.login(dto);
+export function createAuthController(authService: AuthService) {
+  const login: Handler = async (req, res) => {
+    const issued = await authService.login(req.body as LoginDto);
 
-    res.status(200).json(toIssuedApiTokenResponse(result));
+    res.status(200).json(toIssuedApiTokenResponse(issued));
   };
 
-  me = async (req: Request, res: Response): Promise<void> => {
-    if (!req.user) {
-      throw new UnauthorizedError();
-    }
-    const user = await this.authService.getMe(req.user.id);
+  const me: Handler = async (req, res) => {
+    const user = await authService.getMe(requireUser(req));
+
     res.status(200).json(userMapper.toResponse(user));
   };
+
+  return { login, me };
 }
+
+export type AuthController = ReturnType<typeof createAuthController>;
