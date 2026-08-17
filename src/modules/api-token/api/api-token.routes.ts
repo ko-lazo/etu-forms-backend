@@ -12,7 +12,11 @@ export function createApiTokenRoutes(
 
   router.use(authMiddleware.handle);
 
-  router.get("/", controller.findAll);
+  router.get(
+    "/",
+    validate(apiTokenDto.findSchema, "query"),
+    controller.findAll,
+  );
   router.delete("/:id", controller.delete);
   router.post("/", validate(apiTokenDto.createSchema), controller.create);
 

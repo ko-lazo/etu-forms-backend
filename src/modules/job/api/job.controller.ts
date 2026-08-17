@@ -5,7 +5,7 @@ import { BaseController } from "@/core/controllers/base.controller.js";
 import { type FindContext } from "@/core/repositories/repository.interface.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import type { IFileStorage } from "@/core/storage/file-storage.interface.js";
-import { getRouteParam } from "@/shared/http/http.params.js";
+import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { ForbiddenError } from "@/shared/errors/forbidden.error.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
@@ -40,7 +40,7 @@ export class JobController extends BaseController<
       throw new UnauthorizedError();
     }
 
-    const dto = req.query as unknown as FindJobDto;
+    const dto = getValidatedQuery<FindJobDto>(req);
 
     return {
       scope: new JobScope(req.user.id),

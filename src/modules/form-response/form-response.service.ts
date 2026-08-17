@@ -8,6 +8,7 @@ import { type FormResponseRepository } from "./db/form-response.repository.js";
 import type { FormService } from "@/modules/form/index.js";
 import { validateFormResponse } from "./form-response.validator.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
+import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 
 export class FormResponseService extends BaseService<
   FormResponse,
@@ -31,7 +32,7 @@ export class FormResponseService extends BaseService<
     const errors = validateFormResponse(form.schema, data.answers);
 
     if (errors.length > 0) {
-      throw new Error(`Invalid form response: ${JSON.stringify(errors)}`);
+      throw new BadRequestError("Validation failed", errors);
     }
 
     return await super.create(data);

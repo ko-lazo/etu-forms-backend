@@ -12,8 +12,11 @@ export function createFormRoutes(
 ): Router {
   const router = Router();
 
-  router.get("/", authMiddleware.handle, (req, res) =>
-    controller.findAll(req, res),
+  router.get(
+    "/",
+    authMiddleware.handle,
+    validate(formDto.findSchema, "query"),
+    (req, res) => controller.findAll(req, res),
   );
   router.get("/:id", optionalAuthMiddleware.handle, (req, res) =>
     controller.findById(req, res),
