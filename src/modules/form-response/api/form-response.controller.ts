@@ -1,10 +1,11 @@
 import type { Request } from "express";
 
 import { BaseSubController } from "@/core/controllers/base.sub-controller.js";
-import { getRouteParam } from "@/shared/http/http.params.js";
+import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
 import type { FindContext } from "@/core/repositories/repository.interface.js";
 import type {
   CreateFormResponseDto,
+  FindFormResponseDto,
   FormResponseDto,
 } from "./form-response.dto.js";
 import type {
@@ -68,10 +69,9 @@ export class FormResponseController extends BaseSubController<
 
     return {
       scope: new FormResponseScope(formId, req.user.id),
-      pagination: new BasePagination({
-        page: req.query.page ? Number(req.query.page) : undefined,
-        limit: req.query.limit ? Number(req.query.limit) : undefined,
-      }),
+      pagination: new BasePagination(
+        getValidatedQuery<FindFormResponseDto>(req),
+      ),
     };
   }
 }

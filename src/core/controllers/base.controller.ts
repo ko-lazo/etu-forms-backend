@@ -2,11 +2,14 @@ import type { Request, Response } from "express";
 
 import type { QueryResultRow } from "pg";
 
-import { getRouteParam } from "@/shared/http/http.params.js";
+import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { type BaseService } from "@/core/services/base.service.js";
 import { type IMapper } from "@/core/dto/mapper.interface.js";
-import { type FindContext } from "@/core/repositories/repository.interface.js";
+import {
+  type FindContext,
+  type PaginationQuery,
+} from "@/core/repositories/repository.interface.js";
 import { paginatedResponse } from "@/shared/http/paginated-response.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import { ForbiddenError } from "@/shared/errors/forbidden.error.js";
@@ -30,10 +33,7 @@ export abstract class BaseController<
 
     const pagination =
       options.pagination ??
-      new BasePagination({
-        page: req.query.page ? Number(req.query.page) : undefined,
-        limit: req.query.limit ? Number(req.query.limit) : undefined,
-      });
+      new BasePagination(getValidatedQuery<PaginationQuery>(req));
 
     const { entities, total } = await this.service.findAll({
       ...options,

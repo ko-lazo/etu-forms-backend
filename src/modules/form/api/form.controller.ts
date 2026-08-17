@@ -10,7 +10,7 @@ import {
 } from "./form.dto.js";
 import { FormScope } from "../db/form.scope.js";
 import { FormFilter } from "../db/form.filter.js";
-import { getRouteParam } from "@/shared/http/http.params.js";
+import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
 import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 import { ForbiddenError } from "@/shared/errors/forbidden.error.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
@@ -48,7 +48,7 @@ export class FormController extends BaseController<
     if (!req.user) {
       throw new UnauthorizedError();
     }
-    const dto = req.query as unknown as FindFormDto;
+    const dto = getValidatedQuery<FindFormDto>(req);
     return {
       scope: new FormScope(req.user.id),
       filter: new FormFilter(dto),
