@@ -10,11 +10,8 @@ export type ShutdownOptions = {
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 /**
- * Вешает обработчики SIGTERM/SIGINT и выполняет `shutdown` ровно один раз.
- *
- * Если корректное завершение не уложилось в таймаут (или сигнал пришёл
- * повторно) — процесс выходит принудительно. Для jobs это безопасно:
- * незавершённые задачи вернёт в очередь reaper по истечении аренды.
+ * Регистрирует обработчики SIGTERM/SIGINT для корректного завершения процесса.
+ * При повторном сигнале или истечении таймаута принудительно завершает процесс.
  */
 export function registerShutdownHandlers(options: ShutdownOptions): void {
   const { logger, shutdown, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
