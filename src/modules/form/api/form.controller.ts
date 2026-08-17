@@ -71,16 +71,16 @@ export function createFormController(service: FormService, policy: FormPolicy) {
     return parsed.data.date ?? new Date();
   };
 
-  function buildTransition(
+  const buildTransition = (
     applyTransition: (form: Form, date: Date) => Promise<Form>,
-  ): Handler {
+  ): Handler => {
     return async (req, res) => {
       const form = await findOwned(req);
       const updated = await applyTransition(form, resolveTransitionDate(req));
 
       res.status(200).json(formMapper.toResponse(updated));
     };
-  }
+  };
 
   return {
     ...crud,

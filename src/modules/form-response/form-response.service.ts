@@ -35,28 +35,33 @@ export function createFormResponseService(
     }
   };
 
+  const create = async (data: FormResponseCreate): Promise<FormResponse> => {
+    await validate(data.formId, data.answers);
+
+    return await repository.create(data);
+  };
+
+  const update = async (
+    id: string,
+    data: FormResponseUpdate,
+  ): Promise<FormResponse> => {
+    const response = await repository.findById(id);
+
+    if (!response) {
+      throw new NotFoundError("Ответ не найден");
+    }
+
+    await validate(response.formId, data.answers);
+
+    return await repository.update(id, data);
+  };
+
   return {
     findById: crud.findById,
     findAll: crud.findAll,
     delete: crud.delete,
-
-    async create(data: FormResponseCreate): Promise<FormResponse> {
-      await validate(data.formId, data.answers);
-
-      return await repository.create(data);
-    },
-
-    async update(id: string, data: FormResponseUpdate): Promise<FormResponse> {
-      const response = await repository.findById(id);
-
-      if (!response) {
-        throw new NotFoundError("Ответ не найден");
-      }
-
-      await validate(response.formId, data.answers);
-
-      return await repository.update(id, data);
-    },
+    create,
+    update,
   };
 }
 
