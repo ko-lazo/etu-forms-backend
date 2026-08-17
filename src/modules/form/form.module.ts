@@ -1,17 +1,17 @@
 import { dbClient } from "@/core/database/pool.js";
-import { FormController } from "./api/form.controller.js";
+import { createFormController } from "./api/form.controller.js";
 import { FormRepository } from "./db/form.repository.js";
-import { FormService } from "./form.service.js";
-import { FormPolicy } from "./form.policy.js";
+import { createFormService } from "./form.service.js";
+import { createFormPolicy } from "./form.policy.js";
 
 export function createFormModule() {
   const repository = new FormRepository(dbClient);
 
-  const service = new FormService(repository);
+  const service = createFormService(repository);
 
-  const policy = new FormPolicy();
+  const policy = createFormPolicy();
 
-  const controller = new FormController(service, policy);
+  const controller = createFormController(service, policy);
 
   return {
     repository,
