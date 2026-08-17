@@ -18,7 +18,7 @@ export function createFormResponseService(
 ) {
   const crud = createCrudService(repository);
 
-  const assertMatchesFormSchema = async (
+  const validate = async (
     formId: string,
     answers: FormResponseAnswers,
   ): Promise<void> => {
@@ -41,7 +41,7 @@ export function createFormResponseService(
     delete: crud.delete,
 
     async create(data: FormResponseCreate): Promise<FormResponse> {
-      await assertMatchesFormSchema(data.formId, data.answers);
+      await validate(data.formId, data.answers);
 
       return await repository.create(data);
     },
@@ -53,7 +53,7 @@ export function createFormResponseService(
         throw new NotFoundError("Ответ не найден");
       }
 
-      await assertMatchesFormSchema(response.formId, data.answers);
+      await validate(response.formId, data.answers);
 
       return await repository.update(id, data);
     },
