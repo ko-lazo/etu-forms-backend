@@ -1,11 +1,16 @@
 type Awaitable<T> = T | Promise<T>;
 
-export type IResourcePolicy<TEntity, TCreateContext = void> = {
+export type IReadPolicy<TEntity> = {
   readonly view: (
     userId: string | undefined,
     entity: TEntity,
   ) => Awaitable<boolean>;
+};
 
+export type IResourcePolicy<
+  TEntity,
+  TCreateContext = void,
+> = IReadPolicy<TEntity> & {
   readonly create: (
     userId: string | undefined,
     context: TCreateContext,
