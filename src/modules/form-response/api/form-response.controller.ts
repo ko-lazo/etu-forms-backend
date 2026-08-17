@@ -1,77 +1,47 @@
-import type { Request } from "express";
-
-import { BaseSubController } from "@/core/controllers/base.sub-controller.js";
+import { createResourceHandlers } from "@/core/controllers/resource-handlers.js";
+import { BasePagination } from "@/core/repositories/base.pagination.js";
+import { requireUser } from "@/shared/http/authorize.js";
 import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
-import type { FindContext } from "@/core/repositories/repository.interface.js";
+
+import { FormResponseScope } from "../db/form-response.scope.js";
+import { type FormResponsePolicy } from "../form-response.policy.js";
+import { type FormResponseService } from "../form-response.service.js";
 import type {
   CreateFormResponseDto,
   FindFormResponseDto,
-  FormResponseDto,
 } from "./form-response.dto.js";
-import type {
-  FormResponse,
-  FormResponseCreate,
-  FormResponseUpdate,
-} from "../form-response.types.js";
-import type { FormResponseService } from "../form-response.service.js";
-import { FormResponseScope } from "../db/form-response.scope.js";
-import { BasePagination } from "@/core/repositories/base.pagination.js";
-import { type FormResponsePolicy } from "../form-response.policy.js";
-import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
+import { formResponseMapper } from "./form-response.mapper.js";
 
-// todo refactor?
-export class FormResponseController extends BaseSubController<
-  FormResponse,
-  FormResponseCreate,
-  FormResponseUpdate,
-  FormResponseDto
-> {
-  // eslint-disable-next-line @typescript-eslint/no-useless-constructor
-  constructor(
-    formResponseService: FormResponseService,
-    formResponsePolicy: FormResponsePolicy,
-  ) {
-    super(formResponseService, formResponsePolicy);
-  }
+export function createFormResponseController(
+  service: FormResponseService,
+  policy: FormResponsePolicy,
+) {
+  const formId = (req: Parameters<typeof getRouteParam>[0]) =>
+    getRouteParam(req, "formId");
 
-  protected override getParentId(req: Request): string {
-    return getRouteParam(req, "formId");
-  }
+  return createResourceHandlers({
+    service,
+    policy,
+    mapper: formResponseMapper,
 
-  protected override belongsToParent(
-    entity: FormResponse,
-    parentId: string,
-  ): boolean {
-    return entity.formId === parentId;
-  }
+    belongsTo: (response, req) => response.formId === formId(req),
 
-  protected override buildCreateDataForParent(
-    req: Request,
-    parentId: string,
-  ): FormResponseCreate {
-    const dto = req.body as CreateFormResponseDto;
-
-    return {
-      ...dto,
-      formId: parentId,
-      submittedAt: dto.submittedAt ?? null,
-    };
-  }
-
-  protected override getFindAllOptions(
-    req: Request,
-  ): FindContext<FormResponse> {
-    const formId = this.getParentId(req);
-
-    if (!req.user) {
-      throw new UnauthorizedError();
-    }
-
-    return {
-      scope: new FormResponseScope(formId, req.user.id),
+    buildFindContext: (req) => ({
+      scope: new FormResponseScope(formId(req), requireUser(req)),
       pagination: new BasePagination(
         getValidatedQuery<FindFormResponseDto>(req),
       ),
-    };
-  }
+    }),
+
+    buildCreateContext: formId,
+    buildCreateData: (req, parentId) => {
+      const dto = req.body as CreateFormResponseDto;
+
+      return { ...dto, formId: parentId, submittedAt: dto.submittedAt ?? null };
+    },
+  });
 }
+
+export type FormResponseController = ReturnType<
+  typeof createFormResponseController
+>;

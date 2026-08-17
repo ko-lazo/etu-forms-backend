@@ -16,25 +16,23 @@ export function createFormResponseRoutes(
     "/",
     authMiddleware.handle,
     validate(formResponseDto.findSchema, "query"),
-    (req, res) => controller.findAll(req, res),
+    controller.findAll,
   );
 
-  router.get("/:id", optionalAuthMiddleware.handle, (req, res) =>
-    controller.findById(req, res),
-  );
+  router.get("/:id", optionalAuthMiddleware.handle, controller.findById);
 
   router.post(
     "/",
     optionalAuthMiddleware.handle,
     validate(formResponseDto.createSchema),
-    (req, res) => controller.create(req, res),
+    controller.create,
   );
 
   router.patch(
     "/:id",
     optionalAuthMiddleware.handle,
     validate(formResponseDto.updateSchema),
-    (req, res) => controller.update(req, res),
+    controller.update,
   );
 
   return router;

@@ -1,48 +1,37 @@
-import { type ISubResourcePolicy } from "@/core/policies/policy.interface.js";
-import type { FormResponse } from "./form-response.types.js";
+import { type IResourcePolicy } from "@/core/policies/policy.interface.js";
 import type { FormPolicy, FormService } from "@/modules/form/index.js";
 
-export class FormResponsePolicy implements ISubResourcePolicy<FormResponse> {
-  constructor(
-    private readonly formService: FormService,
-    private readonly formPolicy: FormPolicy,
-  ) {}
+import type { FormResponse } from "./form-response.types.js";
 
-  async create(userId: string | undefined, formId?: string): Promise<boolean> {
-    if (!formId) return false;
-
-    const form = await this.formService.findById(formId);
-    if (!form) return false;
-
-    return this.formPolicy.view(userId, form);
-  }
-
-  async view(
+export function createFormResponsePolicy(
+  formService: FormService,
+  formPolicy: FormPolicy,
+): IResourcePolicy<FormResponse, string> {
+  const canViewForm = async (
     userId: string | undefined,
-    response: FormResponse,
-  ): Promise<boolean> {
-    const form = await this.formService.findById(response.formId);
-    if (!form) return false;
-
-    return this.formPolicy.view(userId, form);
-  }
-
-  async update(
-    userId: string | undefined,
-    response: FormResponse,
-  ): Promise<boolean> {
-    const form = await this.formService.findById(response.formId);
-    if (!form) return false;
+    formId: string,
+  ): Promise<boolean> => {
+    const form = await formService.findById(formId);
 
     // todo: if (!form.settings?.allowEditResponses) return false;
+    // todo: if (submittedAt) return false;
 
-    return this.formPolicy.view(userId, form);
-  }
+    return form !== null && (await formPolicy.view(userId, form));
+  };
 
-  async delete(userId: string, response: FormResponse): Promise<boolean> {
-    const form = await this.formService.findById(response.formId);
-    if (!form) return false;
+  return {
+    view: (userId, response) => canViewForm(userId, response.formId),
 
-    return this.formPolicy.delete(userId, form);
-  }
+    create: (userId, formId) => canViewForm(userId, formId),
+
+    update: (userId, response) => canViewForm(userId, response.formId),
+
+    delete: async (userId, response) => {
+      const form = await formService.findById(response.formId);
+
+      return form !== null && (await formPolicy.delete(userId, form));
+    },
+  };
 }
+
+export type FormResponsePolicy = ReturnType<typeof createFormResponsePolicy>;
