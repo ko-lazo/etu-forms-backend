@@ -1,10 +1,10 @@
 import { type IResourcePolicy } from "@/core/policies/policy.interface.js";
-import { isPubliclyVisible } from "./form.domain.js";
+import { isOwnedBy, isPubliclyVisible } from "./form.domain.js";
 import { type Form } from "./form.types.js";
 
 export function createFormPolicy(): IResourcePolicy<Form> {
   const owns = (userId: string | undefined, form: Form) =>
-    userId !== undefined && form.userId === userId;
+    isOwnedBy(form, userId);
 
   return {
     view: (userId, form) => isPubliclyVisible(form) || owns(userId, form),

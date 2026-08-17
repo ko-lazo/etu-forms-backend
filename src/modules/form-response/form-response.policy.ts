@@ -1,5 +1,9 @@
 import { type IResourcePolicy } from "@/core/policies/policy.interface.js";
-import type { FormPolicy, FormService } from "@/modules/form/index.js";
+import {
+  isOwnedBy,
+  type FormPolicy,
+  type FormService,
+} from "@/modules/form/index.js";
 
 import type { FormResponse } from "./form-response.types.js";
 
@@ -14,23 +18,35 @@ export function createFormResponsePolicy(
     const form = await formService.findById(formId);
 
     // todo: if (!form.settings?.allowEditResponses) return false;
-    // todo: if (submittedAt) return false;
 
     return form !== null && (await formPolicy.view(userId, form));
   };
 
+  const ownsForm = async (
+    userId: string | undefined,
+    formId: string,
+  ): Promise<boolean> => {
+    const form = await formService.findById(formId);
+
+    return form !== null && isOwnedBy(form, userId);
+  };
+
+  const canAccessResponse = (
+    userId: string | undefined,
+    response: FormResponse,
+  ): Promise<boolean> =>
+    response.submittedAt === null
+      ? canViewForm(userId, response.formId)
+      : ownsForm(userId, response.formId);
+
   return {
-    view: (userId, response) => canViewForm(userId, response.formId),
+    view: canAccessResponse,
 
     create: (userId, formId) => canViewForm(userId, formId),
 
-    update: (userId, response) => canViewForm(userId, response.formId),
+    update: canAccessResponse,
 
-    delete: async (userId, response) => {
-      const form = await formService.findById(response.formId);
-
-      return form !== null && (await formPolicy.delete(userId, form));
-    },
+    delete: (userId, response) => ownsForm(userId, response.formId),
   };
 }
 

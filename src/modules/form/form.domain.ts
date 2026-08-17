@@ -25,6 +25,10 @@ export function isPubliclyVisible(form: Form, now = new Date()): boolean {
   return resolveFormStatus(form, now) === FORM_STATUS.PUBLISHED;
 }
 
+export function isOwnedBy(form: Form, userId: string | undefined): boolean {
+  return userId !== undefined && form.userId === userId;
+}
+
 /**
  * Опубликовать можно только черновик и запланированную форму
  */
