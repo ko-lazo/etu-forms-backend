@@ -19,7 +19,7 @@ export function createAuthRoutes(
     controller.login,
   );
 
-  router.get("/me", authMiddleware.handle, controller.me);
+  router.get("/me", authMiddleware, controller.me);
 
   return router;
 }

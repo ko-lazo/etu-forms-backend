@@ -10,7 +10,7 @@ export function createApiTokenRoutes(
 ): Router {
   const router = Router();
 
-  router.use(authMiddleware.handle);
+  router.use(authMiddleware);
 
   router.get(
     "/",

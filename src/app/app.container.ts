@@ -4,9 +4,15 @@ import { createFormModule } from "@/modules/form/form.module.js";
 import { createFormResponseModule } from "@/modules/form-response/form-response.module.js";
 import { createJobModule } from "@/modules/job/job.module.js";
 import { createExportModule } from "@/modules/form-response/export.module.js";
-import { AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
+import {
+  createAuthMiddleware,
+  type AuthMiddleware,
+} from "@/shared/http/middleware/auth.middleware.js";
 import { createAuthModule } from "@/modules/auth/auth.module.js";
-import { OptionalAuthMiddleware } from "@/shared/http/middleware/optional-auth.middleware.js";
+import {
+  createOptionalAuthMiddleware,
+  type OptionalAuthMiddleware,
+} from "@/shared/http/middleware/optional-auth.middleware.js";
 
 class AppContainer {
   private initialized = false;
@@ -27,8 +33,8 @@ class AppContainer {
 
     this.user = createUserModule();
     this.apiToken = createApiTokenModule();
-    this.authMiddleware = new AuthMiddleware(this.apiToken.service);
-    this.optionalAuthMiddleware = new OptionalAuthMiddleware(
+    this.authMiddleware = createAuthMiddleware(this.apiToken.service);
+    this.optionalAuthMiddleware = createOptionalAuthMiddleware(
       this.apiToken.service,
     );
 

@@ -4,7 +4,7 @@ import { type AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js
 export function createUserRoutes(authMiddleware: AuthMiddleware): Router {
   const router = Router();
 
-  router.use(authMiddleware.handle);
+  router.use(authMiddleware);
 
   // todo admin middleware
   // router.get("/", controller.findAll);
