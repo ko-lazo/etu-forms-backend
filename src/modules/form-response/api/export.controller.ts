@@ -1,11 +1,12 @@
 import type { Request } from "express";
 
-import { type Handler } from "@/core/controllers/resource-handlers.js";
+import {
+  createFindOrFail,
+  type Handler,
+} from "@/core/controllers/resource-handlers.js";
 import type { Form, FormPolicy, FormService } from "@/modules/form/index.js";
 import { jobMapper, type JobService } from "@/modules/job/index.js";
-import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
-import { getRouteParam } from "@/shared/http/http.params.js";
 
 import { EXPORT_JOB_TYPE } from "../export/export.types.js";
 
@@ -14,15 +15,16 @@ export function createExportController(
   formPolicy: FormPolicy,
   jobService: JobService,
 ) {
+  const findFormOrFail = createFindOrFail({
+    service: formService,
+    param: "formId",
+  });
+
   const findExportableForm = async (
     req: Request,
     userId: string,
   ): Promise<Form> => {
-    const form = await formService.findById(getRouteParam(req, "formId"));
-
-    if (!form) {
-      throw new NotFoundError("Форма не найдена");
-    }
+    const form = await findFormOrFail(req);
 
     ensureAllowed(userId, await formPolicy.update(userId, form));
 

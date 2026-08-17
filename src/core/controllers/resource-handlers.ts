@@ -68,15 +68,24 @@ type ResourceDefinition<
   readonly buildUpdateData?: (req: Request, entity: TEntity) => TUpdate;
 };
 
-function createFindOrFail<TEntity extends object>(
-  service: ReadableService<TEntity>,
-  belongsTo?: (entity: TEntity, req: Request) => boolean,
-) {
+type FindOrFailDefinition<TEntity extends object> = {
+  readonly service: ReadableService<TEntity>;
+
+  readonly param?: string | undefined;
+
+  readonly belongsTo?: ((entity: TEntity, req: Request) => boolean) | undefined;
+};
+
+export function createFindOrFail<TEntity extends object>({
+  service,
+  param = "id",
+  belongsTo,
+}: FindOrFailDefinition<TEntity>) {
   return async (req: Request): Promise<TEntity> => {
-    const entity = await service.findById(getRouteParam(req, "id"));
+    const entity = await service.findById(getRouteParam(req, param));
 
     if (!entity || (belongsTo && !belongsTo(entity, req))) {
-      throw new NotFoundError("Entity not found");
+      throw new NotFoundError();
     }
 
     return entity;
@@ -87,7 +96,7 @@ export function createReadHandlers<TEntity extends QueryResultRow, TResponse>(
   definition: ReadDefinition<TEntity, TResponse>,
 ) {
   const { service, policy, mapper, belongsTo } = definition;
-  const findOrFail = createFindOrFail(service, belongsTo);
+  const findOrFail = createFindOrFail({ service, belongsTo });
 
   const findAll: Handler = async (req, res) => {
     const context = definition.buildFindContext(req);
@@ -118,7 +127,7 @@ export function createReadHandlers<TEntity extends QueryResultRow, TResponse>(
     res.status(200).json(mapper.toResponse(entity));
   };
 
-  return { findAll, findById };
+  return { findAll, findById, findOrFail };
 }
 
 export function createResourceHandlers<
@@ -136,8 +145,9 @@ export function createResourceHandlers<
     TCreateContext
   >,
 ) {
-  const { service, policy, mapper, belongsTo } = definition;
-  const findOrFail = createFindOrFail(service, belongsTo);
+  const { service, policy, mapper } = definition;
+  const read = createReadHandlers(definition);
+  const { findOrFail } = read;
   const buildCreateData =
     definition.buildCreateData ?? ((req: Request) => req.body as TCreate);
   const buildUpdateData =
@@ -173,10 +183,5 @@ export function createResourceHandlers<
     res.status(204).send();
   };
 
-  return {
-    ...createReadHandlers(definition),
-    create,
-    update,
-    delete: remove,
-  };
+  return { ...read, create, update, delete: remove };
 }

@@ -6,9 +6,8 @@ import {
 } from "@/core/controllers/resource-handlers.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import { BadRequestError } from "@/shared/errors/bad-request.error.js";
-import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
-import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
+import { getValidatedQuery } from "@/shared/http/http.params.js";
 
 import { FormFilter } from "../db/form.filter.js";
 import { FormScope } from "../db/form.scope.js";
@@ -23,7 +22,7 @@ import {
 import { formMapper } from "./form.mapper.js";
 
 export function createFormController(service: FormService, policy: FormPolicy) {
-  const crud = createResourceHandlers({
+  const { findOrFail, ...crud } = createResourceHandlers({
     service,
     policy,
     mapper: formMapper,
@@ -46,11 +45,7 @@ export function createFormController(service: FormService, policy: FormPolicy) {
   });
 
   const findOwned = async (req: Request): Promise<Form> => {
-    const form = await service.findById(getRouteParam(req, "id"));
-
-    if (!form) {
-      throw new NotFoundError("Форма не найдена");
-    }
+    const form = await findOrFail(req);
 
     ensureAllowed(req.user?.id, await policy.update(req.user?.id, form));
 

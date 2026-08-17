@@ -10,7 +10,7 @@ import type { IFileStorage } from "@/core/storage/file-storage.interface.js";
 import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
-import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
+import { getValidatedQuery } from "@/shared/http/http.params.js";
 import { logger, serializeError } from "@/shared/logger/logger.js";
 
 import { JobFilter } from "../db/job.filter.js";
@@ -27,7 +27,7 @@ export function createJobController(
   policy: JobPolicy,
   storage: IFileStorage,
 ) {
-  const read = createReadHandlers({
+  const { findOrFail, ...read } = createReadHandlers({
     service,
     policy,
     mapper: jobMapper,
@@ -44,11 +44,7 @@ export function createJobController(
   });
 
   const findOwned = async (req: Request): Promise<Job> => {
-    const job = await service.findById(getRouteParam(req, "id"));
-
-    if (!job) {
-      throw new NotFoundError("Задача не найдена");
-    }
+    const job = await findOrFail(req);
 
     ensureAllowed(req.user?.id, await policy.view(req.user?.id, job));
 
