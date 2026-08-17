@@ -1,7 +1,5 @@
 -- migrate:up
 
--- todo правильнее это было бы реализовать в BaseRepository?
-
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
