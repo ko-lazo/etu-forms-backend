@@ -1,7 +1,7 @@
 import type { UserService } from "@/modules/user/index.js";
 import type { ApiTokenGeneratorService } from "@/modules/api-token/index.js";
 import { PasswordHasher } from "@/shared/security/password-hasher.js";
-import { AuthService } from "./auth.service.js";
+import { createAuthService } from "./auth.service.js";
 import { createAuthController } from "./auth.controller.js";
 import { createAuthRoutes } from "./auth.routes.js";
 import { type AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
@@ -15,7 +15,7 @@ interface AuthModuleDependencies {
 export function createAuthModule(deps: AuthModuleDependencies) {
   const passwordHasher = new PasswordHasher();
 
-  const service = new AuthService(
+  const service = createAuthService(
     deps.userService,
     passwordHasher,
     deps.tokenGenerator,
