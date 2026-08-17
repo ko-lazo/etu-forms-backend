@@ -33,6 +33,18 @@ export function createFormRoutes(
   router.delete("/:id", authMiddleware.handle, (req, res) =>
     controller.delete(req, res),
   );
+  router.post("/:id/publish", authMiddleware.handle, (req, res) =>
+    controller.publish(req, res),
+  );
+  router.post("/:id/unpublish", authMiddleware.handle, (req, res) =>
+    controller.unpublish(req, res),
+  );
+  router.post("/:id/archive", authMiddleware.handle, (req, res) =>
+    controller.archive(req, res),
+  );
+  router.post("/:id/unarchive", authMiddleware.handle, (req, res) =>
+    controller.unarchive(req, res),
+  );
 
   return router;
 }

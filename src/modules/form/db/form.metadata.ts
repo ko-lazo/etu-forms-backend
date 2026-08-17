@@ -25,7 +25,13 @@ export const formMetadata = {
 
   creatableColumns: ["userId", "title", "schema", "settings"],
 
-  updatableColumns: ["title", "schema", "settings"],
+  updatableColumns: [
+    "title",
+    "schema",
+    "settings",
+    "publishedAt",
+    "archivedAt",
+  ],
 
   jsonColumns: ["schema", "settings"],
 } satisfies RepositoryMetadata<Form, FormCreate, FormUpdate>;

@@ -36,6 +36,17 @@ export const formDto = {
   }),
 } satisfies ModuleDto<z.ZodType, z.ZodType, z.ZodType>;
 
+/**
+ * Переходы статуса / жизненного цикла формы.
+ * `date` задаёт момент публикации или архивации;
+ * без него переход происходит сразу.
+ */
+export const formLifecycleSchema = z.object({
+  date: z.coerce.date().optional(),
+});
+
+export type FormLifecycleDto = z.infer<typeof formLifecycleSchema>;
+
 export type CreateFormDto = z.infer<typeof formDto.createSchema>;
 export type UpdateFormDto = z.infer<typeof formDto.updateSchema>;
 export type FormResponseDto = z.infer<typeof formDto.responseSchema>;

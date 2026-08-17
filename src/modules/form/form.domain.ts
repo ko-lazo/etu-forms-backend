@@ -18,6 +18,42 @@ export function resolveFormStatus(form: Form, now = new Date()): FormStatus {
     : FORM_STATUS.SCHEDULED;
 }
 
+/**
+ * Публично доступно всем
+ */
 export function isPubliclyVisible(form: Form, now = new Date()): boolean {
   return resolveFormStatus(form, now) === FORM_STATUS.PUBLISHED;
+}
+
+/**
+ * Опубликовать можно только черновик и запланированную форму
+ */
+export function canPublish(form: Form, now = new Date()): boolean {
+  const status = resolveFormStatus(form, now);
+
+  return status === FORM_STATUS.DRAFT || status === FORM_STATUS.SCHEDULED;
+}
+
+/**
+ * Снять с публикации можно любую форму с известной датой публикации
+ */
+export function canUnpublish(form: Form, now = new Date()): boolean {
+  return (
+    form.publishedAt !== null &&
+    resolveFormStatus(form, now) !== FORM_STATUS.ARCHIVED
+  );
+}
+
+/**
+ * Архивировать можно любую форму, кроме уже архивной
+ */
+export function canArchive(form: Form, now = new Date()): boolean {
+  return resolveFormStatus(form, now) !== FORM_STATUS.ARCHIVED;
+}
+
+/**
+ * Отменить архивацию можно дял любой формы с известной датой архивации
+ */
+export function canUnarchive(form: Form): boolean {
+  return form.archivedAt !== null;
 }
