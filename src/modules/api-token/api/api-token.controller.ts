@@ -1,58 +1,55 @@
-import type { Request, Response } from "express";
-import { BaseController } from "@/core/controllers/base.controller.js";
 import {
-  type ApiToken,
-  type ApiTokenCreate,
-  type ApiTokenUpdate,
-} from "../api-token.types.js";
-import {
-  type ApiTokenResponseDto,
-  type CreateApiTokenDto,
-} from "./api-token.dto.js";
-import { type ApiTokenService } from "../api-token.service.js";
+  createResourceHandlers,
+  type Handler,
+} from "@/core/controllers/resource-handlers.js";
+import { BasePagination } from "@/core/repositories/base.pagination.js";
+import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
+import { getValidatedQuery } from "@/shared/http/http.params.js";
+
 import { type ApiTokenGeneratorService } from "../api-token-generator.service.js";
-import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
-import { type FindContext } from "@/core/repositories/repository.interface.js";
-import { ApiTokenScope } from "../db/api-token.scope.js";
 import { type ApiTokenPolicy } from "../api-token.policy.js";
+import { type ApiTokenService } from "../api-token.service.js";
+import { ApiTokenScope } from "../db/api-token.scope.js";
+import {
+  type CreateApiTokenDto,
+  type FindApiTokenDto,
+} from "./api-token.dto.js";
 import {
   apiTokenMapper,
   toIssuedApiTokenResponse,
 } from "./api-token.mapper.js";
 
-export class ApiTokenController extends BaseController<
-  ApiToken,
-  ApiTokenCreate,
-  ApiTokenUpdate,
-  ApiTokenResponseDto
-> {
-  constructor(
-    service: ApiTokenService,
-    policy: ApiTokenPolicy,
-    private readonly generatorService: ApiTokenGeneratorService,
-  ) {
-    super(service, policy, apiTokenMapper);
-  }
+export function createApiTokenController(
+  service: ApiTokenService,
+  policy: ApiTokenPolicy,
+  generatorService: ApiTokenGeneratorService,
+) {
+  const crud = createResourceHandlers({
+    service,
+    policy,
+    mapper: apiTokenMapper,
 
-  override create = async (req: Request, res: Response): Promise<void> => {
-    const userId = req.user?.id;
-    const dto = req.body as CreateApiTokenDto;
+    buildFindContext: (req) => ({
+      scope: new ApiTokenScope(requireUser(req)),
+      pagination: new BasePagination(getValidatedQuery<FindApiTokenDto>(req)),
+    }),
 
-    if (!userId) {
-      throw new UnauthorizedError();
-    }
+    buildCreateContext: () => undefined,
+  });
 
-    const result = await this.generatorService.generate(userId, dto);
+  const create: Handler = async (req, res) => {
+    const userId = requireUser(req);
+    ensureAllowed(userId, await policy.create(userId, undefined));
 
-    res.status(201).json(toIssuedApiTokenResponse(result));
+    const issued = await generatorService.generate(
+      userId,
+      req.body as CreateApiTokenDto,
+    );
+
+    res.status(201).json(toIssuedApiTokenResponse(issued));
   };
 
-  protected override getFindAllOptions(req: Request): FindContext<ApiToken> {
-    if (!req.user) {
-      throw new UnauthorizedError();
-    }
-    return {
-      scope: new ApiTokenScope(req.user.id),
-    };
-  }
+  return { ...crud, create };
 }
+
+export type ApiTokenController = ReturnType<typeof createApiTokenController>;
