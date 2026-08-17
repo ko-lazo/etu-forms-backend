@@ -10,10 +10,17 @@ export class MetadataAccessor<
   ) {}
 
   public col(property: keyof TEntity): string {
+    return `${this.metadata.tableName}.${this.rawCol(property)}`;
+  }
+
+  /**
+   * Имя колонки без имени таблицы, необходимо для `SET`
+   */
+  public rawCol(property: keyof TEntity): string {
     const column = this.metadata.columns[property];
     if (!column) {
       throw new Error(`Unknown column "${String(property)}"`);
     }
-    return `${this.metadata.tableName}.${column}`;
+    return column;
   }
 }
