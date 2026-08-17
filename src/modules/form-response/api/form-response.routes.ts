@@ -14,23 +14,23 @@ export function createFormResponseRoutes(
 
   router.get(
     "/",
-    authMiddleware.handle,
+    authMiddleware,
     validate(formResponseDto.findSchema, "query"),
     controller.findAll,
   );
 
-  router.get("/:id", optionalAuthMiddleware.handle, controller.findById);
+  router.get("/:id", optionalAuthMiddleware, controller.findById);
 
   router.post(
     "/",
-    optionalAuthMiddleware.handle,
+    optionalAuthMiddleware,
     validate(formResponseDto.createSchema),
     controller.create,
   );
 
   router.patch(
     "/:id",
-    optionalAuthMiddleware.handle,
+    optionalAuthMiddleware,
     validate(formResponseDto.updateSchema),
     controller.update,
   );

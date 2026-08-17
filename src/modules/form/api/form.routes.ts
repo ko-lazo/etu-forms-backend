@@ -14,29 +14,29 @@ export function createFormRoutes(
 
   router.get(
     "/",
-    authMiddleware.handle,
+    authMiddleware,
     validate(formDto.findSchema, "query"),
     controller.findAll,
   );
-  router.get("/:id", optionalAuthMiddleware.handle, controller.findById);
+  router.get("/:id", optionalAuthMiddleware, controller.findById);
   router.post(
     "/",
-    authMiddleware.handle,
+    authMiddleware,
     validate(formDto.createSchema),
     controller.create,
   );
   router.patch(
     "/:id",
-    authMiddleware.handle,
+    authMiddleware,
     validate(formDto.updateSchema),
     controller.update,
   );
-  router.delete("/:id", authMiddleware.handle, controller.delete);
+  router.delete("/:id", authMiddleware, controller.delete);
 
-  router.post("/:id/publish", authMiddleware.handle, controller.publish);
-  router.post("/:id/unpublish", authMiddleware.handle, controller.unpublish);
-  router.post("/:id/archive", authMiddleware.handle, controller.archive);
-  router.post("/:id/unarchive", authMiddleware.handle, controller.unarchive);
+  router.post("/:id/publish", authMiddleware, controller.publish);
+  router.post("/:id/unpublish", authMiddleware, controller.unpublish);
+  router.post("/:id/archive", authMiddleware, controller.archive);
+  router.post("/:id/unarchive", authMiddleware, controller.unarchive);
 
   return router;
 }
