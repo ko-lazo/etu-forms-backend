@@ -14,17 +14,11 @@ export function createJobRoutes(
     "/",
     authMiddleware.handle,
     validate(jobDto.findSchema, "query"),
-    (req, res) => controller.findAll(req, res),
+    controller.findAll,
   );
-  router.get("/:id", authMiddleware.handle, (req, res) =>
-    controller.findById(req, res),
-  );
-  router.post("/:id/cancel", authMiddleware.handle, (req, res) =>
-    controller.cancel(req, res),
-  );
-  router.get("/:id/download", authMiddleware.handle, (req, res) =>
-    controller.download(req, res),
-  );
+  router.get("/:id", authMiddleware.handle, controller.findById);
+  router.post("/:id/cancel", authMiddleware.handle, controller.cancel);
+  router.get("/:id/download", authMiddleware.handle, controller.download);
 
   return router;
 }

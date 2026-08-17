@@ -1,10 +1,10 @@
 import { dbClient } from "@/core/database/pool.js";
 import { jobQueue } from "@/core/queue/job-queue.js";
 import { fileStorage } from "@/core/storage/storage.js";
-import { JobController } from "./api/job.controller.js";
+import { createJobController } from "./api/job.controller.js";
 import { JobRepository } from "./db/job.repository.js";
-import { JobService } from "./job.service.js";
-import { JobPolicy } from "./job.policy.js";
+import { createJobService } from "./job.service.js";
+import { createJobPolicy } from "./job.policy.js";
 
 /**
  * Отвечает за сборку runtime зависимостей
@@ -12,11 +12,11 @@ import { JobPolicy } from "./job.policy.js";
 export function createJobModule() {
   const repository = new JobRepository(dbClient);
 
-  const service = new JobService(repository, jobQueue);
+  const service = createJobService(repository, jobQueue);
 
-  const policy = new JobPolicy();
+  const policy = createJobPolicy();
 
-  const controller = new JobController(service, policy, fileStorage);
+  const controller = createJobController(service, policy, fileStorage);
 
   return {
     repository,
