@@ -1,11 +1,7 @@
 import { Router } from "express";
-import { type UserController } from "./user.controller.js";
 import { type AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
 
-export function createUserRoutes(
-  controller: UserController,
-  authMiddleware: AuthMiddleware,
-): Router {
+export function createUserRoutes(authMiddleware: AuthMiddleware): Router {
   const router = Router();
 
   router.use(authMiddleware.handle);
