@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import type { QueryResultRow } from "pg";
 
 import { type IMapper } from "@/core/dto/mapper.interface.js";
-import { type ResourcePolicy } from "@/core/policies/policy.interface.js";
+import { type IResourcePolicy } from "@/core/policies/policy.interface.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import {
   type FindContext,
@@ -35,7 +35,7 @@ export type ResourceDefinition<
 > = {
   readonly service: ResourceService<TEntity, TCreate, TUpdate>;
 
-  readonly policy: ResourcePolicy<TEntity, TCreateContext>;
+  readonly policy: IResourcePolicy<TEntity, TCreateContext>;
 
   /** Преобразование сущности БД в DTO ответа */
   readonly mapper: IMapper<TEntity, TResponse>;
@@ -47,7 +47,7 @@ export type ResourceDefinition<
 
   readonly buildCreateData: (req: Request, context: TCreateContext) => TCreate;
 
-  readonly buildUpdateData: (req: Request, entity: TEntity) => TUpdate;
+  readonly buildUpdateData?: (req: Request, entity: TEntity) => TUpdate;
 
   /** Принадлежность сущности маршруту, по которому её запрашивают */
   readonly belongsTo?: (entity: TEntity, req: Request) => boolean;
@@ -72,6 +72,8 @@ export function createResourceHandlers<
   >,
 ) {
   const { service, policy, mapper, belongsTo } = definition;
+  const buildUpdateData =
+    definition.buildUpdateData ?? ((req: Request) => req.body as TUpdate);
 
   const findOrFail = async (req: Request): Promise<TEntity> => {
     const entity = await service.findById(getRouteParam(req, "id"));
@@ -129,7 +131,7 @@ export function createResourceHandlers<
 
     const updated = await service.update(
       entity.id,
-      definition.buildUpdateData(req, entity),
+      buildUpdateData(req, entity),
     );
 
     res.status(200).json(mapper.toResponse(updated));
