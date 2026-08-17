@@ -97,7 +97,10 @@ export function createJobController(
 
     res.setHeader("Content-Type", artifact.mimeType);
     res.setHeader("Content-Length", stored.size);
-    res.setHeader("Content-Disposition", buildContentDisposition(artifact.name));
+    res.setHeader(
+      "Content-Disposition",
+      buildContentDisposition(artifact.name),
+    );
 
     await streamArtifact(job, artifact.key, res);
   };
