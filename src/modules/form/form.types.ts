@@ -13,6 +13,4 @@ export interface Form {
 }
 
 export type FormCreate = Pick<Form, "userId" | "title" | "schema" | "settings">;
-export type FormUpdate = Partial<
-  Pick<Form, "title" | "schema" | "settings" | "publishedAt" | "archivedAt">
->;
+export type FormUpdate = Partial<Pick<Form, "title" | "schema" | "settings">>;
