@@ -1,36 +1,36 @@
 import type { Queue } from "bullmq";
 
-import { BaseService } from "@/core/services/base.service.js";
 import type { JobQueueData } from "@/core/queue/job-queue.js";
+import { type FindContext } from "@/core/repositories/repository.interface.js";
 import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 import { ServiceUnavailableError } from "@/shared/errors/service-unavailable.error.js";
 import { logger, serializeError } from "@/shared/logger/logger.js";
 import { type JobRepository } from "./db/job.repository.js";
 import { isTerminal } from "./job.domain.js";
-import { type Job, type JobCreate, type JobUpdate } from "./job.types.js";
+import { type Job, type JobCreate } from "./job.types.js";
 
-export class JobService extends BaseService<Job, JobCreate, JobUpdate> {
-  constructor(
-    protected override readonly repository: JobRepository,
-    private readonly queue: Queue<JobQueueData>,
-  ) {
-    super(repository);
-  }
+export function createJobService(
+  repository: JobRepository,
+  queue: Queue<JobQueueData>,
+) {
+  const findById = (id: string): Promise<Job | null> => repository.findById(id);
+
+  const findAll = (options?: FindContext<Job>) => repository.findAll(options);
 
   /**
    * todo: падение процесса между бд и redis оставит задачу в pending
    *
    * Добавляет задачу в очередь
    */
-  async enqueue(data: JobCreate): Promise<Job> {
-    const job = await this.repository.findOrCreate(data);
+  const enqueue = async (data: JobCreate): Promise<Job> => {
+    const job = await repository.findOrCreate(data);
 
     if (isTerminal(job.status)) {
       return job;
     }
 
     try {
-      await this.queue.add(job.type, { jobId: job.id }, { jobId: job.id });
+      await queue.add(job.type, { jobId: job.id }, { jobId: job.id });
     } catch (error) {
       logger.error(
         {
@@ -40,7 +40,7 @@ export class JobService extends BaseService<Job, JobCreate, JobUpdate> {
         "Не удалось поставить задачу в очередь",
       );
 
-      await this.repository.fail(job.id, {
+      await repository.fail(job.id, {
         code: "ENQUEUE_FAILED",
         message: "Не удалось поставить операцию в очередь",
       });
@@ -51,18 +51,22 @@ export class JobService extends BaseService<Job, JobCreate, JobUpdate> {
     }
 
     return job;
-  }
+  };
 
   /**
    * Запрос отмены операции
    */
-  async requestCancel(id: string): Promise<Job> {
-    const job = await this.repository.requestCancel(id);
+  const requestCancel = async (id: string): Promise<Job> => {
+    const job = await repository.requestCancel(id);
 
     if (!job) {
       throw new BadRequestError("Задача уже завершена, отменять нечего");
     }
 
     return job;
-  }
+  };
+
+  return { findById, findAll, enqueue, requestCancel };
 }
+
+export type JobService = ReturnType<typeof createJobService>;

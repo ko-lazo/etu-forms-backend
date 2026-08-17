@@ -8,9 +8,7 @@ export function createExportRoutes(
 ): Router {
   const router = Router({ mergeParams: true });
 
-  router.post("/", authMiddleware.handle, (req, res) =>
-    controller.create(req, res),
-  );
+  router.post("/", authMiddleware.handle, controller.create);
 
   return router;
 }

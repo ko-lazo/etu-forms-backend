@@ -1,19 +1,28 @@
-export interface IResourcePolicy<TEntity> {
-  view(userId: string | undefined, entity: TEntity): boolean | Promise<boolean>;
+type Awaitable<T> = T | Promise<T>;
 
-  update(userId: string, entity: TEntity): boolean | Promise<boolean>;
-
-  delete(userId: string, entity: TEntity): boolean | Promise<boolean>;
-}
-
-export interface ISubResourcePolicy<TEntity> extends IResourcePolicy<TEntity> {
-  create?(
-    userId: string | undefined,
-    parentId: string,
-  ): boolean | Promise<boolean>;
-
-  update(
+export type IReadPolicy<TEntity> = {
+  readonly view: (
     userId: string | undefined,
     entity: TEntity,
-  ): boolean | Promise<boolean>;
-}
+  ) => Awaitable<boolean>;
+};
+
+export type IResourcePolicy<
+  TEntity,
+  TCreateContext = void,
+> = IReadPolicy<TEntity> & {
+  readonly create: (
+    userId: string | undefined,
+    context: TCreateContext,
+  ) => Awaitable<boolean>;
+
+  readonly update: (
+    userId: string | undefined,
+    entity: TEntity,
+  ) => Awaitable<boolean>;
+
+  readonly delete: (
+    userId: string | undefined,
+    entity: TEntity,
+  ) => Awaitable<boolean>;
+};

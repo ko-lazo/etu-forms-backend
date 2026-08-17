@@ -1,18 +1,16 @@
 import { type IResourcePolicy } from "@/core/policies/policy.interface.js";
 import { type ApiToken } from "./api-token.types.js";
 
-export class ApiTokenPolicy implements IResourcePolicy<ApiToken> {
-  view(userId: string, apiToken: ApiToken): boolean {
-    return apiToken.userId === userId;
-  }
+export function createApiTokenPolicy(): IResourcePolicy<ApiToken> {
+  const owns = (userId: string | undefined, apiToken: ApiToken) =>
+    userId !== undefined && apiToken.userId === userId;
 
-  update(userId: string, apiToken: ApiToken): boolean {
-    return apiToken.userId === userId;
-  }
-
-  delete(userId: string, apiToken: ApiToken): boolean {
-    return apiToken.userId === userId;
-  }
+  return {
+    view: owns,
+    create: (userId) => userId !== undefined,
+    update: owns,
+    delete: owns,
+  };
 }
 
-export const apiTokenPolicy = new ApiTokenPolicy();
+export type ApiTokenPolicy = ReturnType<typeof createApiTokenPolicy>;

@@ -1,87 +1,67 @@
 import type { Request, Response } from "express";
 import { pipeline } from "node:stream/promises";
 
-import { BaseController } from "@/core/controllers/base.controller.js";
-import { type FindContext } from "@/core/repositories/repository.interface.js";
+import {
+  createReadHandlers,
+  type Handler,
+} from "@/core/controllers/resource-handlers.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import type { IFileStorage } from "@/core/storage/file-storage.interface.js";
-import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
-import { NotFoundError } from "@/shared/errors/not-found.error.js";
-import { ForbiddenError } from "@/shared/errors/forbidden.error.js";
-import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
 import { BadRequestError } from "@/shared/errors/bad-request.error.js";
+import { NotFoundError } from "@/shared/errors/not-found.error.js";
+import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
+import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
 import { logger, serializeError } from "@/shared/logger/logger.js";
 
-import type { JobService } from "../job.service.js";
-import type { JobPolicy } from "../job.policy.js";
-import { jobMapper } from "./job.mapper.js";
-import { JobScope } from "../db/job.scope.js";
 import { JobFilter } from "../db/job.filter.js";
+import { JobScope } from "../db/job.scope.js";
 import { readArtifact } from "../job.domain.js";
-import type { Job, JobCreate, JobUpdate } from "../job.types.js";
-import type { FindJobDto, JobResponseDto } from "./job.dto.js";
+import type { JobPolicy } from "../job.policy.js";
+import type { JobService } from "../job.service.js";
+import type { Job, JobArtifact } from "../job.types.js";
+import type { FindJobDto } from "./job.dto.js";
+import { jobMapper } from "./job.mapper.js";
 
-export class JobController extends BaseController<
-  Job,
-  JobCreate,
-  JobUpdate,
-  JobResponseDto
-> {
-  constructor(
-    private readonly jobService: JobService,
-    private readonly jobPolicy: JobPolicy,
-    private readonly storage: IFileStorage,
-  ) {
-    super(jobService, jobPolicy, jobMapper);
-  }
+export function createJobController(
+  service: JobService,
+  policy: JobPolicy,
+  storage: IFileStorage,
+) {
+  const read = createReadHandlers({
+    service,
+    policy,
+    mapper: jobMapper,
 
-  protected override getFindAllOptions(req: Request): FindContext<Job> {
-    if (!req.user) {
-      throw new UnauthorizedError();
+    buildFindContext: (req) => {
+      const query = getValidatedQuery<FindJobDto>(req);
+
+      return {
+        scope: new JobScope(requireUser(req)),
+        filter: new JobFilter(query),
+        pagination: new BasePagination(query),
+      };
+    },
+  });
+
+  const findOwned = async (req: Request): Promise<Job> => {
+    const job = await service.findById(getRouteParam(req, "id"));
+
+    if (!job) {
+      throw new NotFoundError("Задача не найдена");
     }
 
-    const dto = getValidatedQuery<FindJobDto>(req);
+    ensureAllowed(req.user?.id, await policy.view(req.user?.id, job));
 
-    return {
-      scope: new JobScope(req.user.id),
-      filter: new JobFilter(dto),
-      pagination: new BasePagination(dto),
-    };
-  }
-
-  cancel = async (req: Request, res: Response): Promise<void> => {
-    const job = await this.findOwned(req);
-
-    const cancelled = await this.jobService.requestCancel(job.id);
-
-    res.status(200).json(jobMapper.toResponse(cancelled));
+    return job;
   };
 
-  download = async (req: Request, res: Response): Promise<void> => {
-    const job = await this.findOwned(req);
-
-    if (job.status !== "succeeded") {
-      throw new BadRequestError("Результат задачи ещё не готов");
-    }
-
-    const artifact = readArtifact(job.result);
-
-    if (!artifact) {
-      throw new NotFoundError("У задачи нет файла-результата");
-    }
-
-    const stored = await this.storage.stat(artifact.key);
-
-    if (!stored) {
-      throw new NotFoundError("Файл результата отсутствует в хранилище");
-    }
-
-    res.setHeader("Content-Type", artifact.mimeType);
-    res.setHeader("Content-Length", stored.size);
-    res.setHeader("Content-Disposition", contentDisposition(artifact.name));
-
+  const streamArtifact = async (
+    job: Job,
+    key: string,
+    res: Response,
+  ): Promise<void> => {
     try {
-      await pipeline(this.storage.createReadStream(artifact.key), res);
+      await pipeline(storage.createReadStream(key), res);
     } catch (error) {
       logger.error(
         {
@@ -97,28 +77,52 @@ export class JobController extends BaseController<
     }
   };
 
-  private async findOwned(req: Request): Promise<Job> {
-    const id = getRouteParam(req, "id");
-    const job = await this.jobService.findById(id);
+  const cancel: Handler = async (req, res) => {
+    const job = await findOwned(req);
 
-    if (!job) {
-      throw new NotFoundError("Задача не найдена");
+    const cancelled = await service.requestCancel(job.id);
+
+    res.status(200).json(jobMapper.toResponse(cancelled));
+  };
+
+  const download: Handler = async (req, res) => {
+    const job = await findOwned(req);
+    const artifact = resolveReadyArtifact(job);
+
+    const stored = await storage.stat(artifact.key);
+
+    if (!stored) {
+      throw new NotFoundError("Файл результата отсутствует в хранилище");
     }
 
-    if (!req.user) {
-      throw new UnauthorizedError();
-    }
+    res.setHeader("Content-Type", artifact.mimeType);
+    res.setHeader("Content-Length", stored.size);
+    res.setHeader("Content-Disposition", buildContentDisposition(artifact.name));
 
-    if (!this.jobPolicy.view(req.user.id, job)) {
-      throw new ForbiddenError();
-    }
+    await streamArtifact(job, artifact.key, res);
+  };
 
-    return job;
-  }
+  return { ...read, cancel, download };
 }
 
-function contentDisposition(name: string): string {
+function resolveReadyArtifact(job: Job): JobArtifact {
+  if (job.status !== "succeeded") {
+    throw new BadRequestError("Результат задачи ещё не готов");
+  }
+
+  const artifact = readArtifact(job.result);
+
+  if (!artifact) {
+    throw new NotFoundError("У задачи нет файла-результата");
+  }
+
+  return artifact;
+}
+
+function buildContentDisposition(name: string): string {
   const fallback = name.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "");
 
   return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`;
 }
+
+export type JobController = ReturnType<typeof createJobController>;

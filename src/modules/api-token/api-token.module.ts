@@ -1,32 +1,37 @@
 import { dbClient } from "@/core/database/pool.js";
 import { ApiTokenRepository } from "./db/api-token.repository.js";
-import { ApiTokenService } from "./api-token.service.js";
-import { ApiTokenGeneratorService } from "./api-token-generator.service.js";
-import { ApiTokenController } from "./api/api-token.controller.js";
+import { createApiTokenService } from "./api-token.service.js";
+import { createApiTokenGeneratorService } from "./api-token-generator.service.js";
+import { createApiTokenController } from "./api/api-token.controller.js";
 import { TokenGenerator } from "@/shared/security/token-generator.js";
 import { TokenHasher } from "@/shared/security/token-hasher.js";
-import { ApiTokenPolicy } from "./api-token.policy.js";
+import { createApiTokenPolicy } from "./api-token.policy.js";
 
 export function createApiTokenModule() {
   const repository = new ApiTokenRepository(dbClient);
   const generator = new TokenGenerator();
   const hasher = new TokenHasher();
 
-  const service = new ApiTokenService(repository, hasher);
-  const policy = new ApiTokenPolicy();
+  const service = createApiTokenService(repository, hasher);
+  const policy = createApiTokenPolicy();
 
-  const generatorService = new ApiTokenGeneratorService(
+  const generatorService = createApiTokenGeneratorService(
     repository,
     generator,
     hasher,
   );
 
-  const controller = new ApiTokenController(service, policy, generatorService);
+  const controller = createApiTokenController(
+    service,
+    policy,
+    generatorService,
+  );
 
   return {
     repository,
     service,
     generatorService,
+    policy,
     controller,
   };
 }

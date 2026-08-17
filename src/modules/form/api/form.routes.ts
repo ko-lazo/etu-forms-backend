@@ -16,38 +16,27 @@ export function createFormRoutes(
     "/",
     authMiddleware.handle,
     validate(formDto.findSchema, "query"),
-    (req, res) => controller.findAll(req, res),
+    controller.findAll,
   );
-  router.get("/:id", optionalAuthMiddleware.handle, (req, res) =>
-    controller.findById(req, res),
-  );
+  router.get("/:id", optionalAuthMiddleware.handle, controller.findById);
   router.post(
     "/",
     authMiddleware.handle,
     validate(formDto.createSchema),
-    (req, res) => controller.create(req, res),
+    controller.create,
   );
   router.patch(
     "/:id",
     authMiddleware.handle,
     validate(formDto.updateSchema),
-    (req, res) => controller.update(req, res),
+    controller.update,
   );
-  router.delete("/:id", authMiddleware.handle, (req, res) =>
-    controller.delete(req, res),
-  );
-  router.post("/:id/publish", authMiddleware.handle, (req, res) =>
-    controller.publish(req, res),
-  );
-  router.post("/:id/unpublish", authMiddleware.handle, (req, res) =>
-    controller.unpublish(req, res),
-  );
-  router.post("/:id/archive", authMiddleware.handle, (req, res) =>
-    controller.archive(req, res),
-  );
-  router.post("/:id/unarchive", authMiddleware.handle, (req, res) =>
-    controller.unarchive(req, res),
-  );
+  router.delete("/:id", authMiddleware.handle, controller.delete);
+
+  router.post("/:id/publish", authMiddleware.handle, controller.publish);
+  router.post("/:id/unpublish", authMiddleware.handle, controller.unpublish);
+  router.post("/:id/archive", authMiddleware.handle, controller.archive);
+  router.post("/:id/unarchive", authMiddleware.handle, controller.unarchive);
 
   return router;
 }

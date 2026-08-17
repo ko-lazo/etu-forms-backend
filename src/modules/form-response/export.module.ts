@@ -2,7 +2,7 @@ import { fileStorage } from "@/core/storage/storage.js";
 import type { FormPolicy, FormService } from "@/modules/form/index.js";
 import type { JobService } from "@/modules/job/index.js";
 import type { FormResponseRepository } from "./db/form-response.repository.js";
-import { ExportController } from "./api/export.controller.js";
+import { createExportController } from "./api/export.controller.js";
 import { ExportHandler } from "./export/export.handler.js";
 
 export type ExportModuleDeps = {
@@ -13,7 +13,7 @@ export type ExportModuleDeps = {
 };
 
 export function createExportModule(deps: ExportModuleDeps) {
-  const controller = new ExportController(
+  const controller = createExportController(
     deps.formService,
     deps.formPolicy,
     deps.jobService,

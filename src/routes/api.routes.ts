@@ -2,7 +2,6 @@ import { Router } from "express";
 import { container } from "@/app/app.container.js";
 
 import { createApiTokenRoutes } from "@/modules/api-token/api/api-token.routes.js";
-import { createUserRoutes } from "@/modules/user/api/user.routes.js";
 import { createFormRoutes } from "@/modules/form/api/form.routes.js";
 import { createAuthRoutes } from "@/modules/auth/auth.routes.js";
 import { createFormResponseRoutes } from "@/modules/form-response/api/form-response.routes.js";
@@ -16,7 +15,6 @@ export function createApiRoutes(): Router {
   const { optionalAuthMiddleware } = container;
   const { controller: authController } = container.auth;
   const { controller: apiTokenController } = container.apiToken;
-  const { controller: userController } = container.user;
   const { controller: formController } = container.form;
   const { controller: formResponseController } = container.formResponse;
   const { controller: exportController } = container.exportResponses;
@@ -27,7 +25,7 @@ export function createApiRoutes(): Router {
     "/tokens",
     createApiTokenRoutes(apiTokenController, authMiddleware),
   );
-  apiRoutes.use("/users", createUserRoutes(userController, authMiddleware));
+  // apiRoutes.use("/users", createUserRoutes(authMiddleware));
   apiRoutes.use(
     "/forms",
     createFormRoutes(formController, authMiddleware, optionalAuthMiddleware),

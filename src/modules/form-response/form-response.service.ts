@@ -1,40 +1,63 @@
-import { BaseService } from "@/core/services/base.service.js";
+import { createCrudService } from "@/core/services/crud.service.js";
+import { BadRequestError } from "@/shared/errors/bad-request.error.js";
+import { NotFoundError } from "@/shared/errors/not-found.error.js";
+import type { FormService } from "@/modules/form/index.js";
+
+import { type FormResponseRepository } from "./db/form-response.repository.js";
 import type {
   FormResponse,
+  FormResponseAnswers,
   FormResponseCreate,
   FormResponseUpdate,
 } from "./form-response.types.js";
-import { type FormResponseRepository } from "./db/form-response.repository.js";
-import type { FormService } from "@/modules/form/index.js";
 import { validateFormResponse } from "./form-response.validator.js";
-import { NotFoundError } from "@/shared/errors/not-found.error.js";
-import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 
-export class FormResponseService extends BaseService<
-  FormResponse,
-  FormResponseCreate,
-  FormResponseUpdate
-> {
-  constructor(
-    protected override readonly repository: FormResponseRepository,
-    private readonly formService: FormService,
-  ) {
-    super(repository);
-  }
+export function createFormResponseService(
+  repository: FormResponseRepository,
+  formService: FormService,
+) {
+  const crud = createCrudService(repository);
 
-  override async create(data: FormResponseCreate): Promise<FormResponse> {
-    const form = await this.formService.findById(data.formId);
+  const validate = async (
+    formId: string,
+    answers: FormResponseAnswers,
+  ): Promise<void> => {
+    const form = await formService.findById(formId);
 
     if (!form) {
-      throw new NotFoundError("Form not found");
+      throw new NotFoundError("Форма не найдена");
     }
 
-    const errors = validateFormResponse(form.schema, data.answers);
+    const errors = validateFormResponse(form.schema, answers);
 
     if (errors.length > 0) {
       throw new BadRequestError("Validation failed", errors);
     }
+  };
 
-    return await super.create(data);
-  }
+  return {
+    findById: crud.findById,
+    findAll: crud.findAll,
+    delete: crud.delete,
+
+    async create(data: FormResponseCreate): Promise<FormResponse> {
+      await validate(data.formId, data.answers);
+
+      return await repository.create(data);
+    },
+
+    async update(id: string, data: FormResponseUpdate): Promise<FormResponse> {
+      const response = await repository.findById(id);
+
+      if (!response) {
+        throw new NotFoundError("Ответ не найден");
+      }
+
+      await validate(response.formId, data.answers);
+
+      return await repository.update(id, data);
+    },
+  };
 }
+
+export type FormResponseService = ReturnType<typeof createFormResponseService>;

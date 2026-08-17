@@ -114,4 +114,8 @@ export abstract class BaseRepository<
   protected col(property: keyof TEntity): string {
     return this.metadataAccessor.col(property);
   }
+
+  protected rawCol(property: keyof TEntity): string {
+    return this.metadataAccessor.rawCol(property);
+  }
 }
