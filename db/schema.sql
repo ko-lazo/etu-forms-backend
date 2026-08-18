@@ -70,9 +70,10 @@ CREATE TABLE public.api_tokens (
     user_id uuid NOT NULL,
     token character varying(255) NOT NULL,
     name character varying(100) NOT NULL,
-    last_used_at timestamp with time zone,
     expires_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    type character varying(20) DEFAULT 'personal'::character varying NOT NULL,
+    CONSTRAINT api_tokens_type_check CHECK (((type)::text = ANY ((ARRAY['personal'::character varying, 'session'::character varying])::text[])))
 );
 
 
@@ -227,10 +228,17 @@ ALTER TABLE ONLY public.users
 
 
 --
--- Name: idx_form_responses_form_id; Type: INDEX; Schema: public; Owner: -
+-- Name: idx_api_tokens_user_id; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE INDEX idx_form_responses_form_id ON public.form_responses USING btree (form_id);
+CREATE INDEX idx_api_tokens_user_id ON public.api_tokens USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: idx_form_responses_form_id_created_at; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_form_responses_form_id_created_at ON public.form_responses USING btree (form_id, created_at);
 
 
 --
@@ -321,4 +329,8 @@ ALTER TABLE ONLY public.jobs
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260725100225'),
     ('20260725102651'),
-    ('20260813225848');
+    ('20260813225848'),
+    ('20260818090235'),
+    ('20260818124141'),
+    ('20260818124142'),
+    ('20260818124143');
