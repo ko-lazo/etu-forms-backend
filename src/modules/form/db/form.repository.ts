@@ -35,9 +35,9 @@ export class FormRepository extends BaseRepository<
     date: Date | null,
   ): Promise<Form> {
     const form = await this.db.queryOne<Form>(
-      `UPDATE ${this.table}
+      `UPDATE forms
        SET ${this.rawCol(property)} = $2
-       WHERE ${this.rawCol("id")} = $1
+       WHERE id = $1
        RETURNING *`,
       [id, date],
       this.metadata.columns,

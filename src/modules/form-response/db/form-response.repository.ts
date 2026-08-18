@@ -19,7 +19,7 @@ export class FormResponseRepository extends BaseRepository<
 
   async countByFormId(formId: string): Promise<number> {
     const row = await this.db.queryOne<{ count: string }>(
-      `SELECT COUNT(*) AS count FROM ${this.table} WHERE form_id = $1`,
+      `SELECT COUNT(*) AS count FROM form_responses WHERE form_id = $1`,
       [formId],
     );
 
@@ -37,7 +37,7 @@ export class FormResponseRepository extends BaseRepository<
               answers,
               created_at AS "createdAt",
               submitted_at AS "submittedAt"
-       FROM ${this.table}
+       FROM form_responses
        WHERE form_id = $1
        ORDER BY created_at`,
       [formId],

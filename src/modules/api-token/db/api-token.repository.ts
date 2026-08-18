@@ -18,7 +18,7 @@ export class ApiTokenRepository extends BaseRepository<
 
   async findByToken(hashedToken: string): Promise<ApiToken | null> {
     return await this.db.queryOne<ApiToken>(
-      `SELECT * FROM ${this.table} WHERE ${this.col("token")} = $1 LIMIT 1`,
+      `SELECT * FROM api_tokens WHERE token = $1 LIMIT 1`,
       [hashedToken],
       this.metadata.columns,
     );

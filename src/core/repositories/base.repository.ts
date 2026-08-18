@@ -33,7 +33,7 @@ export abstract class BaseRepository<
 
   async findById(id: string): Promise<TEntity | null> {
     return await this.db.queryOne<TEntity>(
-      `SELECT * FROM ${this.table} WHERE ${this.col(this.metadata.primaryKey)} = $1 LIMIT 1`,
+      `SELECT * FROM ${this.table} WHERE ${this.metadataAccessor.col(this.metadata.primaryKey)} = $1 LIMIT 1`,
       [id],
       this.metadata.columns,
     );
@@ -106,13 +106,9 @@ export abstract class BaseRepository<
 
   async delete(id: string): Promise<void> {
     await this.db.execute(
-      `DELETE FROM ${this.table} WHERE ${this.col(this.metadata.primaryKey)} = $1`,
+      `DELETE FROM ${this.table} WHERE ${this.metadataAccessor.col(this.metadata.primaryKey)} = $1`,
       [id],
     );
-  }
-
-  protected col(property: keyof TEntity): string {
-    return this.metadataAccessor.col(property);
   }
 
   protected rawCol(property: keyof TEntity): string {
