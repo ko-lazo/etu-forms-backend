@@ -19,7 +19,7 @@ build-project:
     # build
     - npm run build
     # compress build
-    - tar -czf build.tar.gz dist/ package.json package-lock.json
+    - tar -czf build.tar.gz dist/ db/ package.json package-lock.json
   artifacts:
     paths:
       - build.tar.gz
@@ -27,18 +27,23 @@ build-project:
 
 deploy-prod:
   stage: deploy
-  image: appleboy/drone-ssh:1.7.0
+  image: alpine:3.22
   only:
     - master
-  variables:
-    host: $PROD_HOST
-    port: $SSH_PORT
-    username: $PROD_USER
-    key: $SSH_PRIVATE_KEY_PROD
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - cp "$SSH_PRIVATE_KEY_PROD" ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+    - ssh-keyscan -p "$SSH_PORT" -H "$PROD_HOST" >> ~/.ssh/known_hosts 2>/dev/null
   script:
-    - export SCP_SRC="build.tar.gz"
-    - cd $APP_DIR
-    - tar -xzf build.tar.gz
-    - rm build.tar.gz
-    - npm ci --omit=dev --prefer-offline --no-audit --no-fund
-    - npx dbmate up
+    - scp -i ~/.ssh/id_deploy -P "$SSH_PORT" build.tar.gz "$PROD_USER@$PROD_HOST:$APP_DIR/build.tar.gz"
+    - |
+      ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$PROD_USER@$PROD_HOST" bash -s -- "$APP_DIR" <<'REMOTE'
+      set -euo pipefail
+      cd "$1"
+      tar -xzf build.tar.gz
+      rm build.tar.gz
+      npm ci --omit=dev --prefer-offline --no-audit --no-fund
+      npm run db:up
+      pm2 restart etu-forms-backend etu-forms-worker
+      REMOTE
