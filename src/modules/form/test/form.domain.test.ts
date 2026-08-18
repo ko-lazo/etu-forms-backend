@@ -9,13 +9,11 @@ import {
 } from "../form.domain.js";
 import type { Form } from "../form.types.js";
 
-const getTestDates = () => {
-  const now = new Date();
-  const past = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-  const future = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 
-  return { now, past, future };
-};
+const now = new Date();
+const past = new Date(now.getTime() - TWO_WEEKS_MS);
+const future = new Date(now.getTime() + TWO_WEEKS_MS);
 
 function makeFormRow(dates: Partial<Form>): Form {
   return {
@@ -26,31 +24,39 @@ function makeFormRow(dates: Partial<Form>): Form {
     settings: {},
     publishedAt: null,
     archivedAt: null,
-    createdAt: getTestDates().past,
-    updatedAt: getTestDates().past,
+    createdAt: past,
+    updatedAt: past,
     ...dates,
   };
 }
 
+type StatusCase = {
+  label: string;
+  dates: Partial<Form>;
+  expected: FormStatus;
+};
+
 describe("Статус формы", () => {
   it("определяется датами публикации", () => {
-    const { now, past, future } = getTestDates();
-
-    const cases: [string, Partial<Form>, FormStatus][] = [
-      ["без дат (черновик)", {}, FORM_STATUS.DRAFT],
-      [
-        "публикация в прошлом (активна)",
-        { publishedAt: past },
-        FORM_STATUS.PUBLISHED,
-      ],
-      [
-        "публикация в будущем (запланирована)",
-        { publishedAt: future },
-        FORM_STATUS.SCHEDULED,
-      ],
+    const cases: StatusCase[] = [
+      {
+        label: "без дат (черновик)",
+        dates: {},
+        expected: FORM_STATUS.DRAFT,
+      },
+      {
+        label: "публикация в прошлом (активна)",
+        dates: { publishedAt: past },
+        expected: FORM_STATUS.PUBLISHED,
+      },
+      {
+        label: "публикация в будущем (запланирована)",
+        dates: { publishedAt: future },
+        expected: FORM_STATUS.SCHEDULED,
+      },
     ];
 
-    for (const [label, dates, expected] of cases) {
+    for (const { label, dates, expected } of cases) {
       assert.equal(resolveFormStatus(makeFormRow(dates), now), expected, label);
     }
   });
@@ -59,6 +65,6 @@ describe("Статус формы", () => {
 describe("Переходы жизненного цикла", () => {
   it("разрешают публикацию для черновиков", () => {
     const draftForm = makeFormRow({});
-    assert.equal(canPublish(draftForm, getTestDates().now), true);
+    assert.equal(canPublish(draftForm, now), true);
   });
 });

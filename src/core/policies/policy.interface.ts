@@ -1,28 +1,19 @@
 type Awaitable<T> = T | Promise<T>;
 
+type PolicyRule<TSubject> = (
+  userId: string | undefined,
+  subject: TSubject,
+) => Awaitable<boolean>;
+
 export type IReadPolicy<TEntity> = {
-  readonly view: (
-    userId: string | undefined,
-    entity: TEntity,
-  ) => Awaitable<boolean>;
+  readonly view: PolicyRule<TEntity>;
 };
 
 export type IResourcePolicy<
   TEntity,
   TCreateContext = void,
 > = IReadPolicy<TEntity> & {
-  readonly create: (
-    userId: string | undefined,
-    context: TCreateContext,
-  ) => Awaitable<boolean>;
-
-  readonly update: (
-    userId: string | undefined,
-    entity: TEntity,
-  ) => Awaitable<boolean>;
-
-  readonly delete: (
-    userId: string | undefined,
-    entity: TEntity,
-  ) => Awaitable<boolean>;
+  readonly create: PolicyRule<TCreateContext>;
+  readonly update: PolicyRule<TEntity>;
+  readonly delete: PolicyRule<TEntity>;
 };

@@ -4,7 +4,13 @@ import type {
   FormResponseAnswers as Answers,
 } from "./form-response.types.js";
 
+type TextElementType = "text" | "email" | "textarea";
+type ChoiceElementType = "dropdown" | "radiogroup" | "checkbox";
+
 type FormElement = FormSchema["pages"][number]["elements"][number];
+type TextElement = Extract<FormElement, { type: TextElementType }>;
+type NumberElement = Extract<FormElement, { type: "number" }>;
+type ChoiceElement = Extract<FormElement, { type: ChoiceElementType }>;
 
 export interface FormResponseValidationError {
   field: string;
@@ -26,7 +32,7 @@ export function validateFormResponse(
   for (const element of elements) {
     const answer = answers[element.name];
 
-    // TODO:
+    // todo учитывать element.visibleIf: скрытые поля валидируются как обычные
     // const visible = evaluateCondition(
     //   element.visibleIf,
     //   answers,
@@ -95,18 +101,10 @@ function validateElementAnswer(
 }
 
 function validateTextAnswer(
-  element: FormElement,
+  element: TextElement,
   answer: Answer,
   errors: FormResponseValidationError[],
 ): void {
-  if (
-    element.type !== "text" &&
-    element.type !== "email" &&
-    element.type !== "textarea"
-  ) {
-    return;
-  }
-
   if (typeof answer !== "string") {
     errors.push({
       field: element.name,
@@ -151,14 +149,10 @@ function validateTextAnswer(
 }
 
 function validateNumberAnswer(
-  element: FormElement,
+  element: NumberElement,
   answer: Answer,
   errors: FormResponseValidationError[],
 ): void {
-  if (element.type !== "number") {
-    return;
-  }
-
   if (typeof answer !== "number" || !Number.isFinite(answer)) {
     errors.push({
       field: element.name,
@@ -186,14 +180,10 @@ function validateNumberAnswer(
 }
 
 function validateSingleChoiceAnswer(
-  element: FormElement,
+  element: ChoiceElement,
   answer: Answer,
   errors: FormResponseValidationError[],
 ): void {
-  if (element.type !== "dropdown" && element.type !== "radiogroup") {
-    return;
-  }
-
   if (typeof answer !== "string") {
     errors.push({
       field: element.name,
@@ -214,14 +204,10 @@ function validateSingleChoiceAnswer(
 }
 
 function validateCheckboxAnswer(
-  element: FormElement,
+  element: ChoiceElement,
   answer: Answer,
   errors: FormResponseValidationError[],
 ): void {
-  if (element.type !== "checkbox") {
-    return;
-  }
-
   if (!Array.isArray(answer)) {
     errors.push({
       field: element.name,
@@ -245,13 +231,10 @@ function validateCheckboxAnswer(
 
 // todo files
 // function validateFileAnswer(
-//   element: FormElement,
+//   element: FileElement,
 //   answer: Answer,
 //   errors: FormResponseValidationError[],
 // ): void {
-//   if (element.type !== "file") {
-//     return;
-//   }
 //
 //   if (typeof answer === "string") {
 //     return;

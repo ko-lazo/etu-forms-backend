@@ -109,15 +109,13 @@ export function createReadHandlers<TEntity extends QueryResultRow, TResponse>(
       pagination,
     });
 
-    res
-      .status(200)
-      .json(
-        paginatedResponse(
-          mapper.toResponseCollection(entities),
-          total,
-          pagination,
-        ),
-      );
+    const response = paginatedResponse(
+      mapper.toResponseCollection(entities),
+      total,
+      pagination,
+    );
+
+    res.status(200).json(response);
   };
 
   const findById: Handler = async (req, res) => {

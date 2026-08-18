@@ -4,6 +4,8 @@ import { type BasePagination } from "@/core/repositories/base.pagination.js";
 import { type MetadataAccessor } from "@/core/database/metadata-accessor.js";
 import { type RepositoryMetadata } from "@/core/repositories/repository.metadata.js";
 
+export type SqlStatement = { sql: string; values: unknown[] };
+
 export class SqlQueryBuilder<
   TEntity extends QueryResultRow,
   TCreate extends object,
@@ -21,7 +23,7 @@ export class SqlQueryBuilder<
     this.metadata = metadataAccessor.metadata;
   }
 
-  public count(conditions: SqlCondition[]): { sql: string; values: unknown[] } {
+  public count(conditions: SqlCondition[]): SqlStatement {
     const { sql: whereClause, values } = this.buildWhere(conditions);
     return {
       sql: `SELECT COUNT(*) as count FROM ${this.metadata.tableName} ${whereClause}`,
@@ -33,10 +35,10 @@ export class SqlQueryBuilder<
   public all(
     conditions: SqlCondition[],
     pagination?: BasePagination,
-  ): { sql: string; values: unknown[] } {
+  ): SqlStatement {
     const { sql: whereClause, values } = this.buildWhere(conditions);
 
-    const orderClause = `ORDER BY ${this.getCol(this.metadata.defaultOrder.column)} ${this.metadata.defaultOrder.direction}`;
+    const orderClause = `ORDER BY ${this.getColumn(this.metadata.defaultOrder.column)} ${this.metadata.defaultOrder.direction}`;
     const nextIndex = values.length + 1;
     const paginationClause = pagination
       ? `LIMIT $${nextIndex} OFFSET $${nextIndex + 1}`
@@ -51,10 +53,7 @@ export class SqlQueryBuilder<
     };
   }
 
-  public buildWhere(conditions: SqlCondition[]): {
-    sql: string;
-    values: unknown[];
-  } {
+  public buildWhere(conditions: SqlCondition[]): SqlStatement {
     if (conditions.length === 0) {
       return {
         sql: "",
@@ -84,12 +83,12 @@ export class SqlQueryBuilder<
     };
   }
 
-  public insert(data: TCreate): { sql: string; values: unknown[] } {
+  public insert(data: TCreate): SqlStatement {
     const entries = this.getAllowedEntries(
       data,
       this.metadata.creatableColumns,
     );
-    const columns = entries.map(([prop]) => this.getCol(prop));
+    const columns = entries.map(([prop]) => this.getColumn(prop));
     const values = entries.map(([prop, val]) => this.prepare(prop, val));
     const placeholders = values.map((_, i) => `$${i + 1}`);
 
@@ -99,10 +98,7 @@ export class SqlQueryBuilder<
     };
   }
 
-  public insertMany(rows: readonly TCreate[]): {
-    sql: string;
-    values: unknown[];
-  } {
+  public insertMany(rows: readonly TCreate[]): SqlStatement {
     if (rows.length === 0)
       throw new Error("Insert data must contain at least one row");
 
@@ -113,7 +109,7 @@ export class SqlQueryBuilder<
     if (properties.length === 0)
       throw new Error("Insert data must contain at least one field");
 
-    const columns = properties.map((prop) => this.getCol(prop));
+    const columns = properties.map((prop) => this.getColumn(prop));
     const values: unknown[] = [];
 
     const tuples = rows.map((row) => {
@@ -133,7 +129,7 @@ export class SqlQueryBuilder<
     };
   }
 
-  public update(id: string, data: TUpdate): { sql: string; values: unknown[] } {
+  public update(id: string, data: TUpdate): SqlStatement {
     const entries = this.getAllowedEntries(
       data,
       this.metadata.updatableColumns,
@@ -142,12 +138,12 @@ export class SqlQueryBuilder<
       throw new Error("Update data must contain at least one field");
 
     const assignments = entries.map(
-      ([prop], i) => `${this.getCol(prop)} = $${i + 1}`,
+      ([prop], i) => `${this.getColumn(prop)} = $${i + 1}`,
     );
     const values = entries.map(([prop, val]) => this.prepare(prop, val));
 
     return {
-      sql: `UPDATE ${this.metadata.tableName} SET ${assignments.join(", ")} WHERE ${this.getCol(this.metadata.primaryKey)} = $${values.length + 1} RETURNING *`,
+      sql: `UPDATE ${this.metadata.tableName} SET ${assignments.join(", ")} WHERE ${this.getColumn(this.metadata.primaryKey)} = $${values.length + 1} RETURNING *`,
       values: [...values, id],
     };
   }
@@ -169,7 +165,7 @@ export class SqlQueryBuilder<
       : value;
   }
 
-  private getCol(property: keyof TEntity): string {
+  private getColumn(property: keyof TEntity): string {
     const column = this.metadata.columns[property];
 
     if (!column) {
