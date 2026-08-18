@@ -15,7 +15,6 @@ export const apiTokenDto = {
   responseSchema: z.object({
     id: z.uuid(),
     name: z.string(),
-    lastUsedAt: z.date().nullable(),
     expiresAt: z.date().nullable(),
     createdAt: z.date(),
   }),

@@ -12,7 +12,6 @@ export const apiTokenMapper: IMapper<ApiToken, ApiTokenResponseDto> = {
     const raw = {
       id: token.id,
       name: token.name,
-      lastUsedAt: token.lastUsedAt,
       expiresAt: token.expiresAt,
       createdAt: token.createdAt,
     };
