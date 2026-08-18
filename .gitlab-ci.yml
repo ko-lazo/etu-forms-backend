@@ -31,10 +31,10 @@ deploy-prod:
   only:
     - master
   variables:
-    SSH_HOST: $PROD_HOST
-    SSH_PORT: $SSH_PORT
-    SSH_USER: $PROD_USER
-    SSH_KEY: $SSH_PRIVATE_KEY_PROD
+    host: $PROD_HOST
+    port: $SSH_PORT
+    username: $PROD_USER
+    key: $SSH_PRIVATE_KEY_PROD
   script:
     - export SCP_SRC="build.tar.gz"
     - cd $APP_DIR
