@@ -11,6 +11,8 @@
     "worker": "tsx watch src/worker.ts",
     "worker:start": "node dist/worker.js",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test \"src/**/*.test.ts\"",
+    "test:watch": "tsx --test --watch \"src/**/*.test.ts\"",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
