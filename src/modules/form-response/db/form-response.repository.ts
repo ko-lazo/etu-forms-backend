@@ -27,8 +27,8 @@ export class FormResponseRepository extends BaseRepository<
   }
 
   /**
-   * Получает ответы по ID формы в виде потока (порциями по 500 строк).
-   * Используется для выгрузки больших объемов данных без перегрузки памяти.
+   * Получает ответы по ID формы порциями по 500 строк.
+   * Используется для выгрузки больших объемов данных.
    * @param formId Идентификатор формы
    */
   streamByFormId(formId: string): AsyncIterable<ExportedResponseRow> {
@@ -39,7 +39,7 @@ export class FormResponseRepository extends BaseRepository<
               submitted_at AS "submittedAt"
        FROM form_responses
        WHERE form_id = $1
-       ORDER BY created_at`,
+       ORDER BY created_at, id`,
       [formId],
       { batchSize: 500 },
     );
