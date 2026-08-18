@@ -18,7 +18,7 @@ import { JobScope } from "../db/job.scope.js";
 import { readArtifact } from "../job.domain.js";
 import type { JobPolicy } from "../job.policy.js";
 import type { JobService } from "../job.service.js";
-import type {Job, JobArtifact} from "../job.types.js";
+import type { Job, JobArtifact } from "../job.types.js";
 import type { FindJobDto } from "./job.dto.js";
 import { jobMapper } from "./job.mapper.js";
 import { JOB_STATUS } from "../job.types.js";
