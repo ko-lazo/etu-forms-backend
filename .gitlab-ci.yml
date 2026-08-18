@@ -25,20 +25,26 @@ build-project:
       - build.tar.gz
     expire_in: 1 day
 
-deploy-prod:
-  stage: deploy
+.ssh:
   image: alpine:3.22
-  only:
-    - master
+  variables:
+    SSH_OPTS: -o IdentitiesOnly=yes -o BatchMode=yes
   before_script:
     - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh && chmod 700 ~/.ssh
-    - cp "$SSH_PRIVATE_KEY_PROD" ~/.ssh/id_deploy && chmod 600 ~/.ssh/id_deploy
+    - chmod 600 "$SSH_PRIVATE_KEY_PROD"
+    - ssh-keygen -y -f "$SSH_PRIVATE_KEY_PROD" > /dev/null
     - ssh-keyscan -p "$SSH_PORT" -H "$PROD_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+deploy-prod:
+  extends: .ssh
+  stage: deploy
+  only:
+    - master
   script:
-    - scp -i ~/.ssh/id_deploy -P "$SSH_PORT" build.tar.gz "$PROD_USER@$PROD_HOST:$APP_DIR/build.tar.gz"
+    - scp -i "$SSH_PRIVATE_KEY_PROD" $SSH_OPTS -P "$SSH_PORT" build.tar.gz "$PROD_USER@$PROD_HOST:$APP_DIR/build.tar.gz"
     - |
-      ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$PROD_USER@$PROD_HOST" bash -s -- "$APP_DIR" <<'REMOTE'
+      ssh -i "$SSH_PRIVATE_KEY_PROD" $SSH_OPTS -p "$SSH_PORT" "$PROD_USER@$PROD_HOST" bash -s -- "$APP_DIR" <<'REMOTE'
       set -euo pipefail
       cd "$1"
       tar -xzf build.tar.gz
