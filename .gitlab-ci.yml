@@ -36,17 +36,6 @@ build-project:
     - ssh-keygen -y -f "$SSH_PRIVATE_KEY_PROD" > /dev/null
     - ssh-keyscan -p "$SSH_PORT" -H "$PROD_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-check-ssh:
-  extends: .ssh
-  stage: deploy
-  needs: []
-  rules:
-    - if: $CI_COMMIT_BRANCH != "master"
-      when: manual
-      allow_failure: true
-  script:
-    - ssh -i "$SSH_PRIVATE_KEY_PROD" $SSH_OPTS -p "$SSH_PORT" "$PROD_USER@$PROD_HOST" 'echo connected; which node npm pm2; pm2 list'
-
 deploy-prod:
   extends: .ssh
   stage: deploy
