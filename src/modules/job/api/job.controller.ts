@@ -18,9 +18,10 @@ import { JobScope } from "../db/job.scope.js";
 import { readArtifact } from "../job.domain.js";
 import type { JobPolicy } from "../job.policy.js";
 import type { JobService } from "../job.service.js";
-import type { Job, JobArtifact } from "../job.types.js";
+import type {Job, JobArtifact} from "../job.types.js";
 import type { FindJobDto } from "./job.dto.js";
 import { jobMapper } from "./job.mapper.js";
+import { JOB_STATUS } from "../job.types.js";
 
 export function createJobController(
   service: JobService,
@@ -105,7 +106,7 @@ export function createJobController(
 }
 
 function resolveReadyArtifact(job: Job): JobArtifact {
-  if (job.status !== "succeeded") {
+  if (job.status !== JOB_STATUS.SUCCEEDED) {
     throw new BadRequestError("Результат задачи ещё не готов");
   }
 
