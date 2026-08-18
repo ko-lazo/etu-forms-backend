@@ -20,13 +20,13 @@ export const apiTokenMetadata = {
     id: "id",
     userId: "user_id",
     name: "name",
+    type: "type",
     token: "token",
-    lastUsedAt: "last_used_at",
     expiresAt: "expires_at",
     createdAt: "created_at",
   },
 
-  creatableColumns: ["name", "token", "userId", "expiresAt"],
+  creatableColumns: ["name", "type", "token", "userId", "expiresAt"],
 
   updatableColumns: ["name"],
 } satisfies RepositoryMetadata<ApiToken, ApiTokenCreate, ApiTokenUpdate>;

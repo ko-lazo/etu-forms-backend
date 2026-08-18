@@ -1,6 +1,7 @@
-import type {
-  ApiToken,
-  ApiTokenGeneratorService,
+import {
+  API_TOKEN_TYPE,
+  type ApiToken,
+  type ApiTokenGeneratorService,
 } from "@/modules/api-token/index.js";
 import type { User, UserService } from "@/modules/user/index.js";
 import { UnauthorizedError } from "@/shared/errors/unauthorized.error.js";
@@ -35,6 +36,7 @@ export function createAuthService(
 
     return await tokenGenerator.generate(user.id, {
       name: `Session Token (${new Date().toLocaleDateString()})`,
+      type: API_TOKEN_TYPE.SESSION,
       expiresAt,
     });
   };

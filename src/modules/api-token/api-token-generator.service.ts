@@ -16,6 +16,7 @@ export function createApiTokenGeneratorService(
 
     const apiToken = await repository.create({
       name: data.name,
+      type: data.type,
       expiresAt: data.expiresAt ?? null,
       userId,
       token: hasher.hash(plainToken),

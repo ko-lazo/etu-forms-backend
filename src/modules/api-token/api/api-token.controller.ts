@@ -9,6 +9,7 @@ import { getValidatedQuery } from "@/shared/http/http.params.js";
 import { type ApiTokenGeneratorService } from "../api-token-generator.service.js";
 import { type ApiTokenPolicy } from "../api-token.policy.js";
 import { type ApiTokenService } from "../api-token.service.js";
+import { API_TOKEN_TYPE } from "../api-token.types.js";
 import { ApiTokenScope } from "../db/api-token.scope.js";
 import {
   type CreateApiTokenDto,
@@ -41,10 +42,10 @@ export function createApiTokenController(
     const userId = requireUser(req);
     ensureAllowed(userId, await policy.create(userId, undefined));
 
-    const issued = await generatorService.generate(
-      userId,
-      req.body as CreateApiTokenDto,
-    );
+    const issued = await generatorService.generate(userId, {
+      ...(req.body as CreateApiTokenDto),
+      type: API_TOKEN_TYPE.PERSONAL,
+    });
 
     res.status(201).json(toIssuedApiTokenResponse(issued));
   };
