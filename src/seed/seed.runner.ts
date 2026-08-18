@@ -7,7 +7,7 @@ import { seedUsers } from "@/modules/user/db/user.seeder.js";
 import { seedForms } from "@/modules/form/db/form.seeder.js";
 import { seedFormResponses } from "@/modules/form-response/db/form-response.seeder.js";
 import { counter, type SeedScenario } from "./seed.scenario.js";
-import {appConfig} from "@/config/index.js";
+import { appConfig } from "@/config/index.js";
 
 export async function seedDatabase(scenario: SeedScenario): Promise<void> {
   const userRepository = createUserModule().repository;
