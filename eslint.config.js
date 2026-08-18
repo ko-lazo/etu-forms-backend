@@ -106,6 +106,14 @@ export default tseslint.config(
   },
 
   {
+    files: ["**/*.test.ts"],
+    rules: {
+      "@typescript-eslint/no-floating-promises": "off",
+      "@typescript-eslint/no-non-null-assertion": "off",
+    },
+  },
+
+  {
     files: ["src/seed.ts", "src/seed/**", "scripts/**"],
     rules: {
       "no-console": "off",
