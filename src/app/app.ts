@@ -13,10 +13,6 @@ export function createApp() {
 
   const app = express();
 
-  if (appConfig.isProduction) {
-    app.set("trust proxy", 1);
-  }
-
   app.use(cors(corsConfig));
 
   app.use(express.json());
