@@ -39,7 +39,7 @@ export class FormResponseRepository extends BaseRepository<
               submitted_at AS "submittedAt"
        FROM form_responses
        WHERE form_id = $1
-       ORDER BY created_at`,
+       ORDER BY created_at, id`,
       [formId],
       { batchSize: 500 },
     );
