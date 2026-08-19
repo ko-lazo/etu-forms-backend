@@ -1,6 +1,7 @@
 import type { Server } from "node:http";
 
 import { createApp } from "./app.js";
+import { container } from "./app.container.js";
 import { appConfig } from "@/config/index.js";
 import { pool } from "@/core/database/pool.js";
 import { closeJobQueue } from "@/core/queue/job-queue.js";
@@ -30,6 +31,7 @@ export function startServer(): Server {
       });
 
       await closeJobQueue();
+      await container.ai.close();
       await pool.end();
     },
   });

@@ -2,13 +2,13 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
-import { ensureAllowed } from "@/shared/http/authorize.js";
+import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
+import type { AiQuota } from "@/modules/ai/index.js";
 
 import { type AiConstructorService } from "../ai/ai-constructor.service.js";
 import { type FormPolicy } from "../form.policy.js";
 import { type FormService } from "../form.service.js";
 import type { Form } from "../form.types.js";
-import { formMapper } from "./form.mapper.js";
 
 const requestSchema = z.object({
   prompt: z.string().trim().min(1).max(5000),
@@ -16,6 +16,7 @@ const requestSchema = z.object({
 
 export const createAiConstructorController = (input: {
   aiConstructorService: AiConstructorService;
+  aiQuota: AiQuota;
   formService: FormService;
   formPolicy: FormPolicy;
 }) => {
@@ -35,30 +36,21 @@ export const createAiConstructorController = (input: {
   async function generate(req: Request, res: Response): Promise<void> {
     const { prompt } = requestSchema.parse(req.body);
     const form = await findOwnedOrFail(req);
+    const userId = requireUser(req);
+
+    await input.aiQuota.ensureAvailable(userId);
 
     const result = await input.aiConstructorService.generateResponse({
       prompt,
       form: form.schema,
     });
 
-    if (result.status !== "ok" || !result.form) {
-      res.status(200).json({
-        status: result.status,
-        message: result.message,
-        form: null,
-      });
-
-      return;
-    }
-
-    const updated = await input.formService.update(form.id, {
-      schema: result.form,
-    });
+    await input.aiQuota.spend(userId);
 
     res.status(200).json({
       status: result.status,
       message: result.message,
-      form: formMapper.toResponse(updated),
+      schema: result.form ?? null,
     });
   }
 

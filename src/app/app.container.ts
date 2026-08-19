@@ -46,6 +46,7 @@ class AppContainer {
     this.ai = createAiModule();
     this.aiConstructor = createAiConstructorModule({
       aiService: this.ai.service,
+      aiQuota: this.ai.quota,
       formService: this.form.service,
       formPolicy: this.form.policy,
     });
