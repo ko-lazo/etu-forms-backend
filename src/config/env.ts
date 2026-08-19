@@ -30,9 +30,11 @@ const envSchema = z.object({
   JOB_CONCURRENCY: z.coerce.number().int().positive().default(2),
   JOB_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
 
-  OPENROUTER_API_KEY: z.string().min(1),
-  OPENROUTER_MODEL: z.string().min(1).default("google/gemma-4-26b-a4b-it:free"),
-  OPENROUTER_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
+  AI_API_KEY: z.string().min(1),
+  AI_BASE_URL: z.url().default("https://openrouter.ai/api/v1"),
+  AI_MODEL: z.string().min(1).default("google/gemma-4-26b-a4b-it:free"),
+  AI_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
+  AI_PROMPTS_PATH: z.string().min(1).default("prompts"),
 });
 
 export const env = Object.freeze(envSchema.parse(process.env));

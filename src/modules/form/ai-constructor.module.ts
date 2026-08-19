@@ -1,20 +1,17 @@
-import { aiConfig } from "@/config/index.js";
+import type { AiService } from "@/modules/ai/index.js";
 import type { FormPolicy } from "./form.policy.js";
 import type { FormService } from "./form.service.js";
 import { createAiConstructorController } from "./api/ai-constructor.controller.js";
 import { createAiConstructorService } from "./ai/ai-constructor.service.js";
 
 export type AiConstructorModuleDeps = {
+  readonly aiService: AiService;
   readonly formService: FormService;
   readonly formPolicy: FormPolicy;
 };
 
 export function createAiConstructorModule(deps: AiConstructorModuleDeps) {
-  const service = createAiConstructorService({
-    apiKey: aiConfig.apiKey,
-    model: aiConfig.model,
-    timeoutMs: aiConfig.timeoutMs,
-  });
+  const service = createAiConstructorService(deps.aiService);
 
   const controller = createAiConstructorController({
     aiConstructorService: service,

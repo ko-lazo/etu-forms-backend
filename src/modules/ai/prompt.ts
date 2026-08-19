@@ -16,7 +16,7 @@ export async function renderPrompt(
   const regexp = "/\\{\\{(\\w+)}}/g";
 
   const template = await readFile(
-    path.join(aiConfig.promptsRoot, fileName),
+    path.join(aiConfig.promptsDir, fileName),
     code,
   );
 

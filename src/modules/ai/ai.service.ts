@@ -1,0 +1,130 @@
+import { z } from "zod";
+import { ServiceUnavailableError } from "@/shared/errors/service-unavailable.error.js";
+import { logger } from "@/shared/logger/logger.js";
+import { toStrictJsonSchema } from "./strict-schema.formatter.js";
+import type { AiConfig, AiService, StructuredRequest } from "./ai.types.js";
+
+export const completionSchema = z.object({
+  choices: z
+    .array(z.object({ message: z.object({ content: z.string().nullable() }) }))
+    .min(1),
+});
+
+export function createAiService(config: AiConfig): AiService {
+  async function ask<TSchema extends z.ZodType>(
+    request: StructuredRequest<TSchema>,
+  ): Promise<z.infer<TSchema>> {
+    const content = await checkCompletion(request);
+    const formattedJson = dropNulls(parseJson(content));
+    const parsed = request.schema.safeParse(formattedJson);
+
+    if (!parsed.success) {
+      throw unavailable("Answer validation error", parsed.error.issues);
+    }
+
+    return parsed.data;
+  }
+
+  async function send(
+    request: StructuredRequest<z.ZodType>,
+  ): Promise<Response> {
+    return await fetch(config.baseUrl, {
+      method: "POST",
+      signal: AbortSignal.timeout(config.timeoutMs),
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: request.messages,
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: request.name,
+            strict: true,
+            schema: toJsonSchema(request.schema),
+          },
+        },
+      }),
+    }).catch((error: unknown) => {
+      throw unavailable("Request not send", error);
+    });
+  }
+
+  async function checkCompletion(
+    request: StructuredRequest<z.ZodType>,
+  ): Promise<string> {
+    const response = await send(request);
+
+    if (!response.ok) {
+      throw unavailable(`Status ${response.status}`, await response.text());
+    }
+
+    const parsed = completionSchema.safeParse(await response.json());
+    const content = parsed.success
+      ? parsed.data.choices[0]?.message.content
+      : null;
+
+    if (!content) {
+      throw unavailable("Empty or unexpected response", await response.text());
+    }
+
+    return content;
+  }
+
+  return {
+    ask,
+  };
+}
+
+function unavailable(reason: string, details: unknown): Error {
+  logger.error({ reason, details }, "AI service error");
+  return new ServiceUnavailableError("AI-сервис временно недоступен");
+}
+
+const jsonSchemaCache = new WeakMap<z.ZodType, Record<string, unknown>>();
+
+/**
+ * Превращает zod-схему в строгий JSON для OpenAI.
+ * Отрезает техническое поле $schema, иначе API вернет ошибку валидации.
+ */
+function toJsonSchema(schema: z.ZodType): Record<string, unknown> {
+  const cached = jsonSchemaCache.get(schema);
+  if (cached) return cached;
+  const { $schema: _ignored, ...jsonSchema } = z.toJSONSchema(schema, {
+    io: "input",
+    target: "draft-7",
+  });
+  const strict = toStrictJsonSchema(jsonSchema);
+  jsonSchemaCache.set(schema, strict);
+  return strict;
+}
+
+/**
+ * Достаёт json из markdown ответа модели при необходимости
+ */
+function parseJson(content: string): unknown {
+  const fenced = /^\s*```(?:json)?\s*\n([\s\S]*?)\n\s*```\s*$/.exec(content);
+
+  try {
+    return JSON.parse(fenced?.[1] ?? content);
+  } catch {
+    throw unavailable("Response is not valid JSON", content);
+  }
+}
+
+/**
+ * вычищает необязательные для схемы поля, пришедшие от ИИ
+ */
+function dropNulls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(dropNulls);
+
+  if (value === null || typeof value !== "object") return value;
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, item]) => item !== null)
+      .map(([key, item]) => [key, dropNulls(item)]),
+  );
+}
