@@ -1,3 +1,4 @@
+export { aiConfig } from "./ai.config.js";
 export { appConfig } from "./app.config.js";
 export { databaseConfig } from "./database.config.js";
 export { jobConfig } from "./job.config.js";

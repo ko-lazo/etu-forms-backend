@@ -29,6 +29,10 @@ const envSchema = z.object({
 
   JOB_CONCURRENCY: z.coerce.number().int().positive().default(2),
   JOB_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
+
+  OPENROUTER_API_KEY: z.string().min(1),
+  OPENROUTER_MODEL: z.string().min(1).default("google/gemma-4-26b-a4b-it:free"),
+  OPENROUTER_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
 });
 
 export const env = Object.freeze(envSchema.parse(process.env));
