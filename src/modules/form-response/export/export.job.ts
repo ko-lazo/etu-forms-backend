@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { finished } from "node:stream/promises";
 
 import {
-  PermanentJobError,
-  type JobArtifact,
+  JobFatalError,
+  type JobResultFile,
   type JobContext,
   type JobHandler,
   type JobResult,
@@ -28,11 +28,11 @@ import {
 export const MAX_EXPORT_ROWS = 500_000;
 
 /**
- * Воркер для выгрузки ответов формы в Excel.
- * Построчно стримит данные из БД и сразу пишет в .xlsx.
+ * Выгрузка ответов формы в XLSX-файл.
+ * Читает строки из базы пачками и пишет в .xlsx.
  * Результат сохраняет во временный файл, затем перемещает в хранилище.
  */
-export class ExportHandler implements JobHandler<ExportPayload> {
+export class ExportJob implements JobHandler<ExportPayload> {
   public readonly type = EXPORT_JOB_TYPE;
   public readonly payloadSchema = exportPayloadSchema;
 
@@ -55,7 +55,7 @@ export class ExportHandler implements JobHandler<ExportPayload> {
     const form = await this.formService.findById(payload.formId);
 
     if (!form) {
-      throw new PermanentJobError(
+      throw new JobFatalError(
         "FORM_NOT_FOUND",
         `Form ${payload.formId} not found`,
       );
@@ -65,7 +65,7 @@ export class ExportHandler implements JobHandler<ExportPayload> {
 
     // todo поддержка крупных экспортов (сделать через csv)
     if (total > MAX_EXPORT_ROWS) {
-      throw new PermanentJobError(
+      throw new JobFatalError(
         "EXPORT_TOO_LARGE",
         `Large exports are not supported yet: ${total} rows`,
       );
@@ -86,14 +86,14 @@ export class ExportHandler implements JobHandler<ExportPayload> {
       throw new Error(`Export file ${keys.final} not found`);
     }
 
-    const artifact: JobArtifact = {
+    const file: JobResultFile = {
       key: keys.final,
       name: buildFileName(form.title),
       size: stored.size,
       mimeType: XLSX_MIME,
     };
 
-    return { artifact, rowCount };
+    return { file, rowCount };
   }
 
   /**

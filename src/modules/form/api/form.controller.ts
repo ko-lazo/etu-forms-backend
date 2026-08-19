@@ -1,5 +1,4 @@
 import type { Request } from "express";
-
 import {
   createResourceHandlers,
   type Handler,
@@ -8,7 +7,6 @@ import { BasePagination } from "@/core/repositories/base.pagination.js";
 import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
 import { getValidatedQuery } from "@/shared/http/http.params.js";
-
 import { FormFilter } from "../db/form.filter.js";
 import { FormScope } from "../db/form.scope.js";
 import { type FormPolicy } from "../form.policy.js";
@@ -44,19 +42,17 @@ export function createFormController(service: FormService, policy: FormPolicy) {
     }),
   });
 
-  const findOwned = async (req: Request): Promise<Form> => {
+  async function findOwned(req: Request): Promise<Form> {
     const form = await findOrFail(req);
-
     ensureAllowed(req.user?.id, await policy.update(req.user?.id, form));
-
     return form;
-  };
+  }
 
   /**
-   * Определяет точную дату для изменения статуса формы.
-   * Если дата в запросе не указана, переход применяется мгновенно.
+   * Выставляет дату для изменения статуса формы.
+   * Если дата в запросе не указана, переход просиходит сразу.
    */
-  const resolveTransitionDate = (req: Request): Date => {
+  function resolveTransitionDate(req: Request): Date {
     const parsed = formLifecycleSchema.safeParse(req.body ?? {});
 
     if (!parsed.success) {
@@ -64,18 +60,18 @@ export function createFormController(service: FormService, policy: FormPolicy) {
     }
 
     return parsed.data.date ?? new Date();
-  };
+  }
 
-  const buildTransition = (
+  function buildTransition(
     applyTransition: (form: Form, date: Date) => Promise<Form>,
-  ): Handler => {
+  ): Handler {
     return async (req, res) => {
       const form = await findOwned(req);
       const updated = await applyTransition(form, resolveTransitionDate(req));
 
       res.status(200).json(formMapper.toResponse(updated));
     };
-  };
+  }
 
   return {
     ...crud,

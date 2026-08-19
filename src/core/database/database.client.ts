@@ -38,7 +38,7 @@ export class DatabaseClient {
   }
 
   /**
-   * Стримит результаты SQL-запроса через асинхронный генератор.
+   * Построчно читает тяжелые запросы.
    * Автоматически управляет соединением и уничтожает поток после обработки.
    */
   public async *stream<T extends QueryResultRow = QueryResultRow>(
@@ -63,7 +63,7 @@ export class DatabaseClient {
   }
 
   /**
-   * Выделенное соединение, необходимо для `pg-query-stream`
+   * Выделенное соединение
    */
   public async withClient<T>(
     fn: (client: PoolClient) => Promise<T>,
@@ -83,8 +83,8 @@ export class DatabaseClient {
 
   /**
    * todo расширить использование
-   * Выполняет функцию в рамках одной транзакции на выделенном соединении,
-   * переиспользуя внешнюю транзакцию без открытия новой
+   * Выполняет код в транзакции на выделенном соединении.
+   * Если транзакция уже открыта до, просто использует её.
    */
   public async withTransaction<T>(
     fn: (tx: DatabaseClient) => Promise<T>,

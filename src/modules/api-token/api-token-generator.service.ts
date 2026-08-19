@@ -8,10 +8,10 @@ export function createApiTokenGeneratorService(
   generator: TokenGenerator,
   hasher: TokenHasher,
 ) {
-  const generate = async (
+  async function generate(
     userId: string,
     data: ApiTokenIssuance,
-  ): Promise<ApiToken & { token: string }> => {
+  ): Promise<ApiToken & { token: string }> {
     const plainToken = generator.generate();
 
     const apiToken = await repository.create({
@@ -23,7 +23,7 @@ export function createApiTokenGeneratorService(
     });
 
     return { ...apiToken, token: plainToken };
-  };
+  }
 
   return { generate };
 }

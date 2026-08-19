@@ -2,7 +2,6 @@ import { createCrudService } from "@/core/services/crud.service.js";
 import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import type { FormService } from "@/modules/form/index.js";
-
 import { type FormResponseRepository } from "./db/form-response.repository.js";
 import type {
   FormResponse,
@@ -18,10 +17,10 @@ export function createFormResponseService(
 ) {
   const crud = createCrudService(repository);
 
-  const validate = async (
+  async function validate(
     formId: string,
     answers: FormResponseAnswers,
-  ): Promise<void> => {
+  ): Promise<void> {
     const form = await formService.findById(formId);
 
     if (!form) {
@@ -33,18 +32,17 @@ export function createFormResponseService(
     if (errors.length > 0) {
       throw new BadRequestError("Validation failed", errors);
     }
-  };
+  }
 
-  const create = async (data: FormResponseCreate): Promise<FormResponse> => {
+  async function create(data: FormResponseCreate): Promise<FormResponse> {
     await validate(data.formId, data.answers);
-
     return await repository.create(data);
-  };
+  }
 
-  const update = async (
+  async function update(
     id: string,
     data: FormResponseUpdate,
-  ): Promise<FormResponse> => {
+  ): Promise<FormResponse> {
     const response = await repository.findById(id);
 
     if (!response) {
@@ -54,7 +52,7 @@ export function createFormResponseService(
     await validate(response.formId, data.answers);
 
     return await repository.update(id, data);
-  };
+  }
 
   return {
     findById: crud.findById,

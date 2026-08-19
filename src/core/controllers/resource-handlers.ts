@@ -1,6 +1,5 @@
 import type { Request, Response } from "express";
 import type { QueryResultRow } from "pg";
-
 import { type IMapper } from "@/core/dto/mapper.interface.js";
 import {
   type IReadPolicy,
@@ -43,10 +42,13 @@ type ReadDefinition<TEntity extends QueryResultRow, TResponse> = {
   /** Преобразование сущности БД в DTO ответа */
   readonly mapper: IMapper<TEntity, TResponse>;
 
-  /** Сборка контекста выборки (область видимости, фильтрация, пагинация). */
+  /** Сборка контекста выборки для GET / (область видимости, фильтрация, пагинация). */
   readonly buildFindContext: (req: Request) => FindContext<TEntity>;
 
-  /** Принадлежность сущности маршруту, по которому её запрашивают */
+  /**
+   * Принадлежность сущности маршруту, по которому её запрашивают
+   * @example родитель/<Id родителя>/<не дочерняя сущность> - false
+   */
   readonly belongsTo?: (entity: TEntity, req: Request) => boolean;
 };
 
@@ -81,7 +83,7 @@ export function createFindOrFail<TEntity extends object>({
   param = "id",
   belongsTo,
 }: FindOrFailDefinition<TEntity>) {
-  return async (req: Request): Promise<TEntity> => {
+  async function findOrFail(req: Request): Promise<TEntity> {
     const entity = await service.findById(getRouteParam(req, param));
 
     if (!entity || (belongsTo && !belongsTo(entity, req))) {
@@ -89,7 +91,9 @@ export function createFindOrFail<TEntity extends object>({
     }
 
     return entity;
-  };
+  }
+
+  return findOrFail;
 }
 
 export function createReadHandlers<TEntity extends QueryResultRow, TResponse>(
@@ -98,7 +102,7 @@ export function createReadHandlers<TEntity extends QueryResultRow, TResponse>(
   const { service, policy, mapper, belongsTo } = definition;
   const findOrFail = createFindOrFail({ service, belongsTo });
 
-  const findAll: Handler = async (req, res) => {
+  async function findAll(req: Request, res: Response): Promise<void> {
     const context = definition.buildFindContext(req);
     const pagination =
       context.pagination ??
@@ -116,14 +120,13 @@ export function createReadHandlers<TEntity extends QueryResultRow, TResponse>(
     );
 
     res.status(200).json(response);
-  };
+  }
 
-  const findById: Handler = async (req, res) => {
+  async function findById(req: Request, res: Response): Promise<void> {
     const entity = await findOrFail(req);
     ensureAllowed(req.user?.id, await policy.view(req.user?.id, entity));
-
     res.status(200).json(mapper.toResponse(entity));
-  };
+  }
 
   return { findAll, findById, findOrFail };
 }
@@ -151,16 +154,16 @@ export function createResourceHandlers<
   const buildUpdateData =
     definition.buildUpdateData ?? ((req: Request) => req.body as TUpdate);
 
-  const create: Handler = async (req, res) => {
+  async function create(req: Request, res: Response): Promise<void> {
     const context = definition.buildCreateContext(req);
     ensureAllowed(req.user?.id, await policy.create(req.user?.id, context));
 
     const entity = await service.create(buildCreateData(req, context));
 
     res.status(201).json(mapper.toResponse(entity));
-  };
+  }
 
-  const update: Handler = async (req, res) => {
+  async function update(req: Request, res: Response): Promise<void> {
     const entity = await findOrFail(req);
     ensureAllowed(req.user?.id, await policy.update(req.user?.id, entity));
 
@@ -170,16 +173,16 @@ export function createResourceHandlers<
     );
 
     res.status(200).json(mapper.toResponse(updated));
-  };
+  }
 
-  const remove: Handler = async (req, res) => {
+  async function remove(req: Request, res: Response): Promise<void> {
     const entity = await findOrFail(req);
     ensureAllowed(req.user?.id, await policy.delete(req.user?.id, entity));
 
     await service.delete(entity.id);
 
     res.status(204).send();
-  };
+  }
 
   return { ...read, create, update, delete: remove };
 }

@@ -1,27 +1,27 @@
 import {
   JOB_STATUS,
   type Job,
-  type JobArtifact,
+  type JobResultFile,
   type JobResult,
   type JobStatus,
 } from "./job.types.js";
 
-const TERMINAL_STATUSES: readonly JobStatus[] = [
+const FINAL_STATUSES: readonly JobStatus[] = [
   JOB_STATUS.SUCCEEDED,
   JOB_STATUS.FAILED,
   JOB_STATUS.CANCELLED,
 ];
 
 /**
- * Финальный статус, задача больше не меняется
+ * Финальный статус, задача больше не поменяется
  */
-export function isTerminal(status: JobStatus): boolean {
-  return TERMINAL_STATUSES.includes(status);
+export function isFinished(status: JobStatus): boolean {
+  return FINAL_STATUSES.includes(status);
 }
 
 /**
  * Подсчёт процента готовности.
- * @remarks Задача не получит явные 100 процентов до фактического завершения
+ * @remarks Задача не получит 100 процентов до фактического завершения
  */
 export function computeProgress(job: Job): number | null {
   if (job.status === JOB_STATUS.SUCCEEDED) return 100;
@@ -31,17 +31,16 @@ export function computeProgress(job: Job): number | null {
 }
 
 /**
- * Достаёт артефакт из результата операции.
- * @remarks `result` приходит из JSONB, поэтому его форма не гарантирована типами
+ * Достаёт результирующий файл из результата операции.
  */
-export function readArtifact(result: JobResult | null): JobArtifact | null {
+export function readResultFile(result: JobResult | null): JobResultFile | null {
   if (!result) return null;
 
-  const artifact = result["artifact"];
+  const file = result["file"];
 
-  if (typeof artifact !== "object" || artifact === null) return null;
+  if (typeof file !== "object" || file === null) return null;
 
-  const { key, name, size, mimeType } = artifact as Record<string, unknown>;
+  const { key, name, size, mimeType } = file as Record<string, unknown>;
 
   if (
     typeof key !== "string" ||

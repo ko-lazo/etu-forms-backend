@@ -21,9 +21,6 @@ export const logger: Logger = pino({
     : {}),
 });
 
-/**
- * Раскладывает ошибку в контекст логов
- */
 export function serializeError(error: unknown): LogContext {
   return { err: describeError(error) };
 }

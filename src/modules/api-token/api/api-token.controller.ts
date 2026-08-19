@@ -1,7 +1,5 @@
-import {
-  createResourceHandlers,
-  type Handler,
-} from "@/core/controllers/resource-handlers.js";
+import type { Request, Response } from "express";
+import { createResourceHandlers } from "@/core/controllers/resource-handlers.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
 import { getValidatedQuery } from "@/shared/http/http.params.js";
@@ -38,7 +36,7 @@ export function createApiTokenController(
     buildCreateContext: () => undefined,
   });
 
-  const create: Handler = async (req, res) => {
+  async function create(req: Request, res: Response): Promise<void> {
     const userId = requireUser(req);
     ensureAllowed(userId, await policy.create(userId, undefined));
 
@@ -48,7 +46,7 @@ export function createApiTokenController(
     });
 
     res.status(201).json(toIssuedApiTokenResponse(issued));
-  };
+  }
 
   return { ...crud, create };
 }

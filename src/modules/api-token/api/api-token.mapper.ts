@@ -25,7 +25,7 @@ export const apiTokenMapper: IMapper<ApiToken, ApiTokenResponseDto> = {
 };
 
 /**
- * Отдаёт только что выпущенный токен вместе с секретом.
+ * Отдаёт только что выпущенный токен вместе с секретом
  */
 export function toIssuedApiTokenResponse(
   issued: ApiToken & { token: string },

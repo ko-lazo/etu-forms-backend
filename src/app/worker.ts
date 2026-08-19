@@ -5,11 +5,8 @@ import { pool } from "@/core/database/pool.js";
 import { createRedisConnection } from "@/core/queue/connection.js";
 import { closeJobQueue, type JobQueueData } from "@/core/queue/job-queue.js";
 import { JobRunContext } from "@/modules/job/contract/job.context.js";
-import {
-  PermanentJobError,
-  toJobError,
-} from "@/modules/job/contract/job.error.js";
-import { isTerminal } from "@/modules/job/job.domain.js";
+import { JobFatalError, toJobError } from "@/modules/job/contract/job.error.js";
+import { isFinished } from "@/modules/job/job.domain.js";
 import { logger, serializeError } from "@/shared/logger/logger.js";
 import { registerShutdownHandlers } from "@/shared/process/shutdown.js";
 import {
@@ -18,10 +15,8 @@ import {
 } from "./worker.container.js";
 
 /**
- * Запускает обработку фоновой операции.
- *
- * BullMQ управляет очередью и повторами, а обработчик — состоянием
- * операции в БД.
+ * Обработка фоновой операции (джобы).
+ * BullMQ управляет очередью Redis, обработчик обновляет статус джобы в БД
  */
 async function processJob(
   { jobRepository, registry }: WorkerContainer,
@@ -36,7 +31,7 @@ async function processJob(
     throw new UnrecoverableError(`Job ${jobId} not found`);
   }
 
-  if (isTerminal(row.status)) {
+  if (isFinished(row.status)) {
     jobLogger.info({ status: row.status }, "Job already completed, skipping");
     return;
   }
@@ -89,7 +84,7 @@ async function processJob(
       return;
     }
 
-    if (error instanceof PermanentJobError) {
+    if (error instanceof JobFatalError) {
       await jobRepository.fail(started.id, toJobError(error));
       jobLogger.error(serializeError(error), "Job failed permanently");
 
@@ -104,8 +99,7 @@ async function processJob(
 }
 
 /**
- * Создаёт и запускает обработчик фоновых операций.
- * Сохраняет окончательную ошибку, когда попытки выполнения закончились.
+ * Запускает обработчик, сохраняет ошибку (если есть)
  */
 export function startWorker(): Worker<JobQueueData> {
   const workerContainer = createWorkerContainer();

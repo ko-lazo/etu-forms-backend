@@ -1,8 +1,7 @@
 import { type QueryResultRow } from "pg";
 
 /**
- * Универсальный контракт для мапперов.
- * Изолирует слой БД (TEntity) от слоя фронтенда (TResponse).
+ * Переводит данные из БД в формат ответа клиенту (фронтенду).
  */
 export interface IMapper<TEntity extends QueryResultRow, TResponse> {
   /** Трансформация одной сущности из БД в безопасный DTO */

@@ -6,7 +6,5 @@ export const appConfig = {
   isProduction: env.NODE_ENV === "production",
   isDevelopment: env.NODE_ENV === "development",
   isTest: env.NODE_ENV === "test",
-
-  /** Показывать ли stack trace в теле ошибки */
   showDebugInfo: env.DEBUG,
 } as const;
