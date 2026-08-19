@@ -15,7 +15,7 @@ export interface ModuleDto<
   /** Схема валидации и очистки данных при отправке */
   readonly responseSchema: TResponseSchema;
 
-  /** Схема запроса */
+  /** Схема запроса для GET / */
   readonly findSchema?: TResponseSchema;
 }
 

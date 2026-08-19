@@ -2,10 +2,6 @@ import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-/**
- * Wires the runtime dependency graph, so it is allowed to reach into module
- * internals. Everything else must go through a module's public API.
- */
 const compositionRoot = [
   "src/main.ts",
   "src/worker.ts",

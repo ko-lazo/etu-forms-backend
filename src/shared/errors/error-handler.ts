@@ -22,7 +22,7 @@ const CLIENT_ERROR_CODES: Record<number, string> = {
  * Извлекает HTTP-статус из ошибок сторонних middleware.
  * Возвращает код ошибки, только если это ошибка 4xx.
  */
-function getClientStatusCode(error: unknown): number | null {
+function getHttpCode(error: unknown): number | null {
   if (typeof error !== "object" || error === null) {
     return null;
   }
@@ -65,7 +65,7 @@ export const errorHandler: ErrorRequestHandler = (
     return;
   }
 
-  const clientStatus = getClientStatusCode(error);
+  const clientStatus = getHttpCode(error);
 
   if (clientStatus !== null) {
     response.status(clientStatus).json({

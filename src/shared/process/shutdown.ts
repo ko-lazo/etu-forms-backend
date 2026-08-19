@@ -10,8 +10,8 @@ export type ShutdownOptions = {
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 /**
- * Регистрирует обработчики SIGTERM/SIGINT для корректного завершения процесса.
- * При повторном сигнале или истечении таймаута принудительно завершает процесс.
+ * Перехватывает системные сигналы остановки (SIGTERM или SIGINT) и плавно останавливает приложение.
+ * При повторном сигнале или таймауте завершает процесс принудительно.
  */
 export function registerShutdownHandlers(options: ShutdownOptions): void {
   const { logger, shutdown, timeoutMs = DEFAULT_TIMEOUT_MS } = options;

@@ -1,6 +1,6 @@
 export type FormResponseAnswer = string | number | boolean | string[];
 
-/** Ответы на элементы формы, ключ — `name` элемента схемы */
+/** Ответы на элементы формы в формате `<name элемента схемы>:ответ`  */
 export type FormResponseAnswers = Record<string, FormResponseAnswer>;
 
 export interface FormResponse {

@@ -6,7 +6,7 @@ import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 export type ValidationSource = "body" | "query";
 
 /**
- * Middleware для валидации данных запроса (body или query) с помощью Zod-схемы.
+ * Валидация входящих данных запроса (body или query) через zod-схему.
  * Проверенные валидацией query-параметры сохраняются в `req.validatedQuery`.
  */
 export function validate<T>(

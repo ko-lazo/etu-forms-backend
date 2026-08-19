@@ -53,8 +53,8 @@ export function createFormController(service: FormService, policy: FormPolicy) {
   };
 
   /**
-   * Определяет точную дату для изменения статуса формы.
-   * Если дата в запросе не указана, переход применяется мгновенно.
+   * Выставляет дату для изменения статуса формы.
+   * Если дата в запросе не указана, переход просиходит сразу.
    */
   const resolveTransitionDate = (req: Request): Date => {
     const parsed = formLifecycleSchema.safeParse(req.body ?? {});

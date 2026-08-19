@@ -9,12 +9,15 @@ export class MetadataAccessor<
     public readonly metadata: RepositoryMetadata<TEntity, TCreate, TUpdate>,
   ) {}
 
+  /**
+   * Имя колонки вида таблица.колонка
+   */
   public col(property: keyof TEntity): string {
     return `${this.metadata.tableName}.${this.rawCol(property)}`;
   }
 
   /**
-   * Имя колонки без имени таблицы, необходимо для `SET`
+   * Имя колонки без имени таблицы
    */
   public rawCol(property: keyof TEntity): string {
     const column = this.metadata.columns[property];

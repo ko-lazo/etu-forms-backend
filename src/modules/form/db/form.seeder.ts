@@ -3,7 +3,6 @@ import type { Form } from "../form.types.js";
 import type { FormRepository } from "./form.repository.js";
 import type { User } from "@/modules/user/index.js";
 
-/** Сколько форм уходит в БД одним INSERT. */
 const INSERT_BATCH_SIZE = 200;
 
 export async function seedForms(

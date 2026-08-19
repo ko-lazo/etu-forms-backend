@@ -43,10 +43,13 @@ type ReadDefinition<TEntity extends QueryResultRow, TResponse> = {
   /** Преобразование сущности БД в DTO ответа */
   readonly mapper: IMapper<TEntity, TResponse>;
 
-  /** Сборка контекста выборки (область видимости, фильтрация, пагинация). */
+  /** Сборка контекста выборки для GET / (область видимости, фильтрация, пагинация). */
   readonly buildFindContext: (req: Request) => FindContext<TEntity>;
 
-  /** Принадлежность сущности маршруту, по которому её запрашивают */
+  /**
+   * Принадлежность сущности маршруту, по которому её запрашивают
+   * @example родитель/<Id родителя>/<не дочерняя сущность> - false
+   */
   readonly belongsTo?: (entity: TEntity, req: Request) => boolean;
 };
 
