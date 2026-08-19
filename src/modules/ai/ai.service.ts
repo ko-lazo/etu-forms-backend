@@ -3,6 +3,7 @@ import { ServiceUnavailableError } from "@/shared/errors/service-unavailable.err
 import { logger, serializeError } from "@/shared/logger/logger.js";
 import { toStrictJsonSchema } from "./strict-schema.formatter.js";
 import type { AiConfig, AiService, StructuredRequest } from "./ai.types.js";
+import { HTTP_METHOD, sendHttpRequest } from "@/shared/http/http-request.js";
 
 export const completionSchema = z.object({
   choices: z
@@ -32,25 +33,11 @@ export function createAiService(config: AiConfig): AiService {
   async function send(
     request: StructuredRequest<z.ZodType>,
   ): Promise<Response> {
-    return await fetch(`${config.baseUrl}/chat/completions`, {
-      method: "POST",
-      signal: AbortSignal.timeout(config.timeoutMs),
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages: request.messages,
-        response_format: {
-          type: "json_schema",
-          json_schema: {
-            name: request.name,
-            strict: true,
-            schema: toJsonSchema(request.schema),
-          },
-        },
-      }),
+    return await sendHttpRequest(`${config.baseUrl}/chat/completions`, {
+      method: HTTP_METHOD.POST,
+      timeoutMs: config.timeoutMs,
+      headers: { Authorization: `Bearer ${config.apiKey}` },
+      body: buildRequestBody(config, request),
     }).catch((error: unknown) => {
       throw unavailable("Request not send", error);
     });
@@ -67,17 +54,19 @@ export function createAiService(config: AiConfig): AiService {
       return await checkCompletion(request, attempt + 1);
     }
 
+    const body = await response.text();
+
     if (!response.ok) {
-      throw unavailable(`Status ${response.status}`, await response.text());
+      throw unavailable(`Status ${response.status}`, body);
     }
 
-    const parsed = completionSchema.safeParse(await response.json());
+    const parsed = completionSchema.safeParse(parseJson(body));
     const content = parsed.success
       ? parsed.data.choices[0]?.message.content
       : null;
 
     if (!content) {
-      throw unavailable("Empty or unexpected response", await response.text());
+      throw unavailable("Empty or unexpected response", body);
     }
 
     return content;
@@ -85,6 +74,24 @@ export function createAiService(config: AiConfig): AiService {
 
   return {
     ask,
+  };
+}
+
+function buildRequestBody(
+  config: AiConfig,
+  request: StructuredRequest<z.ZodType>,
+): Record<string, unknown> {
+  return {
+    model: config.model,
+    messages: request.messages,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: request.name,
+        strict: true,
+        schema: toJsonSchema(request.schema),
+      },
+    },
   };
 }
 
