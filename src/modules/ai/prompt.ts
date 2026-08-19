@@ -3,6 +3,8 @@ import path from "node:path";
 
 import { aiConfig } from "@/config/index.js";
 
+const placeholderPattern = /\{\{(\w+)}}/g;
+
 /**
  * Читает .md шаблон и подставляет переданные значения в плейсхолдеры
  * @param fileName Имя файла
@@ -12,15 +14,15 @@ export async function renderPrompt(
   fileName: string,
   values: Record<string, string> = {},
 ): Promise<string> {
-  const code = "utf8";
-  const regexp = "/\\{\\{(\\w+)}}/g";
-
   const template = await readFile(
     path.join(aiConfig.promptsDir, fileName),
-    code,
+    "utf8",
   );
 
   return template
     .trim()
-    .replace(regexp, (placeholder, key: string) => values[key] ?? placeholder);
+    .replace(
+      placeholderPattern,
+      (placeholder, key: string) => values[key] ?? placeholder,
+    );
 }
