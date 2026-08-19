@@ -67,6 +67,12 @@ export const formElementSchema = z.discriminatedUnion("type", [
   // fileFieldSchema,
 ]);
 
+export const formElementTypes = formElementSchema.options.flatMap((option) =>
+  option.shape.type instanceof z.ZodLiteral
+    ? [...option.shape.type.values]
+    : option.shape.type.options,
+);
+
 export const formPageSchema = z.object({
   name: z.string().min(1).max(100),
   title: z.string().optional(),
