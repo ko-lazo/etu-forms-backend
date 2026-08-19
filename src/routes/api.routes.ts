@@ -7,6 +7,7 @@ import { createAuthRoutes } from "@/modules/auth/auth.routes.js";
 import { createFormResponseRoutes } from "@/modules/form-response/api/form-response.routes.js";
 import { createJobRoutes } from "@/modules/job/api/job.routes.js";
 import { createExportRoutes } from "@/modules/form-response/api/export.routes.js";
+import { createAiConstructorRoutes } from "@/modules/form/api/ai-constructor.routes.js";
 
 export function createApiRoutes(): Router {
   const apiRoutes = Router();
@@ -17,6 +18,7 @@ export function createApiRoutes(): Router {
   const { controller: apiTokenController } = container.apiToken;
   const { controller: formController } = container.form;
   const { controller: formResponseController } = container.formResponse;
+  const { controller: aiConstructorController } = container.aiConstructor;
   const { controller: exportController } = container.exportResponses;
   const { controller: jobController } = container.job;
 
@@ -37,6 +39,10 @@ export function createApiRoutes(): Router {
       authMiddleware,
       optionalAuthMiddleware,
     ),
+  );
+  apiRoutes.use(
+    "/forms/:formId/ai",
+    createAiConstructorRoutes(aiConstructorController, authMiddleware),
   );
   apiRoutes.use(
     "/forms/:formId/export",

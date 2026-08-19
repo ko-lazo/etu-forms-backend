@@ -13,6 +13,7 @@ import {
   createOptionalAuthMiddleware,
   type OptionalAuthMiddleware,
 } from "@/shared/http/middleware/optional-auth.middleware.js";
+import { createAiConstructorModule } from "@/modules/form/ai-constructor.module.js";
 
 class AppContainer {
   private initialized = false;
@@ -23,6 +24,7 @@ class AppContainer {
   public formResponse!: ReturnType<typeof createFormResponseModule>;
   public job!: ReturnType<typeof createJobModule>;
   public exportResponses!: ReturnType<typeof createExportModule>;
+  public aiConstructor!: ReturnType<typeof createAiConstructorModule>;
 
   public auth!: ReturnType<typeof createAuthModule>;
   public authMiddleware!: AuthMiddleware;
@@ -39,6 +41,10 @@ class AppContainer {
     );
 
     this.form = createFormModule();
+    this.aiConstructor = createAiConstructorModule({
+      formService: this.form.service,
+      formPolicy: this.form.policy,
+    });
     this.formResponse = createFormResponseModule({
       formService: this.form.service,
       formPolicy: this.form.policy,
