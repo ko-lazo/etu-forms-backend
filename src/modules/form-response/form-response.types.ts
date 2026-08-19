@@ -18,7 +18,6 @@ export type FormResponseCreate = Pick<
   "formId" | "answers" | "metadata" | "submittedAt"
 >;
 
-export type FormResponseUpdate = Pick<
-  FormResponse,
-  "answers" | "metadata" | "submittedAt"
+export type FormResponseUpdate = Partial<
+  Pick<FormResponse, "answers" | "metadata" | "submittedAt">
 >;

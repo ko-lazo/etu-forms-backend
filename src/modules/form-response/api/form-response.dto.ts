@@ -18,7 +18,7 @@ export const formResponseDto = {
 
   updateSchema: z.object({
     answers: z.record(z.string(), answerSchema),
-    metadata: z.record(z.string(), z.unknown()).default({}),
+    metadata: z.record(z.string(), z.unknown()),
     submittedAt: z.coerce.date().nullable().optional(),
   }),
 

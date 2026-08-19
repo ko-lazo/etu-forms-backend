@@ -13,7 +13,7 @@ export const formDto = {
   updateSchema: z.object({
     title: z.string().trim().min(1).max(500),
     schema: formSchemaObject,
-    settings: z.record(z.string(), z.unknown()).default({}),
+    settings: z.record(z.string(), z.unknown()),
   }),
 
   responseSchema: z.object({
