@@ -10,6 +10,10 @@ export const completionSchema = z.object({
     .min(1),
 });
 
+const TOO_MANY_REQUESTS = 429;
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 1000;
+
 export function createAiService(config: AiConfig): AiService {
   async function ask<TSchema extends z.ZodType>(
     request: StructuredRequest<TSchema>,
@@ -54,8 +58,14 @@ export function createAiService(config: AiConfig): AiService {
 
   async function checkCompletion(
     request: StructuredRequest<z.ZodType>,
+    attempt = 1,
   ): Promise<string> {
     const response = await send(request);
+
+    if (response.status === TOO_MANY_REQUESTS && attempt <= MAX_RETRIES) {
+      await wait(incrementDelayMs(response, attempt));
+      return await checkCompletion(request, attempt + 1);
+    }
 
     if (!response.ok) {
       throw unavailable(`Status ${response.status}`, await response.text());
@@ -76,6 +86,18 @@ export function createAiService(config: AiConfig): AiService {
   return {
     ask,
   };
+}
+
+function incrementDelayMs(response: Response, attempt: number): number {
+  const retryAfter = Number(response.headers.get("retry-after"));
+
+  return Number.isFinite(retryAfter) && retryAfter > 0
+    ? retryAfter * 1000
+    : RETRY_DELAY_MS * attempt;
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function unavailable(reason: string, details: unknown): Error {
