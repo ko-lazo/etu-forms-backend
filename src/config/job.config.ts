@@ -12,10 +12,10 @@ export const jobConfig = {
   /** Максимальное количество попыток выполнения задачи */
   maxAttempts: env.JOB_MAX_ATTEMPTS,
   /** Задержка перед повторным выполнением упавшей задачи */
-  backoffDelayMs: 2000,
+  retryAfterMs: 2000,
 
   /** Частота обновления задачи в БД */
-  progressIntervalMs: 1000,
+  syncIntervalMs: 1000,
 
   /** Удаление выполненных или упавших задач */
   removeOnCompleteAgeSec: 3600,

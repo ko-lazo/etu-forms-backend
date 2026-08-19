@@ -13,7 +13,7 @@ export const jobQueue = new Queue<JobQueueData>(jobConfig.queueName, {
   connection,
   defaultJobOptions: {
     attempts: jobConfig.maxAttempts,
-    backoff: { type: "exponential", delay: jobConfig.backoffDelayMs },
+    backoff: { type: "exponential", delay: jobConfig.retryAfterMs },
     removeOnComplete: {
       age: jobConfig.removeOnCompleteAgeSec,
       count: jobConfig.removeOnCompleteCount,

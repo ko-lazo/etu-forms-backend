@@ -66,7 +66,7 @@ async function processJob(
       .catch((error: unknown) => {
         jobLogger.warn(serializeError(error), "Failed to update job progress");
       });
-  }, jobConfig.progressIntervalMs);
+  }, jobConfig.syncIntervalMs);
 
   try {
     jobLogger.info({ type: started.type }, "Job started");
