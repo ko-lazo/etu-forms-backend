@@ -10,7 +10,7 @@ export interface ModuleDto<
   readonly createSchema: TCreateSchema;
 
   /** Схема валидации при обновлении экземпляра */
-  readonly updateSchema: TUpdateSchema;
+  readonly updateSchema?: TUpdateSchema;
 
   /** Схема валидации и очистки данных при отправке */
   readonly responseSchema: TResponseSchema;
