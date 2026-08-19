@@ -1,13 +1,8 @@
-import type { Request } from "express";
-
-import {
-  createFindOrFail,
-  type Handler,
-} from "@/core/controllers/resource-handlers.js";
+import type { Request, Response } from "express";
+import { createFindOrFail } from "@/core/controllers/resource-handlers.js";
 import type { Form, FormPolicy, FormService } from "@/modules/form/index.js";
 import { jobMapper, type JobService } from "@/modules/job/index.js";
 import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
-
 import { EXPORT_JOB_TYPE } from "../export/export.types.js";
 
 export function createExportController(
@@ -20,24 +15,21 @@ export function createExportController(
     param: "formId",
   });
 
-  const findExportableForm = async (
+  async function findExportableForm(
     req: Request,
     userId: string,
-  ): Promise<Form> => {
+  ): Promise<Form> {
     const form = await findFormOrFail(req);
-
     ensureAllowed(userId, await formPolicy.update(userId, form));
-
     return form;
-  };
+  }
 
-  const scopeIdempotencyKey = (req: Request, userId: string): string | null => {
+  function scopeIdempotencyKey(req: Request, userId: string): string | null {
     const key = req.header("Idempotency-Key");
-
     return key === undefined ? null : `${EXPORT_JOB_TYPE}:${userId}:${key}`;
-  };
+  }
 
-  const create: Handler = async (req, res) => {
+  async function create(req: Request, res: Response): Promise<void> {
     const userId = requireUser(req);
     const form = await findExportableForm(req, userId);
 
@@ -49,7 +41,7 @@ export function createExportController(
     });
 
     res.status(202).json(jobMapper.toResponse(job));
-  };
+  }
 
   return { create };
 }

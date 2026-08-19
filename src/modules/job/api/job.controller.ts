@@ -1,10 +1,6 @@
 import type { Request, Response } from "express";
 import { pipeline } from "node:stream/promises";
-
-import {
-  createReadHandlers,
-  type Handler,
-} from "@/core/controllers/resource-handlers.js";
+import { createReadHandlers } from "@/core/controllers/resource-handlers.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import type { IFileStorage } from "@/core/storage/file-storage.interface.js";
 import { BadRequestError } from "@/shared/errors/bad-request.error.js";
@@ -12,7 +8,6 @@ import { NotFoundError } from "@/shared/errors/not-found.error.js";
 import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
 import { getValidatedQuery } from "@/shared/http/http.params.js";
 import { logger, serializeError } from "@/shared/logger/logger.js";
-
 import { JobFilter } from "../db/job.filter.js";
 import { JobScope } from "../db/job.scope.js";
 import { readResultFile } from "../job.domain.js";
@@ -44,19 +39,17 @@ export function createJobController(
     },
   });
 
-  const findOwned = async (req: Request): Promise<Job> => {
+  async function findOwned(req: Request): Promise<Job> {
     const job = await findOrFail(req);
-
     ensureAllowed(req.user?.id, await policy.view(req.user?.id, job));
-
     return job;
-  };
+  }
 
-  const streamResultFile = async (
+  async function streamResultFile(
     job: Job,
     key: string,
     res: Response,
-  ): Promise<void> => {
+  ): Promise<void> {
     try {
       await pipeline(storage.createReadStream(key), res);
     } catch (error) {
@@ -72,17 +65,15 @@ export function createJobController(
 
       res.destroy();
     }
-  };
+  }
 
-  const cancel: Handler = async (req, res) => {
+  async function cancel(req: Request, res: Response): Promise<void> {
     const job = await findOwned(req);
-
     const cancelled = await service.requestCancel(job.id);
-
     res.status(200).json(jobMapper.toResponse(cancelled));
-  };
+  }
 
-  const download: Handler = async (req, res) => {
+  async function download(req: Request, res: Response): Promise<void> {
     const job = await findOwned(req);
     const file = resolveReadyResultFile(job);
 
@@ -97,7 +88,7 @@ export function createJobController(
     res.setHeader("Content-Disposition", buildContentDisposition(file.name));
 
     await streamResultFile(job, file.key, res);
-  };
+  }
 
   return { ...read, cancel, download };
 }

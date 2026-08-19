@@ -12,11 +12,10 @@ export function createUserService(
   const findByEmail = (email: string): Promise<User | null> =>
     repository.findByEmail(email);
 
-  const create = async (data: UserRegistration): Promise<User> => {
+  async function create(data: UserRegistration): Promise<User> {
     const password = await passwordHasher.hash(data.password);
-
     return await repository.create({ email: data.email, password });
-  };
+  }
 
   // todo change password
 

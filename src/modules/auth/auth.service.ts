@@ -13,9 +13,7 @@ export function createAuthService(
   passwordHasher: PasswordHasher,
   tokenGenerator: ApiTokenGeneratorService,
 ) {
-  const login = async (
-    dto: LoginDto,
-  ): Promise<ApiToken & { token: string }> => {
+  async function login(dto: LoginDto): Promise<ApiToken & { token: string }> {
     const user = await userService.findByEmail(dto.email);
 
     if (!user) {
@@ -39,9 +37,9 @@ export function createAuthService(
       type: API_TOKEN_TYPE.SESSION,
       expiresAt,
     });
-  };
+  }
 
-  const getMe = async (userId: string): Promise<User> => {
+  async function getMe(userId: string): Promise<User> {
     const user = await userService.findById(userId);
 
     if (!user) {
@@ -49,7 +47,7 @@ export function createAuthService(
     }
 
     return user;
-  };
+  }
 
   return { login, getMe };
 }
