@@ -35,7 +35,7 @@ const envSchema = z.object({
   AI_MODEL: z.string().min(1).default("mistral-small-latest"),
   AI_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   AI_PROMPTS_PATH: z.string().min(1).default("prompts"),
-  AI_DAILY_LIMIT: z.coerce.number().int().positive().default(20),
+  AI_DAILY_LIMIT_PER_USER: z.coerce.number().int().positive().default(20),
 });
 
 export const env = Object.freeze(envSchema.parse(process.env));

@@ -15,13 +15,13 @@ export type AiQuota = {
 };
 
 export type AiQuotaConfig = {
-  readonly dailyLimit: number;
+  readonly dailyLimitPerUser: number;
 };
 
 export function createAiQuota(redis: Redis, config: AiQuotaConfig): AiQuota {
   async function getState(userId: string): Promise<AiQuotaState> {
     const used = Number((await redis.get(getQuotaRedisKey(userId))) ?? 0);
-    return buildState(config.dailyLimit, used);
+    return buildState(config.dailyLimitPerUser, used);
   }
 
   async function checkLimitOrFail(userId: string): Promise<void> {
