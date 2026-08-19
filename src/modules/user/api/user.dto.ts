@@ -3,12 +3,12 @@ import { type ModuleDto } from "@/core/dto/dto.types.js";
 
 export const userDto = {
   createSchema: z.object({
-    email: z.email(),
+    email: z.email().toLowerCase(),
     password: z.string().min(8),
   }),
 
   updateSchema: z.object({
-    email: z.email().optional(),
+    email: z.email().toLowerCase().optional(),
   }),
 
   responseSchema: z.object({

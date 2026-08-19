@@ -14,7 +14,7 @@ export class UserRepository extends BaseRepository<
 
   async findByEmail(email: string): Promise<User | null> {
     return await this.db.queryOne<User>(
-      `SELECT * FROM users WHERE email = $1 LIMIT 1`,
+      `SELECT * FROM users WHERE lower(email) = lower($1) LIMIT 1`,
       [email],
       this.metadata.columns,
     );

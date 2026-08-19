@@ -212,14 +212,6 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
--- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.users
-    ADD CONSTRAINT users_email_key UNIQUE (email);
-
-
---
 -- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -253,6 +245,13 @@ CREATE INDEX idx_forms_user_id ON public.forms USING btree (user_id);
 --
 
 CREATE INDEX idx_jobs_user_id ON public.jobs USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: users_email_lower_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX users_email_lower_key ON public.users USING btree (lower((email)::text));
 
 
 --
@@ -333,4 +332,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260818090235'),
     ('20260818124141'),
     ('20260818124142'),
-    ('20260818124143');
+    ('20260818124143'),
+    ('20260819211930');
