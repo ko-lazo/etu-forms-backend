@@ -6,7 +6,7 @@ import type { AiQuota } from "../ai.quota.js";
 
 export function createAiController(quota: AiQuota) {
   async function limit(req: Request, res: Response): Promise<void> {
-    const state = await quota.getStatistics(requireUser(req));
+    const state = await quota.getState(requireUser(req));
 
     res.status(200).json({
       limit: state.limit,

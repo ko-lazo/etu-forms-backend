@@ -38,7 +38,7 @@ export const createAiConstructorController = (input: {
     const form = await findOwnedOrFail(req);
     const userId = requireUser(req);
 
-    await input.aiQuota.ensureAvailable(userId);
+    await input.aiQuota.checkLimitOrFail(userId);
 
     const result = await input.aiConstructorService.generateResponse({
       prompt,

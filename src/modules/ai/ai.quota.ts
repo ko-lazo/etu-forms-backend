@@ -9,9 +9,8 @@ export type AiQuotaState = {
 };
 
 export type AiQuota = {
-  getStatistics(userId: string): Promise<AiQuotaState>;
-  /** Бросает TooManyRequests, если суточный лимит исчерпан */
-  ensureAvailable(userId: string): Promise<void>;
+  getState(userId: string): Promise<AiQuotaState>;
+  checkLimitOrFail(userId: string): Promise<void>;
   spend(userId: string): Promise<void>;
 };
 
@@ -20,13 +19,13 @@ export type AiQuotaConfig = {
 };
 
 export function createAiQuota(redis: Redis, config: AiQuotaConfig): AiQuota {
-  async function getStatistics(userId: string): Promise<AiQuotaState> {
+  async function getState(userId: string): Promise<AiQuotaState> {
     const used = Number((await redis.get(getQuotaRedisKey(userId))) ?? 0);
     return buildState(config.dailyLimit, used);
   }
 
-  async function ensureAvailable(userId: string): Promise<void> {
-    const state = await getStatistics(userId);
+  async function checkLimitOrFail(userId: string): Promise<void> {
+    const state = await getState(userId);
     if (state.remaining > 0) return;
     throw new TooManyRequestsError("Суточный лимит запросов к ИИ исчерпан", {
       limit: state.limit,
@@ -44,8 +43,8 @@ export function createAiQuota(redis: Redis, config: AiQuotaConfig): AiQuota {
   }
 
   return {
-    getStatistics,
-    ensureAvailable,
+    getState,
+    checkLimitOrFail,
     spend,
   };
 }
