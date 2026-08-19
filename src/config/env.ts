@@ -31,8 +31,8 @@ const envSchema = z.object({
   JOB_MAX_ATTEMPTS: z.coerce.number().int().positive().default(3),
 
   AI_API_KEY: z.string().min(1),
-  AI_BASE_URL: z.url().default("https://openrouter.ai/api/v1"),
-  AI_MODEL: z.string().min(1).default("google/gemma-4-26b-a4b-it:free"),
+  AI_BASE_URL: z.url().default("https://api.mistral.ai/v1"),
+  AI_MODEL: z.string().min(1).default("mistral-small-latest"),
   AI_TIMEOUT_MS: z.coerce.number().int().positive().default(60_000),
   AI_PROMPTS_PATH: z.string().min(1).default("prompts"),
 });

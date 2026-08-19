@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { ServiceUnavailableError } from "@/shared/errors/service-unavailable.error.js";
-import { logger } from "@/shared/logger/logger.js";
+import { logger, serializeError } from "@/shared/logger/logger.js";
 import { toStrictJsonSchema } from "./strict-schema.formatter.js";
 import type { AiConfig, AiService, StructuredRequest } from "./ai.types.js";
 
@@ -28,7 +28,7 @@ export function createAiService(config: AiConfig): AiService {
   async function send(
     request: StructuredRequest<z.ZodType>,
   ): Promise<Response> {
-    return await fetch(config.baseUrl, {
+    return await fetch(`${config.baseUrl}/chat/completions`, {
       method: "POST",
       signal: AbortSignal.timeout(config.timeoutMs),
       headers: {
@@ -79,7 +79,8 @@ export function createAiService(config: AiConfig): AiService {
 }
 
 function unavailable(reason: string, details: unknown): Error {
-  logger.error({ reason, details }, "AI service error");
+  const info = details instanceof Error ? serializeError(details) : { details };
+  logger.error({ reason, ...info }, "AI service error");
   return new ServiceUnavailableError("AI-сервис временно недоступен");
 }
 
