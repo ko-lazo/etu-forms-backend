@@ -24,7 +24,7 @@ export function createAiService(config: AiConfig): AiService {
     const parsed = request.schema.safeParse(formattedJson);
 
     if (!parsed.success) {
-      throw unavailable("Answer validation error", parsed.error.issues);
+      throw throwServiceError("Answer validation error", parsed.error.issues);
     }
 
     return parsed.data;
@@ -39,7 +39,7 @@ export function createAiService(config: AiConfig): AiService {
       headers: { Authorization: `Bearer ${config.apiKey}` },
       body: buildRequestBody(config, request),
     }).catch((error: unknown) => {
-      throw unavailable("Request not send", error);
+      throw throwServiceError("Request not send", error);
     });
   }
 
@@ -57,7 +57,7 @@ export function createAiService(config: AiConfig): AiService {
     const body = await response.text();
 
     if (!response.ok) {
-      throw unavailable(`Status ${response.status}`, body);
+      throw throwServiceError(`Status ${response.status}`, body);
     }
 
     const parsed = completionSchema.safeParse(parseJson(body));
@@ -66,7 +66,7 @@ export function createAiService(config: AiConfig): AiService {
       : null;
 
     if (!content) {
-      throw unavailable("Empty or unexpected response", body);
+      throw throwServiceError("Empty or unexpected response", body);
     }
 
     return content;
@@ -107,7 +107,7 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function unavailable(reason: string, details: unknown): Error {
+function throwServiceError(reason: string, details: unknown): Error {
   const info = details instanceof Error ? serializeError(details) : { details };
   logger.error({ reason, ...info }, "AI service error");
   return new ServiceUnavailableError("AI-сервис временно недоступен");
@@ -140,7 +140,7 @@ function parseJson(content: string): unknown {
   try {
     return JSON.parse(fenced?.[1] ?? content);
   } catch {
-    throw unavailable("Response is not valid JSON", content);
+    throw throwServiceError("Response is not valid JSON", content);
   }
 }
 
