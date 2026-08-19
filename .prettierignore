@@ -4,3 +4,4 @@ storage
 node_modules
 db/migrations
 package-lock.json
+prompts/
