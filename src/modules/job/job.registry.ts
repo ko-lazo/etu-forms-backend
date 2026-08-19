@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { JobContext } from "./contract/job.context.js";
-import { PermanentJobError } from "./contract/job.error.js";
+import { JobFatalError } from "./contract/job.error.js";
 import type { JobHandler } from "./contract/job.handler.js";
 import type { JobResult } from "./job.types.js";
 
@@ -11,11 +11,8 @@ type RegisteredHandler = (
 ) => Promise<JobResult>;
 
 /**
- * Хранит зарегистрированные обработчики фоновых операций.
- *
- * При регистрации обработчик связывается с типом операции, который
- * хранится в записи `Job` в БД. При запуске по этому типу находится нужный
- * обработчик, после чего он получает payload и контекст выполнения.
+ * Регистрация обработчиков фоновых задач. При регистрации
+ * обработчику проставляется тип задачи для фильтрации в БД
  *
  * Список доступных обработчиков передаётся при запуске воркера.
  */
@@ -33,7 +30,7 @@ export class JobRegistry {
       const parsed = handler.payloadSchema.safeParse(payload);
 
       if (!parsed.success) {
-        throw new PermanentJobError(
+        throw new JobFatalError(
           "INVALID_PAYLOAD",
           `Некорректный payload задачи "${handler.type}"`,
           z.treeifyError(parsed.error),
@@ -47,7 +44,7 @@ export class JobRegistry {
   }
 
   /**
-   * Запускает обработчик для указанного типа операции.
+   * Запускает обработчик для указанного типа
    */
   public run(
     type: string,
@@ -57,7 +54,7 @@ export class JobRegistry {
     const handler = this.handlers.get(type);
 
     if (!handler) {
-      throw new PermanentJobError(
+      throw new JobFatalError(
         "UNKNOWN_JOB_TYPE",
         `Нет обработчика для типа "${type}"`,
       );

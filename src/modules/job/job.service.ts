@@ -6,7 +6,7 @@ import { BadRequestError } from "@/shared/errors/bad-request.error.js";
 import { ServiceUnavailableError } from "@/shared/errors/service-unavailable.error.js";
 import { logger, serializeError } from "@/shared/logger/logger.js";
 import { type JobRepository } from "./db/job.repository.js";
-import { isTerminal } from "./job.domain.js";
+import { isFinished } from "./job.domain.js";
 import { type Job, type JobCreate } from "./job.types.js";
 
 export function createJobService(
@@ -19,13 +19,12 @@ export function createJobService(
 
   /**
    * todo: падение процесса между бд и redis оставит задачу в pending
-   *
    * Добавляет задачу в очередь
    */
   const enqueue = async (data: JobCreate): Promise<Job> => {
     const job = await repository.findOrCreate(data);
 
-    if (isTerminal(job.status)) {
+    if (isFinished(job.status)) {
       return job;
     }
 
@@ -53,9 +52,6 @@ export function createJobService(
     return job;
   };
 
-  /**
-   * Запрос отмены операции
-   */
   const requestCancel = async (id: string): Promise<Job> => {
     const job = await repository.requestCancel(id);
 

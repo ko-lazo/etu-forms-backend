@@ -3,7 +3,7 @@ import type { FormPolicy, FormService } from "@/modules/form/index.js";
 import type { JobService } from "@/modules/job/index.js";
 import type { FormResponseRepository } from "./db/form-response.repository.js";
 import { createExportController } from "./api/export.controller.js";
-import { ExportHandler } from "./export/export.handler.js";
+import { ExportJob } from "./export/export.job.js";
 
 export type ExportModuleDeps = {
   readonly formService: FormService;
@@ -19,11 +19,11 @@ export function createExportModule(deps: ExportModuleDeps) {
     deps.jobService,
   );
 
-  const handler = new ExportHandler(
+  const job = new ExportJob(
     deps.formService,
     deps.responseRepository,
     fileStorage,
   );
 
-  return { controller, handler };
+  return { controller, job };
 }

@@ -3,19 +3,16 @@ import type { ProgressUpdate } from "../db/job.repository.js";
 import type { Job } from "../job.types.js";
 
 /**
- * Контекст выполнения job.
+ * Контекст выполнения задачи (джобы)
  */
 export interface JobContext {
   readonly job: Job;
 
-  /** Сигнал выполнения отмены */
+  /** Сигнал отмены задачи (она завершается не моментально) */
   readonly signal: AbortSignal;
 
   readonly logger: Logger;
 
-  /**
-   * Обновляет текущий прогресс выполнения
-   */
   reportProgress(processed: number, total?: number): void;
 }
 

@@ -4,19 +4,19 @@ import type { JobError } from "../job.types.js";
  * Критическая ошибка выполнения задачи, исключающая повторные попытки.
  * Конвертируется в `UnrecoverableError` для BullMQ.
  */
-export class PermanentJobError extends Error {
+export class JobFatalError extends Error {
   constructor(
     public readonly code: string,
     message: string,
     public readonly details?: unknown,
   ) {
     super(message);
-    this.name = "PermanentJobError";
+    this.name = "JobFatalError";
   }
 }
 
 export function toJobError(error: unknown): JobError {
-  if (error instanceof PermanentJobError) {
+  if (error instanceof JobFatalError) {
     return {
       code: error.code,
       message: error.message,

@@ -21,7 +21,7 @@ export type JobResult = Record<string, unknown>;
  * Файл-результат задачи
  * @remarks `key` - внутренний ключ хранилища
  */
-export type JobArtifact = {
+export type JobResultFile = {
   readonly key: string;
   readonly name: string;
   readonly size: number;

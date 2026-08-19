@@ -8,15 +8,13 @@ export type WorkerContainer = {
 };
 
 /**
- * Собирает зависимости для обработки фоновых операций.
- * Здесь регистрируются все доступные обработчики.
+ * Регистрация фоновых операций (джоб),
+ * без регистрации они работать не будут
  */
 export function createWorkerContainer(): WorkerContainer {
   container.init();
 
-  const registry = new JobRegistry().register(
-    container.exportResponses.handler,
-  );
+  const registry = new JobRegistry().register(container.exportResponses.job);
 
   return {
     jobRepository: container.job.repository,

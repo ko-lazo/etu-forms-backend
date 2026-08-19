@@ -3,7 +3,7 @@ import type { JobContext } from "./job.context.js";
 import type { JobResult } from "../job.types.js";
 
 /**
- * Обработчик фоновой операции.
+ * Обработчик фоновой задачи (собственно, джоба), реализуемый другими модулями
  */
 export interface JobHandler<TPayload> {
   /** Тип операции из `jobs.type` */

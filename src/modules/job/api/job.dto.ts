@@ -12,7 +12,7 @@ const jobErrorSchema = z.object({
 
 const jobResultSchema = z
   .object({
-    artifact: z
+    file: z
       .object({
         name: z.string(),
         size: z.number().int().nonnegative(),

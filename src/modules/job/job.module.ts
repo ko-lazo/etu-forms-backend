@@ -6,9 +6,6 @@ import { JobRepository } from "./db/job.repository.js";
 import { createJobService } from "./job.service.js";
 import { createJobPolicy } from "./job.policy.js";
 
-/**
- * Отвечает за сборку runtime зависимостей
- */
 export function createJobModule() {
   const repository = new JobRepository(dbClient);
 

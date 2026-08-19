@@ -15,10 +15,10 @@ import { logger, serializeError } from "@/shared/logger/logger.js";
 
 import { JobFilter } from "../db/job.filter.js";
 import { JobScope } from "../db/job.scope.js";
-import { readArtifact } from "../job.domain.js";
+import { readResultFile } from "../job.domain.js";
 import type { JobPolicy } from "../job.policy.js";
 import type { JobService } from "../job.service.js";
-import type { Job, JobArtifact } from "../job.types.js";
+import type { Job, JobResultFile } from "../job.types.js";
 import type { FindJobDto } from "./job.dto.js";
 import { jobMapper } from "./job.mapper.js";
 import { JOB_STATUS } from "../job.types.js";
@@ -52,7 +52,7 @@ export function createJobController(
     return job;
   };
 
-  const streamArtifact = async (
+  const streamResultFile = async (
     job: Job,
     key: string,
     res: Response,
@@ -84,39 +84,36 @@ export function createJobController(
 
   const download: Handler = async (req, res) => {
     const job = await findOwned(req);
-    const artifact = resolveReadyArtifact(job);
+    const file = resolveReadyResultFile(job);
 
-    const stored = await storage.stat(artifact.key);
+    const stored = await storage.stat(file.key);
 
     if (!stored) {
       throw new NotFoundError("Файл результата отсутствует в хранилище");
     }
 
-    res.setHeader("Content-Type", artifact.mimeType);
+    res.setHeader("Content-Type", file.mimeType);
     res.setHeader("Content-Length", stored.size);
-    res.setHeader(
-      "Content-Disposition",
-      buildContentDisposition(artifact.name),
-    );
+    res.setHeader("Content-Disposition", buildContentDisposition(file.name));
 
-    await streamArtifact(job, artifact.key, res);
+    await streamResultFile(job, file.key, res);
   };
 
   return { ...read, cancel, download };
 }
 
-function resolveReadyArtifact(job: Job): JobArtifact {
+function resolveReadyResultFile(job: Job): JobResultFile {
   if (job.status !== JOB_STATUS.SUCCEEDED) {
     throw new BadRequestError("Результат задачи ещё не готов");
   }
 
-  const artifact = readArtifact(job.result);
+  const file = readResultFile(job.result);
 
-  if (!artifact) {
+  if (!file) {
     throw new NotFoundError("У задачи нет файла-результата");
   }
 
-  return artifact;
+  return file;
 }
 
 function buildContentDisposition(name: string): string {
