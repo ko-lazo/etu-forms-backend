@@ -19,7 +19,7 @@ export function createAiService(config: AiConfig): AiService {
   async function ask<TSchema extends z.ZodType>(
     request: StructuredRequest<TSchema>,
   ): Promise<z.infer<TSchema>> {
-    const content = await checkCompletion(request);
+    const content = await checkAnswerIsReady(request);
     const formattedJson = dropNulls(parseJson(content));
     const parsed = request.schema.safeParse(formattedJson);
 
@@ -43,7 +43,7 @@ export function createAiService(config: AiConfig): AiService {
     });
   }
 
-  async function checkCompletion(
+  async function checkAnswerIsReady(
     request: StructuredRequest<z.ZodType>,
     attempt = 1,
   ): Promise<string> {
@@ -51,7 +51,7 @@ export function createAiService(config: AiConfig): AiService {
 
     if (response.status === TOO_MANY_REQUESTS && attempt <= MAX_RETRIES) {
       await wait(incrementDelayMs(response, attempt));
-      return await checkCompletion(request, attempt + 1);
+      return await checkAnswerIsReady(request, attempt + 1);
     }
 
     const body = await response.text();
@@ -60,16 +60,7 @@ export function createAiService(config: AiConfig): AiService {
       throw throwServiceError(`Status ${response.status}`, body);
     }
 
-    const parsed = completionSchema.safeParse(parseJson(body));
-    const content = parsed.success
-      ? parsed.data.choices[0]?.message.content
-      : null;
-
-    if (!content) {
-      throw throwServiceError("Empty or unexpected response", body);
-    }
-
-    return content;
+    return extractContent(body);
   }
 
   return {
@@ -93,6 +84,19 @@ function buildRequestBody(
       },
     },
   };
+}
+
+function extractContent(responseBody: string): string {
+  const parsed = completionSchema.safeParse(parseJson(responseBody));
+  const content = parsed.success
+    ? parsed.data.choices[0]?.message.content
+    : null;
+
+  if (!content) {
+    throw throwServiceError("Empty or unexpected response", responseBody);
+  }
+
+  return content;
 }
 
 function incrementDelayMs(response: Response, attempt: number): number {
