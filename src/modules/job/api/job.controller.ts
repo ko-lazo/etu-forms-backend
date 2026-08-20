@@ -85,7 +85,7 @@ export function createJobController(
 
     res.setHeader("Content-Type", file.mimeType);
     res.setHeader("Content-Length", stored.size);
-    res.setHeader("Content-Disposition", buildContentDisposition(file.name));
+    res.setHeader("Content-Disposition", `attachment; filename="${file.name}"`);
 
     await streamResultFile(job, file.key, res);
   }
@@ -105,12 +105,6 @@ function resolveReadyResultFile(job: Job): JobResultFile {
   }
 
   return file;
-}
-
-function buildContentDisposition(name: string): string {
-  const fallback = name.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "");
-
-  return `attachment; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`;
 }
 
 export type JobController = ReturnType<typeof createJobController>;

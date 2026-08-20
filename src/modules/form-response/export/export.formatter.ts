@@ -1,9 +1,7 @@
 import { Writable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import ExcelJS from "exceljs";
-
 import type { FormSchema } from "@/modules/form/index.js";
-
 import type {
   ExportColumn,
   ExportedResponseRow,
@@ -76,17 +74,9 @@ export function collectColumns(schema: FormSchema): ExportColumn[] {
   );
 }
 
-/**
- * Формирует имя файла
- */
-export function buildFileName(title: string): string {
-  const date = new Date().toISOString().slice(0, 10);
-  const safeTitle = title
-    .trim()
-    .replace(/[\\/:*?"<>|]/g, "_")
-    .slice(0, 80);
-
-  return `${safeTitle || "form"}-${date}.xlsx`;
+export function buildFileName(): string {
+  const date = new Date().toISOString();
+  return `export-${date}.xlsx`;
 }
 
 /**

@@ -88,7 +88,7 @@ export class ExportJob implements JobHandler<ExportPayload> {
 
     const file: JobResultFile = {
       key: keys.final,
-      name: buildFileName(form.title),
+      name: buildFileName(),
       size: stored.size,
       mimeType: XLSX_MIME,
     };
