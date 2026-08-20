@@ -12,6 +12,8 @@ export function createApp() {
 
   const app = express();
 
+  app.set("query parser", "extended");
+
   app.use(cors(corsConfig));
 
   app.use(express.json());
