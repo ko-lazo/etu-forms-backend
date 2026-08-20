@@ -1,0 +1,1812 @@
+{
+  "info": {
+    "name": "etu-forms API",
+    "_postman_id": "9b1d4f2a-6c3e-4a70-8d15-2f7c0e9a4b31",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "HTTP API конструктора форм.\n\nКоллекция собрана из фактических роутов проекта (`src/routes/api.routes.ts` и `src/modules/**/api/*.routes.ts`). Эндпоинтов, отсутствующих в коде, здесь нет.\n\n## Быстрый старт\n\n1. Выберите окружение или отредактируйте переменные коллекции (вкладка **Variables**): `baseUrl` по умолчанию `http://localhost:3000`.\n2. Выполните **Auth → Login**. Скрипт из вкладки Tests сам сохранит полученный токен в переменную `token` — вручную копировать ничего не нужно.\n3. Дальше работайте с любым запросом: авторизация настроена на уровне коллекции (Bearer `{{token}}`) и наследуется всеми папками.\n\nЗапросы, создающие ресурсы (форма, ответ, экспорт), сохраняют их идентификаторы в `formId`, `responseId`, `jobId`, `tokenId`. Благодаря этому папки можно прогонять сверху вниз через Collection Runner.\n\n## Аутентификация\n\nОдин механизм — bearer-токен из таблицы `api_tokens`. Токен выдаётся `POST /api/auth/login` (TTL 24 часа) либо `POST /api/tokens` (бессрочный). Скоупов и ролей нет: любой валидный токен даёт полный доступ ко всем ресурсам своего владельца.\n\n## Фильтры\n\nСписочные запросы валидируют query-строку по `findSchema`: неизвестные параметры отбрасываются, некорректные дают 400. Приложение работает с расширенным парсером query, поэтому доступны вложенные параметры (`answer[full_name]=Иван`) и массивы (`answered[]=email`). В запросах ниже такие параметры добавлены выключенными — включите нужные галочкой.\n\n## Ошибки\n\nОсновная форма ответа об ошибке — `{ code, message }` от `errorHandler`; список проблем валидации лежит в `details`. Middleware аутентификации отвечает телом `{ message }`, rate limit на логине — простым текстом."
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "Корень сервера. Префикс /api добавлен в сами запросы"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string",
+      "description": "Заполняется автоматически запросом Auth → Login"
+    },
+    {
+      "key": "email",
+      "value": "user@example.com",
+      "type": "string",
+      "description": "Email для логина. Сидер создаёт пользователей с паролем 'password'"
+    },
+    {
+      "key": "password",
+      "value": "password",
+      "type": "string"
+    },
+    {
+      "key": "formId",
+      "value": "",
+      "type": "string",
+      "description": "Заполняется запросом Forms → Create form"
+    },
+    {
+      "key": "responseId",
+      "value": "",
+      "type": "string",
+      "description": "Заполняется запросом Form responses → Submit response"
+    },
+    {
+      "key": "jobId",
+      "value": "",
+      "type": "string",
+      "description": "Заполняется запросом Export → Enqueue export"
+    },
+    {
+      "key": "tokenId",
+      "value": "",
+      "type": "string",
+      "description": "Заполняется запросом API tokens → Create API token"
+    }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "description": "Служебные эндпоинты вне префикса /api.",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "**Назначение.** Liveness-проба процесса.\n\n**Когда использовать.** Healthcheck в docker-compose, проба балансировщика.\n\n**Авторизация.** Не требуется.\n\n**Pipeline.** `cors → express.json → handler`. Роут зарегистрирован до `/api`.\n\nК БД и Redis не обращается, поэтому `ok` не гарантирует доступность зависимостей.\n\n**200** → `{ \"status\": \"ok\" }`"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"ok\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Вход и профиль текущего пользователя.",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Токен получен\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property(\"token\");",
+                  "    pm.collectionVariables.set(\"token\", body.token);",
+                  "    pm.collectionVariables.set(\"tokenId\", body.id);",
+                  "    console.log(\"Токен сохранён, истекает:\", body.expiresAt);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "**Назначение.** Обменять email и пароль на bearer-токен.\n\n**Когда использовать.** Первый шаг подключения. Вызвать один раз и переиспользовать `token` до истечения `expiresAt` (24 часа).\n\n**Авторизация.** Не требуется.\n\n**Pipeline.** `loginRateLimit → validate(authDto.loginSchema) → AuthController.login`\n\n**Body**\n\n| Поле | Тип | Обязательное | Правила |\n|---|---|---|---|\n| `email` | string | да | валидный email |\n| `password` | string | да | min(1) |\n\nPlaintext-токен показывается **один раз** — в БД лежит только `sha256(token)`. Скрипт во вкладке Tests сохраняет его в переменную `token` автоматически.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Токен выпущен |\n| 400 | Невалидный email или пустой пароль |\n| 401 | Пользователь не найден **или** пароль неверен — ответы идентичны, перечисление пользователей невозможно |\n| 429 | Больше 5 попыток за 60 секунд с одного IP |"
+          },
+          "response": [
+            {
+              "name": "200 Токен выпущен",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "login"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"0f0e3a35-9a8a-4d21-9b6a-9f7f1c0b3a10\",\n  \"name\": \"Session Token (16.08.2026)\",\n  \"expiresAt\": \"2026-08-17T18:00:00.000Z\",\n  \"createdAt\": \"2026-08-16T18:00:00.000Z\",\n  \"token\": \"vJ8kQ2mZ5nR7pT1wY4xA6bC9dE0fG3hJ5kL8mN1oP4q\"\n}"
+            },
+            {
+              "name": "401 Неверные учётные данные",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"wrong\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "login"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"UNAUTHORIZED\",\n  \"message\": \"Authentication error\"\n}"
+            },
+            {
+              "name": "400 Ошибка валидации",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"not-an-email\",\n  \"password\": \"\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "login"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"code\": \"invalid_format\",\n      \"format\": \"email\",\n      \"path\": [\"email\"],\n      \"message\": \"Invalid email address\"\n    },\n    {\n      \"code\": \"too_small\",\n      \"minimum\": 1,\n      \"path\": [\"password\"],\n      \"message\": \"Password is required\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get current user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "**Назначение.** Вернуть профиль владельца текущего токена.\n\n**Когда использовать.** Проверка живости токена при старте фронтенда, получение `userId` для локального состояния.\n\n**Авторизация.** Обязательна.\n\n**Pipeline.** `authMiddleware → AuthController.me`\n\nПароль не возвращается никогда — маппер отдаёт только `id`, `email`, `createdAt`.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Профиль пользователя |\n| 401 | Нет заголовка, битый или просроченный токен; либо пользователь удалён |"
+          },
+          "response": [
+            {
+              "name": "200 Профиль",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/me",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "me"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"8f14e45f-ceea-467a-9c31-2b1b5f9dfc02\",\n  \"email\": \"user@example.com\",\n  \"createdAt\": \"2026-07-25T10:02:25.000Z\"\n}"
+            },
+            {
+              "name": "401 Нет токена",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/me",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "me"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"Missing or invalid authorization header\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "API tokens",
+      "description": "Выпуск и отзыв bearer-токенов.\n\nВсе роуты группы проходят `router.use(authMiddleware)` — анонимный доступ невозможен ни к одному из них.",
+      "item": [
+        {
+          "name": "List API tokens",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tokens?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tokens"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Номер страницы, по умолчанию 1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Размер страницы, по умолчанию 20"
+                }
+              ]
+            },
+            "description": "**Назначение.** Список токенов текущего пользователя.\n\n**Когда использовать.** Экран «Ключи API»: показать активные токены, дать отозвать лишние.\n\n**Авторизация.** Обязательна. Выборка ограничена `ApiTokenScope` (`user_id` + `type = 'personal'`) — чужие токены не попадут ни в `data`, ни в `meta.total`, а сессионные токены из `POST /auth/login` не возвращаются вовсе.\n\n**Pipeline.** `authMiddleware → findAll`\n\nФильтров нет — только `page` и `limit`. Сортировка фиксирована: `created_at DESC`.\n\nПоля `token` в ответе нет: секрет показывается только в момент выпуска, через `apiTokenMapper` наружу уходят лишь `id`, `name`, `expiresAt` и `createdAt`.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Страница токенов |\n| 401 | Нет/битый токен |\n| 400 | Некорректные `page`/`limit` |"
+          },
+          "response": [
+            {
+              "name": "200 Страница токенов",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/tokens?page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "tokens"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"0f0e3a35-9a8a-4d21-9b6a-9f7f1c0b3a10\",\n      \"name\": \"CI pipeline\",\n      \"expiresAt\": null,\n      \"createdAt\": \"2026-08-16T18:00:00.000Z\"\n    }\n  ],\n  \"meta\": {\n    \"total\": 1,\n    \"page\": 1,\n    \"limit\": 20,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create API token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"tokenId\", pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"CI pipeline\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/tokens",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tokens"]
+            },
+            "description": "**Назначение.** Выпустить долгоживущий API-токен.\n\n**Когда использовать.** Интеграции, CI, серверные скрипты — всё, что не может проходить логин по паролю.\n\n**Авторизация.** Обязательна. Токен принадлежит владельцу предъявленного токена; выпустить ключ «за другого пользователя» нельзя.\n\n**Pipeline.** `authMiddleware → validate(apiTokenDto.createSchema) → ApiTokenController.create`\n\n**Body**\n\n| Поле | Тип | Обязательное | Правила |\n|---|---|---|---|\n| `name` | string | да | min(1), max(100) |\n| `expiresAt` | string \\| null | нет | ISO-строка (`z.coerce.date()`), `null` или опустить |\n\nОтвет идёт по отдельной схеме `issuedApiTokenSchema` — это единственный момент, когда секрет уходит наружу.\n\nБез `expiresAt` токен бессрочен — отозвать его можно только через `DELETE /api/tokens/:id`.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 201 | Токен создан, plaintext возвращается один раз |\n| 400 | `name` отсутствует/пустой/длиннее 100; пустое тело `{}`; `expiresAt` не приводится к дате |\n| 401 | Нет/битый токен |"
+          },
+          "response": [
+            {
+              "name": "201 Токен создан",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"CI pipeline\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/tokens",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "tokens"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d\",\n  \"name\": \"CI pipeline\",\n  \"expiresAt\": null,\n  \"createdAt\": \"2026-08-16T18:05:00.000Z\",\n  \"token\": \"aB3dE6gH9jK2mN5pQ8sT1vW4xY7zA0cD3fG6hJ9kL2m\"\n}"
+            },
+            {
+              "name": "400 Пустое тело",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/tokens",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "tokens"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"message\": \"Validation failed\",\n  \"errors\": [\n    {\n      \"expected\": \"string\",\n      \"code\": \"invalid_type\",\n      \"path\": [\"name\"],\n      \"message\": \"Invalid input: expected string, received undefined\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete API token",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/tokens/{{tokenId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tokens", "{{tokenId}}"],
+              "variable": [
+                {
+                  "key": "tokenId",
+                  "value": "{{tokenId}}",
+                  "description": "UUID токена"
+                }
+              ]
+            },
+            "description": "**Назначение.** Отозвать токен.\n\n**Когда использовать.** Logout (удалить собственный сессионный токен), ротация ключей, компрометация.\n\n**Авторизация.** Обязательна. `ApiTokenPolicy.delete` пропускает только владельца.\n\n**Pipeline.** `authMiddleware → delete`\n\nПорядок проверок: `findById` → 404 → policy → 403 → `DELETE` → 204.\n\nУдаление строки физическое: отзыв действует немедленно, следующий запрос с этим токеном получит 401.\n\n**Path params**\n\n| Параметр | Тип | Описание |\n|---|---|---|\n| `id` | UUID | Идентификатор токена |\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 204 | Токен удалён, тело пустое |\n| 400 | Пустой `:id` в пути |\n| 401 | Нет/битый токен |\n| 403 | Токен принадлежит другому пользователю |\n| 404 | Токена с таким `id` не существует |"
+          },
+          "response": [
+            {
+              "name": "204 Удалён",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/tokens/{{tokenId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "tokens", "{{tokenId}}"]
+                }
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "text",
+              "header": [],
+              "body": ""
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Forms",
+      "description": "Конструктор форм.\n\nФорма создаётся черновиком: `published_at` и `archived_at` пишутся только четырьмя lifecycle-переходами (`publish`, `unpublish`, `archive`, `unarchive`), в `POST`/`PATCH` этих полей нет. Публичной форма становится после `publish` — тогда же открывается анонимный доступ к `GET /api/forms/:id` и к ветке ответов.\n\n**Статус** вычисляется на лету из двух колонок:\n\n| Значение | Условие |\n|---|---|\n| `archived` | `archivedAt !== null && archivedAt <= now` |\n| `draft` | `publishedAt === null` |\n| `published` | `publishedAt <= now` |\n| `scheduled` | `publishedAt > now` |",
+      "item": [
+        {
+          "name": "List forms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms?page=1&limit=20&title=анкета&status=published&createdFrom=2026-01-01&createdTo=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Номер страницы"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Размер страницы, максимум 100"
+                },
+                {
+                  "key": "title",
+                  "value": "анкета",
+                  "description": "Подстрочный поиск по названию",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "published",
+                  "description": "draft | scheduled | published | archived",
+                  "disabled": true
+                },
+                {
+                  "key": "createdFrom",
+                  "value": "2026-01-01",
+                  "description": "created_at >= значения",
+                  "disabled": true
+                },
+                {
+                  "key": "createdTo",
+                  "value": "2026-12-31",
+                  "description": "created_at <= значения",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "**Назначение.** Список форм текущего пользователя.\n\n**Когда использовать.** Главный экран конструктора, поиск формы по названию, вкладки «Черновики» / «Опубликованные» / «Архив».\n\n**Авторизация.** Обязательна. `FormScope` жёстко ограничивает выборку `user_id = <текущий>`, поэтому эндпоинт **не отдаёт чужие публичные формы** — публичный доступ есть только у `GET /api/forms/:id`.\n\n**Pipeline.** `authMiddleware → validate(formDto.findSchema, \"query\") → findAll`\n\n**Query params**\n\n| Параметр | Тип | По умолчанию | Правила |\n|---|---|---|---|\n| `page` | int | 1 | целое > 0 |\n| `limit` | int | 20 | целое от 1 до 100 |\n| `title` | string | — | `ILIKE '%title%'`, до 500 символов |\n| `status` | enum | — | `draft` \\| `scheduled` \\| `published` \\| `archived` |\n| `createdFrom` | ISO-дата | — | `created_at >= createdFrom` |\n| `createdTo` | ISO-дата | — | `created_at <= createdTo` |\n\nФильтр по статусу повторяет `resolveFormStatus` выражением `CASE` — отдельной колонки под статус в БД нет.\n\nСортировка фиксирована: `created_at DESC`, параметров `sort`/`order` нет.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Страница форм |\n| 400 | Некорректные `page`, `limit`, `status` или даты |\n| 401 | Нет/битый токен |"
+          },
+          "response": [
+            {
+              "name": "200 Страница форм",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms?page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b\",\n      \"userId\": \"8f14e45f-ceea-467a-9c31-2b1b5f9dfc02\",\n      \"title\": \"Анкета участника\",\n      \"schema\": {\n        \"pages\": [\n          {\n            \"name\": \"page_1\",\n            \"title\": \"О себе\",\n            \"elements\": []\n          }\n        ]\n      },\n      \"settings\": {},\n      \"status\": \"draft\",\n      \"isPublic\": false,\n      \"publishedAt\": null,\n      \"archivedAt\": null,\n      \"createdAt\": \"2026-08-16T18:00:00.000Z\"\n    }\n  ],\n  \"meta\": {\n    \"total\": 1,\n    \"page\": 1,\n    \"limit\": 20,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create form",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"formId\", pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Анкета участника\",\n  \"schema\": {\n    \"pages\": [\n      {\n        \"name\": \"page_1\",\n        \"title\": \"О себе\",\n        \"elements\": [\n          {\n            \"name\": \"full_name\",\n            \"label\": \"Как вас зовут?\",\n            \"type\": \"text\",\n            \"required\": true,\n            \"validation\": { \"minLength\": 2, \"maxLength\": 100 }\n          },\n          {\n            \"name\": \"age\",\n            \"label\": \"Сколько вам лет?\",\n            \"type\": \"number\",\n            \"required\": false,\n            \"validation\": { \"min\": 14, \"max\": 120 }\n          },\n          {\n            \"name\": \"topics\",\n            \"label\": \"Что вам интересно?\",\n            \"type\": \"checkbox\",\n            \"required\": false,\n            \"choices\": [\n              { \"value\": \"backend\", \"text\": \"Backend\" },\n              { \"value\": \"frontend\", \"text\": \"Frontend\" }\n            ]\n          }\n        ]\n      }\n    ]\n  },\n  \"settings\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/forms",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms"]
+            },
+            "description": "**Назначение.** Создать форму.\n\n**Когда использовать.** Кнопка «Новая форма» в конструкторе.\n\n**Авторизация.** Обязательна. `userId` берётся из токена (`buildCreateData`); передать его в теле нельзя — Zod отбросит поле.\n\n**Pipeline.** `authMiddleware → validate(formDto.createSchema) → create`\n\n**Body**\n\n| Поле | Тип | Обязательное | Правила |\n|---|---|---|---|\n| `title` | string | да | trim, min(1), max(500) |\n| `schema` | FormSchema | да | `{ pages: [...] }`, минимум одна страница |\n| `settings` | object | нет | по умолчанию `{}`, содержимое не валидируется |\n\n**Схема элемента**\n\n| `type` | Дополнительные поля | Тип ответа |\n|---|---|---|\n| `text`, `email`, `textarea` | `validation?: { minLength?, maxLength? }` | string |\n| `number` | `validation?: { min?, max? }` | number |\n| `dropdown`, `radiogroup` | `choices: { value, text }[]` | string |\n| `checkbox` | `choices: { value, text }[]` | string[] |\n\n`name` элемента обязан подходить под `^[a-zA-Z][a-zA-Z0-9_-]*$` — он становится ключом в `answers`.\n\nСозданная форма всегда `status: \"draft\"`, `isPublic: false` — открыть её можно вызовом `POST /api/forms/:id/publish`.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 201 | Форма создана |\n| 400 | Нарушена схема (в т.ч. внутри `schema`), пустое тело |\n| 401 | Нет/битый токен |"
+          },
+          "response": [
+            {
+              "name": "201 Форма создана",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Анкета участника\",\n  \"schema\": { \"pages\": [] },\n  \"settings\": {}\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b\",\n  \"userId\": \"8f14e45f-ceea-467a-9c31-2b1b5f9dfc02\",\n  \"title\": \"Анкета участника\",\n  \"schema\": {\n    \"pages\": [\n      {\n        \"name\": \"page_1\",\n        \"title\": \"О себе\",\n        \"elements\": [\n          {\n            \"name\": \"full_name\",\n            \"label\": \"Как вас зовут?\",\n            \"type\": \"text\",\n            \"required\": true,\n            \"validation\": { \"minLength\": 2, \"maxLength\": 100 }\n          }\n        ]\n      }\n    ]\n  },\n  \"settings\": {},\n  \"status\": \"draft\",\n  \"isPublic\": false,\n  \"publishedAt\": null,\n  \"archivedAt\": null,\n  \"createdAt\": \"2026-08-16T18:00:00.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get form",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}"]
+            },
+            "description": "**Назначение.** Получить одну форму вместе со схемой.\n\n**Когда использовать.** Открытие формы в редакторе (владельцем) и рендер публичной формы респондентом — это единственный эндпоинт с анонимным доступом к содержимому формы.\n\n**Авторизация.** Опциональна. `OptionalAuthMiddleware` пропускает запрос без заголовка, но при наличии битого токена всё равно отвечает 401. Дальше решает `FormPolicy.view`:\n\n| Кто | Опубликована | Draft / scheduled / archived |\n|---|---|---|\n| Аноним | 200 | **401** |\n| Владелец | 200 | 200 |\n| Другой пользователь | 200 | **403** |\n\n**Pipeline.** `OptionalauthMiddleware → findById`\n\nЧтобы проверить анонимный сценарий, отключите авторизацию на вкладке Authorization (Type → No Auth).\n\n**Path params**\n\n| Параметр | Тип | Описание |\n|---|---|---|\n| `id` | UUID | Идентификатор формы |\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Форма |\n| 400 | Пустой `:id` |\n| 401 | Форма не публична и запрос анонимный; либо предъявлен битый токен |\n| 403 | Форма не публична и принадлежит другому пользователю |\n| 404 | Формы не существует |"
+          },
+          "response": []
+        },
+        {
+          "name": "Update form",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Анкета участника (2026)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}"]
+            },
+            "description": "**Назначение.** Обновить форму.\n\n**Когда использовать.** Сохранение изменений в конструкторе.\n\n**Авторизация.** Обязательна, только владелец (`FormPolicy.update`).\n\n**Pipeline.** `authMiddleware → validate(formDto.updateSchema) → update`\n\nЧастичное обновление: переданные поля перезаписывают текущие значения, остальные не трогаются. Пустое тело отклоняется миддлварой `validate` — 400.\n\n`settings` идёт без `.default({})`: умолчание Zod при обновлении затирало бы настройки пустым объектом. `publishedAt` и `archivedAt` через этот роут не пишутся — их нет в схеме.\n\n**Path params**\n\n| Параметр | Тип | Описание |\n|---|---|---|\n| `id` | UUID | Идентификатор формы |\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Обновлённая форма |\n| 400 | Нарушена схема; пустое тело |\n| 401 | Нет/битый токен |\n| 403 | Форма принадлежит другому пользователю |\n| 404 | Формы не существует |"
+          },
+          "response": []
+        },
+        {
+          "name": "Publish form",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-09-01T09:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/publish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}", "publish"]
+            },
+            "description": "**Назначение.** Открыть форму публично: `published_at = :date`.\n\n**Когда использовать.** Кнопка «Опубликовать» в конструкторе. До этого вызова форма — `draft`, и анонимный респондент не получит ни её схему, ни право отправить ответ.\n\n**Авторизация.** Обязательна, только владелец (`FormPolicy.update` — то же владение, что у `PATCH`/`DELETE`).\n\n**Body** — необязательное: `{ \"date\": \"<ISO 8601>\" }`. Без тела публикация происходит сразу; дата в будущем даёт `scheduled` (отложенную публикацию). Тело разбирает сам контроллер, поэтому запрос без тела корректен.\n\n**Допустимые переходы** (`canPublish`)\n\n| Текущий статус | Результат |\n|---|---|\n| `draft` | → `published`, либо `scheduled` при дате в будущем |\n| `scheduled` | → перепланирование: дата заменяется на новую |\n| `published` | 400, сначала `unpublish` |\n| `archived` | 400, сначала `unarchive` |\n\n**Ответ 200** — полный объект `Form` в новом состоянии.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Форма в новом состоянии |\n| 400 | Недопустимый переход; неразбираемая дата; пустой `:id` |\n| 401 | Нет/битый токен |\n| 403 | Форма принадлежит другому пользователю |\n| 404 | Формы не существует |"
+          },
+          "response": [
+            {
+              "name": "200 Опубликована сразу",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/publish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "publish"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b\",\n  \"userId\": \"9f1c2d3e-4a5b-4c6d-8e9f-0a1b2c3d4e5f\",\n  \"title\": \"Анкета участника\",\n  \"schema\": {\n    \"pages\": [\n      {\n        \"name\": \"page_1\",\n        \"elements\": []\n      }\n    ]\n  },\n  \"settings\": {},\n  \"status\": \"published\",\n  \"isPublic\": true,\n  \"publishedAt\": \"2026-08-17T09:12:44.812Z\",\n  \"archivedAt\": null,\n  \"createdAt\": \"2026-08-16T18:03:11.004Z\"\n}"
+            },
+            {
+              "name": "200 Запланирована",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/publish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "publish"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b\",\n  \"userId\": \"9f1c2d3e-4a5b-4c6d-8e9f-0a1b2c3d4e5f\",\n  \"title\": \"Анкета участника\",\n  \"schema\": {\n    \"pages\": [\n      {\n        \"name\": \"page_1\",\n        \"elements\": []\n      }\n    ]\n  },\n  \"settings\": {},\n  \"status\": \"scheduled\",\n  \"isPublic\": false,\n  \"publishedAt\": \"2026-09-01T09:00:00.000Z\",\n  \"archivedAt\": null,\n  \"createdAt\": \"2026-08-16T18:03:11.004Z\"\n}"
+            },
+            {
+              "name": "400 Недопустимый переход",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/publish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "publish"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Опубликовать можно только черновик или запланированную форму\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unpublish form",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/unpublish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}", "unpublish"]
+            },
+            "description": "**Назначение.** Вернуть форму в черновики: `published_at = NULL`.\n\n**Когда использовать.** Форму открыли рано или в схеме нашлась ошибка. Тем же вызовом отменяется запланированная публикация.\n\nТело запроса не требуется.\n\n**Допустимые переходы** (`canUnpublish`)\n\n| Текущий статус | Результат |\n|---|---|\n| `published` | → `draft` |\n| `scheduled` | → `draft`, расписание отменено |\n| `draft` | 400, снимать нечего |\n| `archived` | 400, сначала `unarchive` |\n\nСобранные ответы остаются на месте, но доступ к незаконченным черновикам закрывается вместе с формой: `FormResponsePolicy` спрашивает `FormPolicy.view` родителя.\n\n**Авторизация.** Обязательна, только владелец (`FormPolicy.update` — то же владение, что у `PATCH`/`DELETE`).\n\n**Ответ 200** — полный объект `Form` в новом состоянии.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Форма в новом состоянии |\n| 400 | Недопустимый переход; пустой `:id` |\n| 401 | Нет/битый токен |\n| 403 | Форма принадлежит другому пользователю |\n| 404 | Формы не существует |"
+          },
+          "response": [
+            {
+              "name": "200 Снята с публикации",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/unpublish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "unpublish"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b\",\n  \"userId\": \"9f1c2d3e-4a5b-4c6d-8e9f-0a1b2c3d4e5f\",\n  \"title\": \"Анкета участника\",\n  \"schema\": {\n    \"pages\": [\n      {\n        \"name\": \"page_1\",\n        \"elements\": []\n      }\n    ]\n  },\n  \"settings\": {},\n  \"status\": \"draft\",\n  \"isPublic\": false,\n  \"publishedAt\": null,\n  \"archivedAt\": null,\n  \"createdAt\": \"2026-08-16T18:03:11.004Z\"\n}"
+            },
+            {
+              "name": "400 Снимать нечего",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/unpublish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "unpublish"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Форма не опубликована и не запланирована\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Archive form",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2026-12-31T00:00:00Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/archive",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}", "archive"]
+            },
+            "description": "**Назначение.** Закрыть форму: `archived_at = :date`.\n\n**Когда использовать.** Опрос завершён, но удалять его вместе с ответами нельзя. Архивная форма перестаёт быть публичной, поэтому анонимы теряют доступ и к самой форме, и к отправке ответов. Владелец продолжает видеть форму, её ответы и выгружать экспорт.\n\n**Авторизация.** Обязательна, только владелец (`FormPolicy.update`).\n\n**Body** — необязательное: `{ \"date\": \"<ISO 8601>\" }`. Дата в будущем даёт отложенную архивацию: до её наступления форма живёт обычной жизнью.\n\n**Допустимые переходы** (`canArchive`)\n\n| Текущий статус | Результат |\n|---|---|\n| `draft` / `scheduled` / `published` | → `archived`, либо отложенно при дате в будущем |\n| `archived` | 400, форма уже в архиве |\n\n`published_at` не затирается, поэтому `unarchive` вернёт форму ровно в то состояние, в котором её заархивировали.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Форма в новом состоянии |\n| 400 | Недопустимый переход; неразбираемая дата; пустой `:id` |\n| 401 | Нет/битый токен |\n| 403 | Форма принадлежит другому пользователю |\n| 404 | Формы не существует |"
+          },
+          "response": [
+            {
+              "name": "200 Архивирована",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/archive",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "archive"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b\",\n  \"userId\": \"9f1c2d3e-4a5b-4c6d-8e9f-0a1b2c3d4e5f\",\n  \"title\": \"Анкета участника\",\n  \"schema\": {\n    \"pages\": [\n      {\n        \"name\": \"page_1\",\n        \"elements\": []\n      }\n    ]\n  },\n  \"settings\": {},\n  \"status\": \"archived\",\n  \"isPublic\": false,\n  \"publishedAt\": \"2026-08-17T09:12:44.812Z\",\n  \"archivedAt\": \"2026-08-17T11:41:02.115Z\",\n  \"createdAt\": \"2026-08-16T18:03:11.004Z\"\n}"
+            },
+            {
+              "name": "200 Архивация отложена",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/archive",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "archive"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b\",\n  \"userId\": \"9f1c2d3e-4a5b-4c6d-8e9f-0a1b2c3d4e5f\",\n  \"title\": \"Анкета участника\",\n  \"schema\": {\n    \"pages\": [\n      {\n        \"name\": \"page_1\",\n        \"elements\": []\n      }\n    ]\n  },\n  \"settings\": {},\n  \"status\": \"published\",\n  \"isPublic\": true,\n  \"publishedAt\": \"2026-08-17T09:12:44.812Z\",\n  \"archivedAt\": \"2026-12-31T00:00:00.000Z\",\n  \"createdAt\": \"2026-08-16T18:03:11.004Z\"\n}"
+            },
+            {
+              "name": "400 Уже в архиве",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/archive",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "archive"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Форма уже в архиве\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unarchive form",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/unarchive",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}", "unarchive"]
+            },
+            "description": "**Назначение.** Достать форму из архива: `archived_at = NULL`.\n\n**Когда использовать.** Архивацию сделали по ошибке или опрос продлили. Тем же вызовом отменяется запланированная архивация.\n\nТело запроса не требуется.\n\n**Допустимые переходы** (`canUnarchive`)\n\n| Состояние | Результат |\n|---|---|\n| `archived_at` проставлен | → статус по `published_at` |\n| Архивация запланирована | → расписание отменено |\n| `archived_at === null` | 400, форма не в архиве |\n\nЭто единственное из четырёх правил, которому не нужно текущее время: оно смотрит на сам факт `archived_at`, а не на вычисленный статус.\n\n**Авторизация.** Обязательна, только владелец (`FormPolicy.update` — то же владение, что у `PATCH`/`DELETE`).\n\n**Ответ 200** — полный объект `Form` в новом состоянии.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Форма в новом состоянии |\n| 400 | Недопустимый переход; пустой `:id` |\n| 401 | Нет/битый токен |\n| 403 | Форма принадлежит другому пользователю |\n| 404 | Формы не существует |"
+          },
+          "response": [
+            {
+              "name": "200 Возвращена из архива",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/unarchive",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "unarchive"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b\",\n  \"userId\": \"9f1c2d3e-4a5b-4c6d-8e9f-0a1b2c3d4e5f\",\n  \"title\": \"Анкета участника\",\n  \"schema\": {\n    \"pages\": [\n      {\n        \"name\": \"page_1\",\n        \"elements\": []\n      }\n    ]\n  },\n  \"settings\": {},\n  \"status\": \"published\",\n  \"isPublic\": true,\n  \"publishedAt\": \"2026-08-17T09:12:44.812Z\",\n  \"archivedAt\": null,\n  \"createdAt\": \"2026-08-16T18:03:11.004Z\"\n}"
+            },
+            {
+              "name": "400 Не в архиве",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/unarchive",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "unarchive"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Форма не в архиве\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete form",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}"]
+            },
+            "description": "**Назначение.** Удалить форму.\n\n**Когда использовать.** Удаление черновика.\n\n**Авторизация.** Обязательна, только владелец (`FormPolicy.delete`).\n\n**Pipeline.** `authMiddleware → delete`\n\nОперация необратима и по внешнему ключу `ON DELETE CASCADE` уносит все ответы этой формы.\n\n**Path params**\n\n| Параметр | Тип | Описание |\n|---|---|---|\n| `id` | UUID | Идентификатор формы |\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 204 | Форма удалена, тело пустое |\n| 400 | Пустой `:id` |\n| 401 | Нет/битый токен |\n| 403 | Форма принадлежит другому пользователю |\n| 404 | Формы не существует |"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Form responses",
+      "description": "Ответы респондентов. Вложенный ресурс `/api/forms/:formId/responses`, роутер создан с `mergeParams: true`.\n\nДоступ к одному ответу зависит от того, отправлен он или нет. Пока `submittedAt === null`, право на ответ даёт знание его `id`: респондент проходит форму анонимно и должен уметь вернуться к сохранённому черновику, не заводя аккаунта. После отправки ответ доступен только автору формы.\n\nРешение принимает `FormResponsePolicy`:\n\n| Кто | Черновик, форма опубликована | Черновик, форма не публична | Отправленный ответ |\n|---|---|---|---|\n| Аноним | доступ есть | 401 | 401 |\n| Автор формы | доступ есть | доступ есть | доступ есть |\n| Другой пользователь | доступ есть | 403 | 403 |\n\nИсключение — сводка `GET /`: она требует токен и ограничена формами текущего пользователя.\n\nЗапросы ниже наследуют авторизацию коллекции. Чтобы проверить анонимный сценарий, поставьте на вкладке Authorization значение No Auth — при опубликованной форме черновик ответа будет доступен и без токена.",
+      "item": [
+        {
+          "name": "List form responses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/responses?page=1&limit=20&submitted=true&answer[full_name]=Иван&answered=email&submittedFrom=2026-01-01&submittedTo=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}", "responses"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Номер страницы"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Размер страницы, максимум 100"
+                },
+                {
+                  "key": "submitted",
+                  "value": "true",
+                  "description": "Только отправленные ответы",
+                  "disabled": true
+                },
+                {
+                  "key": "answer[full_name]",
+                  "value": "Иван",
+                  "description": "Поиск по значению ответа full_name",
+                  "disabled": true
+                },
+                {
+                  "key": "answered",
+                  "value": "email",
+                  "description": "Ответ содержит поле email",
+                  "disabled": true
+                },
+                {
+                  "key": "submittedFrom",
+                  "value": "2026-01-01",
+                  "description": "submitted_at >= значения",
+                  "disabled": true
+                },
+                {
+                  "key": "submittedTo",
+                  "value": "2026-12-31",
+                  "description": "submitted_at <= значения",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "**Назначение.** Постраничный список ответов формы.\n\n**Когда использовать.** Таблица ответов в интерфейсе автора формы, поиск по конкретному ответу, выборка только отправленных.\n\n**Авторизация.** Обязательна, только автор формы. Владение проверяет сам `FormResponseScope`: помимо совпадения по `form_id` он требует, чтобы форма входила в `SELECT id FROM forms WHERE user_id = ?`.\n\n**Pipeline.** `authMiddleware → validate(formResponseDto.findSchema, \"query\") → findAll`\n\nЧужая форма и несуществующий `formId` одинаково дают не 404 и не 403, а пустую страницу с `total: 0` — существование формы не подтверждается.\n\n**Query params**\n\n| Параметр | Тип | По умолчанию | Правила |\n|---|---|---|---|\n| `page` | int | 1 | целое > 0 |\n| `limit` | int | 20 | целое от 1 до 100 |\n| `formId` | UUID | — | дополнительное сужение по форме |\n| `answer[<name>]` | string | — | `answers ->> '<name>' ILIKE '%value%'`, до 500 символов |\n| `answered` | name \\| name[] | — | ответ содержит **все** перечисленные поля |\n| `submitted` | `true` | — | только отправленные (`submitted_at IS NOT NULL`) |\n| `submittedFrom` | ISO-дата | — | `submitted_at >= значения` |\n| `submittedTo` | ISO-дата | — | `submitted_at <= значения` |\n\n`answer` можно передать несколько раз (`answer[full_name]=Иван&answer[city]=Мск`) — условия соединяются через `AND`. `answered` принимает одно имя или массив (`answered[]=email&answered[]=phone`).\n\nСортировка: `created_at DESC`.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Страница ответов |\n| 400 | Пустой `:formId`; некорректные query-параметры |\n| 401 | Нет/битый токен |"
+          },
+          "response": [
+            {
+              "name": "200 Страница ответов",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/responses?page=1&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "responses"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": [\n    {\n      \"id\": \"b7a3c2d1-8e4f-4a5b-9c6d-7e8f9a0b1c2d\",\n      \"formId\": \"3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b\",\n      \"answers\": {\n        \"full_name\": \"Иван Иванов\",\n        \"age\": 27,\n        \"topics\": [\"backend\"]\n      },\n      \"metadata\": {},\n      \"submittedAt\": \"2026-08-16T18:30:00.000Z\",\n      \"createdAt\": \"2026-08-16T18:29:41.000Z\",\n      \"updatedAt\": \"2026-08-16T18:30:00.000Z\"\n    }\n  ],\n  \"meta\": {\n    \"total\": 1,\n    \"page\": 1,\n    \"limit\": 20,\n    \"totalPages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Submit response",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 201) {",
+                  "    pm.collectionVariables.set(\"responseId\", pm.response.json().id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"full_name\": \"Иван Иванов\",\n    \"age\": 27,\n    \"topics\": [\"backend\", \"frontend\"]\n  },\n  \"metadata\": {\n    \"locale\": \"ru-RU\"\n  },\n  \"submittedAt\": \"2026-08-16T18:30:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/responses",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}", "responses"]
+            },
+            "description": "**Назначение.** Отправить заполненную форму.\n\n**Когда использовать.** Сабмит формы респондентом — точка входа публичного сценария заполнения.\n\n**Авторизация.** Токен необязателен: форму проходит аноним. `FormResponsePolicy.create` проверяет, видна ли ему сама форма (`FormPolicy.view`) — в опубликованную ответ примут у кого угодно, в черновик только у автора формы, и для этого он должен предъявить токен.\n\n**Pipeline.** `optionalAuthMiddleware → validate(formResponseDto.createSchema) → create`\n\nВалидация двухступенчатая. Вторая ступень — `validateFormResponse` внутри сервиса — сверяет ответы со схемой формы:\n\n| Тип элемента | Проверки |\n|---|---|\n| `text`, `email`, `textarea` | строка; `minLength`/`maxLength`; для `email` — regex |\n| `number` | конечное число; `min`/`max` |\n| `dropdown`, `radiogroup` | строка из `choices[].value` |\n| `checkbox` | массив строк из `choices[].value` |\n| любой | `required` и отсутствие поля → ошибка; неизвестное поле в `answers` → ошибка |\n\nЕё ошибки приходят как 400 со списком `{ field, message }` в поле `details`.\n\n**Body**\n\n| Поле | Тип | Обязательное | Правила |\n|---|---|---|---|\n| `answers` | object | да | ключ — `name` элемента схемы; значение — string / number / boolean / string[] |\n| `metadata` | object | нет | по умолчанию `{}`, произвольные данные клиента |\n| `submittedAt` | string \\| null | нет | `z.coerce.date()`; `null`/отсутствие = черновик |\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 201 | Ответ сохранён |\n| 400 | Нарушена `createSchema`; пустое тело; ответы не прошли сверку со схемой формы |\n| 401 | Форма не публична или не существует, а запрос анонимный |\n| 403 | Форма не публична или не существует, токен чужой |\n\nНесуществующий `:formId` неотличим от недоступного: проверка видимости идёт первой, поэтому ответ будет 401 или 403, а не 404."
+          },
+          "response": [
+            {
+              "name": "201 Ответ сохранён",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"answers\": { \"full_name\": \"Иван Иванов\" },\n  \"metadata\": {},\n  \"submittedAt\": \"2026-08-16T18:30:00.000Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/responses",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "responses"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"b7a3c2d1-8e4f-4a5b-9c6d-7e8f9a0b1c2d\",\n  \"formId\": \"3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b\",\n  \"answers\": {\n    \"full_name\": \"Иван Иванов\",\n    \"age\": 27,\n    \"topics\": [\"backend\", \"frontend\"]\n  },\n  \"metadata\": { \"locale\": \"ru-RU\" },\n  \"submittedAt\": \"2026-08-16T18:30:00.000Z\",\n  \"createdAt\": \"2026-08-16T18:29:41.000Z\",\n  \"updatedAt\": \"2026-08-16T18:29:41.000Z\"\n}"
+            },
+            {
+              "name": "400 Ответы не прошли сверку со схемой",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"answers\": { \"unknown_field\": \"x\" }\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/responses",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "responses"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Validation failed\",\n  \"details\": [\n    {\n      \"field\": \"full_name\",\n      \"message\": \"This field is required\"\n    },\n    {\n      \"field\": \"age\",\n      \"message\": \"Answer must be at least 14\"\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get form response",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/responses/{{responseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "forms",
+                "{{formId}}",
+                "responses",
+                "{{responseId}}"
+              ]
+            },
+            "description": "**Назначение.** Получить один ответ.\n\n**Когда использовать.** Возврат респондента к сохранённому черновику; карточка ответа у автора формы.\n\n**Авторизация.** Токен необязателен. Сначала сверяется принадлежность ответа форме из пути, затем решает `FormResponsePolicy.view`:\n\n| Состояние ответа | Кто получает доступ |\n|---|---|\n| Черновик (`submittedAt` = `null`) | любой, кому видна форма (`FormPolicy.view`) |\n| Отправленный | только автор формы |\n\n**Pipeline.** `optionalAuthMiddleware → findById`\n\nРеальную энтропию даёт только `id` ответа: `formId` секретом не является, он лежит в ссылке на заполнение.\n\n**Path params**\n\n| Параметр | Тип | Описание |\n|---|---|---|\n| `formId` | UUID | Идентификатор формы |\n| `id` | UUID | Идентификатор ответа |\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Ответ |\n| 400 | Пустой `:formId` или `:id` |\n| 401 | Доступа нет, запрос анонимный |\n| 403 | Доступа нет, токен принадлежит другому пользователю |\n| 404 | Ответа нет **или** он принадлежит другой форме |"
+          },
+          "response": []
+        },
+        {
+          "name": "Update form response",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": {\n    \"full_name\": \"Иван Петров\",\n    \"age\": 28,\n    \"topics\": [\"backend\"]\n  },\n  \"submittedAt\": \"2026-08-16T19:00:00.000Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/responses/{{responseId}}",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "forms",
+                "{{formId}}",
+                "responses",
+                "{{responseId}}"
+              ]
+            },
+            "description": "**Назначение.** Изменить существующий ответ.\n\n**Когда использовать.** Дозаполнение черновика и его отправка: клиент шлёт `submittedAt` тем же вызовом, которым сохраняет последние ответы.\n\n**Авторизация.** Как и у `GET /:id`: черновик правит любой, кому видна форма, отправленный ответ — только автор формы (`FormResponsePolicy.update`).\n\n**Pipeline.** `optionalAuthMiddleware → validate(formResponseDto.updateSchema) → update`\n\nЧастичное обновление: переданные поля перезаписывают текущие значения. Пустое тело отклоняется миддлварой `validate` — 400. `metadata` идёт без `.default({})`: умолчание Zod при обновлении затирало бы метаданные пустым объектом.\n\n`answers` сверяются со схемой формы через `validateFormResponse`; если поле не передано, проверяются уже сохранённые ответы.\n\n`updatedAt` обновляется триггером БД `form_responses_set_updated_at`.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Обновлённый ответ |\n| 400 | Нарушена схема; пустое тело; ответы не прошли сверку со схемой формы |\n| 401 | Доступа нет, запрос анонимный |\n| 403 | Доступа нет, токен принадлежит другому пользователю |\n| 404 | Ответа нет или он принадлежит другой форме |"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AI",
+      "description": "Помощник конструктора: по описанию на естественном языке модель возвращает готовую схему формы.\n\nРезультат никуда не сохраняется — применяет схему клиент отдельным `PATCH /api/forms/:id`.\n\nЗапросы к внешнему провайдеру ограничены суточной квотой на пользователя (`AI_DAILY_LIMIT_PER_USER`, по умолчанию 20). Счётчик живёт в Redis и обнуляется в полночь; неудачный запрос к модели квоту не тратит.",
+      "item": [
+        {
+          "name": "Generate form schema",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Статус ответа модели\", function () {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.be.oneOf([\"ok\", \"unsupported\", \"ambiguous\"]);",
+                  "    console.log(\"Модель ответила:\", body.message);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Анкета участника конференции: имя, email, выбор трека, согласие на рассылку\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/ai/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}", "ai", "generate"]
+            },
+            "description": "**Назначение.** Сгенерировать или изменить схему формы по текстовому запросу.\n\n**Когда использовать.** Кнопка «Сгенерировать с ИИ» в конструкторе — как для пустой формы, так и для правки существующей: текущая схема отправляется модели вместе с запросом.\n\n**Авторизация.** Обязательна, только владелец формы (`FormPolicy.update`).\n\n**Pipeline.** `authMiddleware → AiConstructorController.generate`\n\nПорядок внутри: разбор тела → форма и владение → проверка квоты → запрос к модели → списание квоты.\n\n**Body**\n\n| Поле | Тип | Обязательное | Правила |\n|---|---|---|---|\n| `prompt` | string | да | trim, min(1), max(5000) |\n\n**Ответ 200**\n\n| Поле | Тип | Описание |\n|---|---|---|\n| `status` | enum | `ok` — схема получена; `unsupported` — задача вне возможностей схемы; `ambiguous` — запрос непонятен |\n| `message` | string | Текст для показа пользователю |\n| `schema` | FormSchema \\| null | Готовая схема при `status: \"ok\"`, иначе `null` |\n\nСхема из ответа проходит тот же `formSchemaObject`, что и `POST /api/forms`, поэтому её можно отправить в форму как есть.\n\nЗапрос может занять заметное время: при 429 от провайдера сервис делает до двух повторов с учётом `Retry-After`, общий таймаут — `AI_TIMEOUT_MS` (по умолчанию 60 секунд).\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Ответ модели |\n| 400 | `prompt` отсутствует, пустой или длиннее 5000 символов |\n| 401 | Нет/битый токен |\n| 403 | Форма принадлежит другому пользователю |\n| 404 | Формы не существует |\n| 429 | Исчерпан суточный лимит запросов к ИИ |\n| 503 | AI-сервис недоступен, ответил ошибкой или вернул неразбираемый JSON |"
+          },
+          "response": [
+            {
+              "name": "200 Схема сгенерирована",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prompt\": \"Анкета участника конференции: имя, email, выбор трека\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/ai/generate",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "ai", "generate"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": \"ok\",\n  \"message\": \"Добавил три поля: имя, email и выбор трека.\",\n  \"schema\": {\n    \"pages\": [\n      {\n        \"name\": \"page_1\",\n        \"title\": \"Участник\",\n        \"elements\": [\n          {\n            \"name\": \"full_name\",\n            \"label\": \"Как вас зовут?\",\n            \"type\": \"text\",\n            \"required\": true\n          },\n          {\n            \"name\": \"email\",\n            \"label\": \"Email\",\n            \"type\": \"email\",\n            \"required\": true\n          },\n          {\n            \"name\": \"track\",\n            \"label\": \"Какой трек вам интересен?\",\n            \"type\": \"radiogroup\",\n            \"required\": true,\n            \"choices\": [\n              {\n                \"value\": \"backend\",\n                \"text\": \"Backend\"\n              },\n              {\n                \"value\": \"frontend\",\n                \"text\": \"Frontend\"\n              }\n            ]\n          }\n        ]\n      }\n    ]\n  }\n}"
+            },
+            {
+              "name": "429 Лимит исчерпан",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"prompt\": \"Ещё одна форма\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/ai/generate",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "ai", "generate"]
+                }
+              },
+              "status": "Too Many Requests",
+              "code": 429,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"TOO_MANY_REQUESTS\",\n  \"message\": \"Суточный лимит запросов к ИИ исчерпан\",\n  \"details\": {\n    \"limit\": 20,\n    \"resetAt\": \"2026-08-21T00:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get AI limit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/ai/limit",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ai", "limit"]
+            },
+            "description": "**Назначение.** Узнать остаток суточной квоты запросов к ИИ.\n\n**Когда использовать.** Показ счётчика в конструкторе и блокировка кнопки генерации до наступления `resetAt`.\n\n**Авторизация.** Обязательна. Квота считается по владельцу токена.\n\n**Pipeline.** `authMiddleware → AiController.limit`\n\n**Ответ 200**\n\n| Поле | Тип | Описание |\n|---|---|---|\n| `limit` | int | Суточный лимит на пользователя |\n| `used` | int | Сколько генераций израсходовано за сутки |\n| `remaining` | int | `max(limit - used, 0)` |\n| `resetAt` | ISO-дата | Ближайшая полночь — момент обнуления счётчика |\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Состояние квоты |\n| 401 | Нет/битый токен |"
+          },
+          "response": [
+            {
+              "name": "200 Состояние квоты",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/ai/limit",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "ai", "limit"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"limit\": 20,\n  \"used\": 3,\n  \"remaining\": 17,\n  \"resetAt\": \"2026-08-21T00:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Export",
+      "description": "Асинхронная выгрузка ответов в XLSX.\n\nПолный сценарий:\n\n```\nPOST /api/forms/:formId/export   → 202 { id, status: \"pending\" }\nGET  /api/jobs/:id               → polling до status === \"succeeded\"\nGET  /api/jobs/:id/download      → сам .xlsx\n```",
+      "item": [
+        {
+          "name": "Enqueue export",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"202 Accepted\", function () {",
+                  "    pm.response.to.have.status(202);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 202) {",
+                  "    const job = pm.response.json();",
+                  "    pm.collectionVariables.set(\"jobId\", job.id);",
+                  "    console.log(\"Задача поставлена:\", job.id, job.status);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "export-{{formId}}-001",
+                "description": "Необязательный. Повторный запрос с тем же ключом вернёт ту же задачу"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/export",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "forms", "{{formId}}", "export"]
+            },
+            "description": "**Назначение.** Поставить в очередь выгрузку всех ответов формы в XLSX.\n\n**Когда использовать.** Кнопка «Экспорт» в таблице ответов. Эндпоинт асинхронный: возвращает `Job`, а не файл.\n\n**Авторизация.** Обязательна. Проверяется `FormPolicy.update` — экспорт доступен **только владельцу** формы, даже если форма опубликована.\n\n**Pipeline.** `authMiddleware → ExportController.create`\n\nВнутри: `formService.findById` → 404 → `formPolicy.update` → 403 → `jobService.enqueue` (запись в `jobs` + постановка в BullMQ) → 202.\n\nТело запроса не читается — `validate` на роуте не подключён.\n\n**Request headers**\n\n| Заголовок | Обязательный | Описание |\n|---|---|---|\n| `Authorization` | да | `Bearer <token>` |\n| `Idempotency-Key` | нет | Повторный запрос с тем же ключом вернёт **ту же** задачу. Полный ключ: `form-responses.export:<userId>:<Idempotency-Key>`, хранится в `jobs.idempotency_key` (UNIQUE). Без заголовка каждый вызов создаёт новую задачу |\n\nКолонки листа: `ID`, `Создан`, `Отправлен`, далее по одной на каждый элемент схемы (заголовок — `label`).\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 202 | Задача принята в очередь |\n| 400 | Пустой `:formId` |\n| 401 | Нет/битый токен |\n| 403 | Форма принадлежит другому пользователю |\n| 404 | Формы не существует |\n| 503 | Redis недоступен — задача помечается `failed` |\n\nОграничения воркера проявляются как `status: \"failed\"`, а не как HTTP-ошибка: больше 500 000 строк → `EXPORT_TOO_LARGE`, форма удалена между постановкой и выполнением → `FORM_NOT_FOUND`."
+          },
+          "response": [
+            {
+              "name": "202 Задача принята",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "export-2026-08-16-a1"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/export",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "export"]
+                }
+              },
+              "status": "Accepted",
+              "code": 202,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70\",\n  \"type\": \"form-responses.export\",\n  \"status\": \"pending\",\n  \"progress\": null,\n  \"processedCount\": 0,\n  \"totalCount\": null,\n  \"result\": null,\n  \"error\": null,\n  \"createdAt\": \"2026-08-16T18:40:00.000Z\",\n  \"startedAt\": null,\n  \"finishedAt\": null\n}"
+            },
+            {
+              "name": "503 Очередь недоступна",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/export",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "forms", "{{formId}}", "export"]
+                }
+              },
+              "status": "Service Unavailable",
+              "code": 503,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"SERVICE_UNAVAILABLE\",\n  \"message\": \"Очередь фоновых задач недоступна, попробуйте позже\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Jobs",
+      "description": "Фоновые задачи и их результаты.\n\nСоздать задачу напрямую нельзя: `POST /api/jobs` не существует, задачи появляются только через `POST /api/forms/:formId/export`.\n\n**Статусы**\n\n| Статус | Смысл | Терминальный |\n|---|---|---|\n| `pending` | Записана в БД и поставлена в очередь | нет |\n| `running` | Взята воркером | нет |\n| `succeeded` | Завершена, `result` заполнен | да |\n| `failed` | Завершена с ошибкой, `error` заполнен | да |\n| `cancelled` | Отменена до или во время выполнения | да |",
+      "item": [
+        {
+          "name": "List jobs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs?page=1&limit=20&status=succeeded&type=form-responses.export&formId={{formId}}&createdFrom=2026-01-01&createdTo=2026-12-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Номер страницы"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Размер страницы, максимум 100"
+                },
+                {
+                  "key": "status",
+                  "value": "succeeded",
+                  "description": "pending | running | succeeded | failed | cancelled",
+                  "disabled": true
+                },
+                {
+                  "key": "type",
+                  "value": "form-responses.export",
+                  "description": "Тип задачи",
+                  "disabled": true
+                },
+                {
+                  "key": "formId",
+                  "value": "{{formId}}",
+                  "description": "Задачи по конкретной форме",
+                  "disabled": true
+                },
+                {
+                  "key": "createdFrom",
+                  "value": "2026-01-01",
+                  "description": "created_at >= значения",
+                  "disabled": true
+                },
+                {
+                  "key": "createdTo",
+                  "value": "2026-12-31",
+                  "description": "created_at <= значения",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "**Назначение.** Список фоновых задач текущего пользователя.\n\n**Когда использовать.** Центр уведомлений «Мои выгрузки», восстановление состояния после перезагрузки страницы, история выгрузок по конкретной форме.\n\n**Авторизация.** Обязательна. `JobScope` ограничивает выборку `user_id = <текущий>`.\n\n**Pipeline.** `authMiddleware → validate(jobDto.findSchema, \"query\") → findAll`\n\n**Query params**\n\n| Параметр | Тип | По умолчанию | Правила |\n|---|---|---|---|\n| `page` | int | 1 | целое > 0 |\n| `limit` | int | 20 | целое от 1 до 100 |\n| `status` | enum | — | `pending` \\| `running` \\| `succeeded` \\| `failed` \\| `cancelled` |\n| `type` | string | — | точное совпадение; единственный зарегистрированный тип — `form-responses.export` |\n| `formId` | UUID | — | задачи по конкретной форме (`payload ->> 'formId'`) |\n| `createdFrom` | ISO-дата | — | `created_at >= значения` |\n| `createdTo` | ISO-дата | — | `created_at <= значения` |\n\nСортировка: `created_at DESC`.\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Страница задач |\n| 400 | Некорректные query-параметры |\n| 401 | Нет/битый токен |"
+          },
+          "response": []
+        },
+        {
+          "name": "Get job",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/{{jobId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "{{jobId}}"]
+            },
+            "description": "**Назначение.** Состояние одной задачи.\n\n**Когда использовать.** Polling прогресса выгрузки. Разумный интервал — 1–2 секунды: воркер пишет прогресс в БД не чаще, чем раз в `syncIntervalMs = 1000`.\n\n**Авторизация.** Обязательна, только владелец (`JobPolicy.view`).\n\n**Pipeline.** `authMiddleware → findById`\n\n**Поле `progress`**\n\n- `100` — если статус `succeeded`;\n- `null` — если `totalCount` неизвестен;\n- иначе `min(99, floor(processedCount / totalCount * 100))` — намеренно не даёт 100 % до фактического завершения.\n\nВнутренние поля `payload`, `userId`, `idempotencyKey`, `cancelRequestedAt` и `result.file.key` в ответ не попадают — Zod их отбрасывает.\n\n**Path params**\n\n| Параметр | Тип | Описание |\n|---|---|---|\n| `id` | UUID | Идентификатор задачи |\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Задача |\n| 400 | Пустой `:id` |\n| 401 | Нет/битый токен |\n| 403 | Задача принадлежит другому пользователю |\n| 404 | Задачи не существует |"
+          },
+          "response": [
+            {
+              "name": "200 В процессе выполнения",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/jobs/{{jobId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "jobs", "{{jobId}}"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70\",\n  \"type\": \"form-responses.export\",\n  \"status\": \"running\",\n  \"progress\": 42,\n  \"processedCount\": 567,\n  \"totalCount\": 1348,\n  \"result\": null,\n  \"error\": null,\n  \"createdAt\": \"2026-08-16T18:40:00.000Z\",\n  \"startedAt\": \"2026-08-16T18:40:01.000Z\",\n  \"finishedAt\": null\n}"
+            },
+            {
+              "name": "200 Успешно завершена",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/jobs/{{jobId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "jobs", "{{jobId}}"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70\",\n  \"type\": \"form-responses.export\",\n  \"status\": \"succeeded\",\n  \"progress\": 100,\n  \"processedCount\": 1348,\n  \"totalCount\": 1348,\n  \"result\": {\n    \"file\": {\n      \"name\": \"export-2026-08-16.xlsx\",\n      \"size\": 184320,\n      \"mimeType\": \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\"\n    },\n    \"rowCount\": 1348\n  },\n  \"error\": null,\n  \"createdAt\": \"2026-08-16T18:40:00.000Z\",\n  \"startedAt\": \"2026-08-16T18:40:01.000Z\",\n  \"finishedAt\": \"2026-08-16T18:40:12.000Z\"\n}"
+            },
+            {
+              "name": "200 Завершена с ошибкой",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/jobs/{{jobId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "jobs", "{{jobId}}"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70\",\n  \"type\": \"form-responses.export\",\n  \"status\": \"failed\",\n  \"progress\": null,\n  \"processedCount\": 0,\n  \"totalCount\": null,\n  \"result\": null,\n  \"error\": {\n    \"code\": \"EXPORT_TOO_LARGE\",\n    \"message\": \"Large exports are not supported yet: 800000 rows\"\n  },\n  \"createdAt\": \"2026-08-16T18:40:00.000Z\",\n  \"startedAt\": \"2026-08-16T18:40:01.000Z\",\n  \"finishedAt\": \"2026-08-16T18:40:03.000Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Cancel job",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/{{jobId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "{{jobId}}", "cancel"]
+            },
+            "description": "**Назначение.** Запросить отмену задачи.\n\n**Когда использовать.** Кнопка «Отменить» рядом с выполняющейся выгрузкой.\n\n**Авторизация.** Обязательна, только владелец (`JobPolicy.view` внутри `findOwned`).\n\n**Pipeline.** `authMiddleware → JobController.cancel`\n\n**Семантика отмены**\n\n- `pending` → мгновенно переводится в `cancelled`, проставляется `finishedAt`;\n- `running` → проставляется `cancel_requested_at`; воркер увидит флаг при следующем отчёте о прогрессе и прервёт работу через `AbortSignal`. В ответе статус останется `running`;\n- терминальный (`succeeded` / `failed` / `cancelled`) → 400.\n\nТело запроса не требуется.\n\n**Path params**\n\n| Параметр | Тип | Описание |\n|---|---|---|\n| `id` | UUID | Идентификатор задачи |\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Актуальное состояние задачи |\n| 400 | Задача уже завершена, отменять нечего |\n| 401 | Нет/битый токен |\n| 403 | Задача принадлежит другому пользователю |\n| 404 | Задачи не существует |"
+          },
+          "response": [
+            {
+              "name": "200 Отменена",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/jobs/{{jobId}}/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "jobs", "{{jobId}}", "cancel"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"id\": \"d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70\",\n  \"type\": \"form-responses.export\",\n  \"status\": \"cancelled\",\n  \"progress\": null,\n  \"processedCount\": 0,\n  \"totalCount\": null,\n  \"result\": null,\n  \"error\": null,\n  \"createdAt\": \"2026-08-16T18:40:00.000Z\",\n  \"startedAt\": null,\n  \"finishedAt\": \"2026-08-16T18:40:05.000Z\"\n}"
+            },
+            {
+              "name": "400 Задача уже завершена",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/jobs/{{jobId}}/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "jobs", "{{jobId}}", "cancel"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Задача уже завершена, отменять нечего\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Download job result file",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/jobs/{{jobId}}/download",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "jobs", "{{jobId}}", "download"]
+            },
+            "description": "**Назначение.** Скачать файл-результат завершённой задачи.\n\n**Когда использовать.** После того как `GET /api/jobs/:id` вернул `status: \"succeeded\"` и непустой `result.file`.\n\n**Авторизация.** Обязательна, только владелец.\n\n**Pipeline.** `authMiddleware → JobController.download`\n\nОтвет — бинарный поток XLSX (`Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`).\n\nИмя файла — `export-<YYYY-MM-DD>.xlsx` по дню выполнения задачи, не зависит от названия формы. То же имя лежит в `result.file.name`.\n\nЗапрос требует заголовка `Authorization`, поэтому прямая вставка ссылки в `<a href>` или `window.open` не сработает — скачивайте через `fetch` + `Blob`.\n\nЕсли поток оборвался **после** отправки заголовков, тело будет обрезанным, а соединение разорванным; стандартного JSON-ответа об ошибке в этом случае не будет.\n\n**Path params**\n\n| Параметр | Тип | Описание |\n|---|---|---|\n| `id` | UUID | Идентификатор задачи |\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 200 | Бинарный поток XLSX |\n| 400 | Статус задачи не `succeeded` |\n| 401 | Нет/битый токен |\n| 403 | Задача принадлежит другому пользователю |\n| 404 | Задачи нет; у задачи нет файла-результата; файл пропал из хранилища |"
+          },
+          "response": [
+            {
+              "name": "400 Результат ещё не готов",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/jobs/{{jobId}}/download",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "jobs", "{{jobId}}", "download"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"code\": \"BAD_REQUEST\",\n  \"message\": \"Результат задачи ещё не готов\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

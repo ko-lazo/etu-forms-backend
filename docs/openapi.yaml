@@ -1,0 +1,2240 @@
+openapi: 3.1.0
+
+info:
+  title: etu-forms API
+  version: 1.0.0
+  summary: HTTP API конструктора форм
+  description: |
+    Спецификация соответствует коду: `src/routes/api.routes.ts`,
+    `src/modules/**/api/*.routes.ts` и Zod-схемы DTO. Эндпоинтов, отсутствующих
+    в проекте, здесь нет. Развёрнутое описание — `docs/API.md`.
+
+    ## Аутентификация
+
+    Один механизм — bearer-токен из таблицы `api_tokens`. Токен выдаётся
+    `POST /api/auth/login` (TTL 24 часа) либо `POST /api/tokens` (бессрочный)
+    и предъявляется заголовком `Authorization: Bearer <token>`.
+
+    ## Форматы ошибок
+
+    Основная форма — `DomainError` от обработчика `errorHandler`; в ней же
+    приходят ошибки валидации (список проблем лежит в `details`). Исключений
+    два: middleware аутентификации отвечает телом `AuthError` в обход
+    обработчика, а rate limit на входе отдаёт `text/plain`.
+
+    ## Query-параметры
+
+    Приложение работает с расширенным парсером query-строки, поэтому фильтры
+    принимают вложенные параметры (`answer[full_name]=Иван`) и массивы
+    (`answered[]=email`). Списочные роуты валидируют query по `findSchema`:
+    неизвестные параметры отбрасываются, некорректные дают 400.
+  license:
+    name: ISC
+
+servers:
+  - url: http://localhost:3000
+    description: Локальная разработка
+
+tags:
+  - name: System
+    description: Служебные эндпоинты вне префикса /api
+  - name: Auth
+    description: Вход и профиль текущего пользователя
+  - name: API tokens
+    description: Выпуск и отзыв bearer-токенов
+  - name: Forms
+    description: Конструктор форм
+  - name: Form responses
+    description: Ответы респондентов на форму
+  - name: AI
+    description: Генерация схемы формы и суточная квота запросов к модели
+  - name: Export
+    description: Асинхронная выгрузка ответов в XLSX
+  - name: Jobs
+    description: Фоновые задачи и их результаты
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      tags: [System]
+      operationId: healthCheck
+      summary: Liveness-проба
+      description: |
+        Проверяет, что процесс отвечает. К БД и Redis не обращается, поэтому
+        `ok` не гарантирует доступность зависимостей.
+      security: []
+      responses:
+        "200":
+          description: Процесс жив
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    const: ok
+              example: { status: ok }
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Обменять email и пароль на bearer-токен
+      description: |
+        Первый шаг подключения. Создаёт запись в `api_tokens` с TTL 24 часа и
+        возвращает plaintext-токен — он показывается **один раз**.
+
+        Ограничение частоты: 5 запросов за 60 секунд с одного IP
+        (`express-rate-limit`, заголовки draft-8).
+
+        Несуществующий email и неверный пароль дают идентичный 401 —
+        перечисление пользователей невозможно.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              email: user@example.com
+              password: password
+      responses:
+        "200":
+          description: Токен выпущен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssuedApiToken"
+              example:
+                id: 0f0e3a35-9a8a-4d21-9b6a-9f7f1c0b3a10
+                name: Session Token (16.08.2026)
+                expiresAt: "2026-08-17T18:00:00.000Z"
+                createdAt: "2026-08-16T18:00:00.000Z"
+                token: vJ8kQ2mZ5nR7pT1wY4xA6bC9dE0fG3hJ5kL8mN1oP4q
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          description: Пользователь не найден или пароль неверен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+              example:
+                code: UNAUTHORIZED
+                message: Authentication error
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      operationId: getCurrentUser
+      summary: Профиль владельца текущего токена
+      description: |
+        Проверка живости токена и получение `userId`. Пароль не возвращается
+        никогда — маппер отдаёт только три поля.
+      responses:
+        "200":
+          description: Профиль пользователя
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/tokens:
+    get:
+      tags: [API tokens]
+      operationId: listApiTokens
+      summary: Список токенов текущего пользователя
+      description: |
+        Выборка ограничена `ApiTokenScope` (`user_id = <текущий>` и
+        `type = 'personal'`): чужие токены не попадают ни в `data`, ни в
+        `meta.total`, а сессионные токены из `POST /api/auth/login` не
+        возвращаются вовсе — ими пользователь не управляет. Фильтров нет.
+
+        Поля `token` в ответе нет: секрет показывается только в момент выпуска.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Страница токенов
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResult"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ApiToken"
+        "400":
+          $ref: "#/components/responses/InvalidQuery"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [API tokens]
+      operationId: createApiToken
+      summary: Выпустить API-токен
+      description: |
+        Долгоживущий токен для интеграций и CI. Принадлежит владельцу
+        предъявленного токена — выпустить ключ «за другого пользователя» нельзя.
+
+        `expiresAt` необязателен: принимается ISO-строка, `null` или
+        отсутствие поля. Без даты токен бессрочен и отзывается только
+        через `DELETE /api/tokens/{id}`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApiTokenRequest"
+            example:
+              name: CI pipeline
+      responses:
+        "201":
+          description: Токен создан, plaintext возвращается один раз
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IssuedApiToken"
+              example:
+                id: 1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d
+                name: CI pipeline
+                expiresAt: null
+                createdAt: "2026-08-16T18:05:00.000Z"
+                token: aB3dE6gH9jK2mN5pQ8sT1vW4xY7zA0cD3fG6hJ9kL2m
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/tokens/{id}:
+    parameters:
+      - $ref: "#/components/parameters/TokenId"
+    delete:
+      tags: [API tokens]
+      operationId: deleteApiToken
+      summary: Отозвать токен
+      description: |
+        Физически удаляет строку — отзыв действует немедленно. Удаление
+        собственного токена равносильно logout: следующий запрос с ним даст 401.
+
+        Порядок проверок: `findById` → 404 → `ApiTokenPolicy.delete` → 403 → удаление.
+      responses:
+        "204":
+          description: Токен удалён, тело пустое
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/forms:
+    get:
+      tags: [Forms]
+      operationId: listForms
+      summary: Список форм текущего пользователя
+      description: |
+        `FormScope` жёстко ограничивает выборку `user_id = <текущий>`, поэтому
+        чужие публичные формы сюда не попадают — публичный доступ есть только
+        у `GET /api/forms/{id}`.
+
+        Сортировка фиксирована: `created_at DESC`.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: title
+          in: query
+          required: false
+          description: Подстрочный поиск по названию, `ILIKE '%title%'`
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 500
+          example: анкета
+        - name: status
+          in: query
+          required: false
+          description: |
+            Статус на момент запроса. Колонки под него в БД нет, поэтому фильтр
+            повторяет `resolveFormStatus` выражением `CASE` над `published_at`
+            и `archived_at`.
+          schema:
+            $ref: "#/components/schemas/FormStatus"
+        - name: createdFrom
+          in: query
+          required: false
+          description: "`created_at >= createdFrom`, включительно"
+          schema:
+            type: string
+            format: date-time
+        - name: createdTo
+          in: query
+          required: false
+          description: "`created_at <= createdTo`, включительно"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Страница форм
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResult"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Form"
+        "400":
+          $ref: "#/components/responses/InvalidQuery"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [Forms]
+      operationId: createForm
+      summary: Создать форму
+      description: |
+        `userId` берётся из токена; передать его в теле нельзя — Zod отбросит поле.
+
+        Созданная форма всегда имеет `status: "draft"` — `published_at` и
+        `archived_at` не входят в `creatableColumns`/`updatableColumns`.
+        Открывается форма отдельным вызовом `POST /api/forms/{id}/publish`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FormWriteRequest"
+            example:
+              title: Анкета участника
+              schema:
+                pages:
+                  - name: page_1
+                    title: О себе
+                    elements:
+                      - name: full_name
+                        label: Как вас зовут?
+                        type: text
+                        required: true
+                        validation: { minLength: 2, maxLength: 100 }
+                      - name: age
+                        label: Сколько вам лет?
+                        type: number
+                        required: false
+                        validation: { min: 14, max: 120 }
+                      - name: topics
+                        label: Что вам интересно?
+                        type: checkbox
+                        required: false
+                        choices:
+                          - { value: backend, text: Backend }
+                          - { value: frontend, text: Frontend }
+              settings: {}
+      responses:
+        "201":
+          description: Форма создана
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Form"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/forms/{id}:
+    parameters:
+      - $ref: "#/components/parameters/FormId"
+    get:
+      tags: [Forms]
+      operationId: getForm
+      summary: Получить форму со схемой
+      description: |
+        Единственный эндпоинт с анонимным доступом к содержимому формы —
+        используется и редактором владельца, и рендером публичной формы.
+
+        `OptionalAuthMiddleware` пропускает запрос без заголовка, но битый или
+        просроченный токен всё равно даёт 401. Дальше решает `FormPolicy.view`:
+
+        | Кто | Опубликована | Draft / scheduled / archived |
+        |---|---|---|
+        | Аноним | 200 | 401 |
+        | Владелец | 200 | 200 |
+        | Другой пользователь | 200 | 403 |
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Форма
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Form"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      tags: [Forms]
+      operationId: updateForm
+      summary: Обновить форму
+      description: |
+        Частичное обновление: все поля необязательны, переданные — перезаписывают
+        текущие значения, остальные не трогаются. Пустое тело отклоняется
+        миддлварой `validate` (400).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FormUpdateRequest"
+            example:
+              title: Анкета участника (2026)
+      responses:
+        "200":
+          description: Обновлённая форма
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Form"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [Forms]
+      operationId: deleteForm
+      summary: Удалить форму
+      description: |
+        Необратимо. Внешний ключ `form_responses.form_id` объявлен с
+        `ON DELETE CASCADE`, поэтому вместе с формой удаляются все её ответы.
+      responses:
+        "204":
+          description: Форма удалена, тело пустое
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/forms/{id}/publish:
+    parameters:
+      - $ref: "#/components/parameters/FormId"
+    post:
+      tags: [Forms]
+      operationId: publishForm
+      summary: Опубликовать форму
+      description: |
+        Проставляет `published_at`, после чего форма и её роуты ответов
+        открываются анонимному доступу.
+
+        Тело необязательно. Без него публикация происходит сразу
+        (`status: "published"`, `isPublic: true`); с `date` в будущем —
+        отложенная публикация (`status: "scheduled"`, форма пока непублична).
+
+        Допустимо из `draft` и `scheduled` (второе — перепланирование даты).
+        Из `published` нужен сначала `unpublish`, из `archived` — `unarchive`.
+        Только владелец (`FormPolicy.update`).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FormLifecycleRequest"
+            example:
+              date: "2026-09-01T09:00:00Z"
+      responses:
+        "200":
+          description: Форма в новом состоянии
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Form"
+        "400":
+          description: Недопустимый переход или неразбираемая дата
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+              example:
+                code: BAD_REQUEST
+                message: Опубликовать можно только черновик или запланированную форму
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/FormNotFound"
+
+  /api/forms/{id}/unpublish:
+    parameters:
+      - $ref: "#/components/parameters/FormId"
+    post:
+      tags: [Forms]
+      operationId: unpublishForm
+      summary: Снять форму с публикации
+      description: |
+        Сбрасывает `published_at` в `NULL`, возвращая форму в `draft`. Тем же
+        вызовом отменяется запланированная публикация.
+
+        Собранные ответы остаются на месте, но доступ к незаконченным
+        черновикам закрывается вместе с формой: `FormResponsePolicy`
+        спрашивает `FormPolicy.view` родителя.
+
+        Допустимо из `published` и `scheduled`. Из `archived` нужен сначала
+        `unarchive`. Тело запроса не требуется.
+        Только владелец (`FormPolicy.update`).
+      responses:
+        "200":
+          description: Форма в черновиках
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Form"
+        "400":
+          description: Снимать нечего
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+              example:
+                code: BAD_REQUEST
+                message: Форма не опубликована и не запланирована
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/FormNotFound"
+
+  /api/forms/{id}/archive:
+    parameters:
+      - $ref: "#/components/parameters/FormId"
+    post:
+      tags: [Forms]
+      operationId: archiveForm
+      summary: Архивировать форму
+      description: |
+        Проставляет `archived_at`: форма перестаёт быть публичной, приём новых
+        ответов закрывается. Данные и ответы остаются на месте, владелец
+        продолжает видеть форму и выгружать ответы. `published_at` не
+        затирается, поэтому `unarchive` вернёт форму в прежнее состояние.
+
+        Тело необязательно. С `date` в будущем архивация откладывается: до
+        наступления даты статус не меняется, так как `resolveFormStatus`
+        учитывает `archived_at` только когда `archived_at <= now`.
+
+        Допустимо из любого статуса, кроме `archived`.
+        Только владелец (`FormPolicy.update`).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FormLifecycleRequest"
+            example:
+              date: "2026-12-31T00:00:00Z"
+      responses:
+        "200":
+          description: Форма в новом состоянии
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Form"
+        "400":
+          description: Недопустимый переход или неразбираемая дата
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+              example:
+                code: BAD_REQUEST
+                message: Форма уже в архиве
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/FormNotFound"
+
+  /api/forms/{id}/unarchive:
+    parameters:
+      - $ref: "#/components/parameters/FormId"
+    post:
+      tags: [Forms]
+      operationId: unarchiveForm
+      summary: Достать форму из архива
+      description: |
+        Сбрасывает `archived_at` в `NULL`. Статус после этого определяется
+        сохранённым `published_at`: форма, заархивированная опубликованной,
+        снова становится `published` и публичной.
+
+        Работает и когда архивация только запланирована (`archived_at` в
+        будущем) — это то же самое действие, отмена факта архивации. Поэтому
+        правило `canUnarchive` смотрит на саму колонку, а не на статус, и
+        единственное из четырёх не нуждается в текущем времени.
+
+        Тело запроса не требуется. Только владелец (`FormPolicy.update`).
+      responses:
+        "200":
+          description: Форма вне архива
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Form"
+        "400":
+          description: Форма не в архиве
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+              example:
+                code: BAD_REQUEST
+                message: Форма не в архиве
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/FormNotFound"
+
+  /api/forms/{formId}/responses:
+    parameters:
+      - $ref: "#/components/parameters/ParentFormId"
+    get:
+      tags: [Form responses]
+      operationId: listFormResponses
+      summary: Список ответов формы
+      description: |
+        Постраничная таблица ответов для автора формы. Сортировка
+        `created_at DESC`.
+
+        Владение проверяет сам `FormResponseScope`: помимо совпадения по
+        `form_id` он требует, чтобы форма входила в
+        `SELECT id FROM forms WHERE user_id = ?`. Поэтому чужая форма и
+        несуществующий `formId` одинаково дают не 404 и не 403, а пустую
+        страницу с `total: 0` — существование формы не подтверждается.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: formId
+          in: query
+          required: false
+          description: Дополнительное сужение по форме — сама форма уже задана путём
+          schema:
+            type: string
+            format: uuid
+        - name: answer
+          in: query
+          required: false
+          style: deepObject
+          explode: true
+          description: |
+            Поиск по значению конкретного ответа:
+            `?answer[full_name]=Иван` → `answers ->> 'full_name' ILIKE '%Иван%'`.
+            Ключ обязан подходить под правило имени элемента схемы, значение —
+            до 500 символов. Несколько ключей соединяются через `AND`.
+          schema:
+            type: object
+            additionalProperties:
+              type: string
+              minLength: 1
+              maxLength: 500
+        - name: answered
+          in: query
+          required: false
+          description: |
+            Ответ содержит **все** перечисленные поля
+            (`jsonb_exists_all`). Принимает одно имя (`?answered=email`) или
+            массив (`?answered[]=email&answered[]=phone`).
+          schema:
+            oneOf:
+              - type: string
+                pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+              - type: array
+                minItems: 1
+                items:
+                  type: string
+                  pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+        - name: submitted
+          in: query
+          required: false
+          description: "`true` — только отправленные ответы (`submitted_at IS NOT NULL`)"
+          schema:
+            type: boolean
+        - name: submittedFrom
+          in: query
+          required: false
+          description: "`submitted_at >= submittedFrom`, включительно"
+          schema:
+            type: string
+            format: date-time
+        - name: submittedTo
+          in: query
+          required: false
+          description: "`submitted_at <= submittedTo`, включительно"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Страница ответов
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResult"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/FormResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "400":
+          $ref: "#/components/responses/InvalidQuery"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+    post:
+      tags: [Form responses]
+      operationId: submitFormResponse
+      summary: Отправить заполненную форму
+      description: |
+        Точка входа публичного сценария заполнения. Токен необязателен — форму
+        проходит аноним.
+
+        `FormResponsePolicy.create` проверяет, видна ли ему сама форма
+        (`FormPolicy.view`): в опубликованную ответ примут у кого угодно, в
+        черновик — только у автора формы, и для этого он должен предъявить токен.
+
+        Несуществующий `formId` неотличим от недоступного: проверка видимости
+        идёт первой, поэтому анонимный запрос получает 401, а запрос с чужим
+        токеном — 403.
+
+        Валидация двухступенчатая: сначала Zod-схема тела, затем сверка ответов
+        со схемой формы (`validateFormResponse`) — типы, `required`, границы
+        длины и чисел, допустимые `choices`, отсутствие неизвестных полей.
+
+        Ошибки второй ступени приходят как 400 со списком `{ field, message }`
+        в поле `details`.
+      security:
+        - {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FormResponseWriteRequest"
+            example:
+              answers:
+                full_name: Иван Иванов
+                age: 27
+                topics: [backend, frontend]
+              metadata: { locale: ru-RU }
+              submittedAt: "2026-08-16T18:30:00.000Z"
+      responses:
+        "201":
+          description: Ответ сохранён
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FormResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /api/forms/{formId}/responses/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ParentFormId"
+      - $ref: "#/components/parameters/ResponseId"
+    get:
+      tags: [Form responses]
+      operationId: getFormResponse
+      summary: Получить один ответ
+      description: |
+        Токен необязателен: пока ответ не отправлен, право на него даёт знание
+        его `id` — так респондент возвращается к сохранённому черновику, не
+        заводя аккаунта.
+
+        Сначала сверяется принадлежность ответа форме из пути, затем решает
+        `FormResponsePolicy.view`:
+
+        | Состояние ответа | Кто получает доступ |
+        |---|---|
+        | Черновик (`submittedAt` = `null`) | любой, кому видна форма (`FormPolicy.view`) |
+        | Отправленный | только автор формы |
+
+        Реальную энтропию даёт только `id` ответа: `formId` секретом не является,
+        он лежит в ссылке на заполнение.
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Ответ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FormResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: Ответа нет или он принадлежит другой форме
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+              example:
+                code: NOT_FOUND
+                message: Resource not found
+
+    patch:
+      tags: [Form responses]
+      operationId: updateFormResponse
+      summary: Изменить существующий ответ
+      description: |
+        Дозаполнение черновика и его отправка: клиент шлёт `submittedAt` тем же
+        вызовом, которым сохраняет последние ответы. `updatedAt` обновляется
+        триггером БД.
+
+        Правила доступа те же, что у `GET /:id`: черновик правит любой, кому
+        видна форма, отправленный ответ — только автор формы
+        (`FormResponsePolicy.update`).
+
+        Частичное обновление: переданные поля перезаписывают текущие значения.
+        Пустое тело отклоняется миддлварой `validate` (400).
+
+        `answers` сверяются со схемой формы через `validateFormResponse`; если
+        поле не передано, проверяются уже сохранённые ответы.
+      security:
+        - {}
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FormResponseUpdateRequest"
+            example:
+              answers:
+                full_name: Иван Петров
+                age: 28
+                topics: [backend]
+              submittedAt: "2026-08-16T19:00:00.000Z"
+      responses:
+        "200":
+          description: Обновлённый ответ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FormResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/forms/{formId}/ai/generate:
+    parameters:
+      - $ref: "#/components/parameters/ParentFormId"
+    post:
+      tags: [AI]
+      operationId: generateFormSchema
+      summary: Сгенерировать схему формы по текстовому запросу
+      description: |
+        Помощник конструктора: по описанию на естественном языке модель
+        возвращает готовую схему. Текущая схема формы отправляется вместе с
+        запросом, поэтому эндпоинт годится и для правки существующей формы.
+
+        Результат **не сохраняется**: применяет схему клиент отдельным
+        `PATCH /api/forms/{id}`.
+
+        Доступ — только владельцу формы (`FormPolicy.update`). Порядок внутри:
+        разбор тела → форма и владение → проверка квоты → запрос к модели →
+        списание квоты. Неудачный запрос к модели квоту не тратит.
+
+        Запрос к провайдеру может занять заметное время: при 429 сервис делает
+        до двух повторов с учётом `Retry-After`, общий таймаут — `AI_TIMEOUT_MS`
+        (по умолчанию 60 секунд).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiGenerateRequest"
+            example:
+              prompt: >-
+                Анкета участника конференции: имя, email, выбор трека,
+                согласие на рассылку
+      responses:
+        "200":
+          description: Ответ модели
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiGenerateResponse"
+              example:
+                status: ok
+                message: Добавил четыре поля — имя, email, выбор трека и согласие.
+                schema:
+                  pages:
+                    - name: page_1
+                      title: Участник
+                      elements:
+                        - name: full_name
+                          label: Как вас зовут?
+                          type: text
+                          required: true
+                        - name: email
+                          label: Email
+                          type: email
+                          required: true
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/AiQuotaExceeded"
+        "503":
+          $ref: "#/components/responses/AiUnavailable"
+
+  /api/ai/limit:
+    get:
+      tags: [AI]
+      operationId: getAiLimit
+      summary: Остаток суточной квоты запросов к ИИ
+      description: |
+        Показ счётчика в конструкторе и блокировка кнопки генерации до
+        наступления `resetAt`. Квота считается по владельцу токена, счётчик
+        живёт в Redis и обнуляется в полночь.
+      responses:
+        "200":
+          description: Состояние квоты
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiLimit"
+              example:
+                limit: 20
+                used: 3
+                remaining: 17
+                resetAt: "2026-08-21T00:00:00.000Z"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/forms/{formId}/export:
+    parameters:
+      - $ref: "#/components/parameters/ParentFormId"
+    post:
+      tags: [Export]
+      operationId: exportFormResponses
+      summary: Поставить в очередь выгрузку ответов в XLSX
+      description: |
+        Асинхронный эндпоинт: возвращает `Job`, а не файл. Полный сценарий:
+
+        ```
+        POST /api/forms/{formId}/export   → 202 { id, status: "pending" }
+        GET  /api/jobs/{id}               → polling до status === "succeeded"
+        GET  /api/jobs/{id}/download      → сам .xlsx
+        ```
+
+        Доступ проверяется через `FormPolicy.update` — экспорт разрешён только
+        владельцу формы, даже если форма опубликована.
+
+        Тело запроса не читается: `validate` на роуте не подключён.
+
+        Колонки листа: `ID`, `Создан`, `Отправлен`, далее по одной на каждый
+        элемент схемы (заголовок — `label`).
+
+        Ограничения воркера проявляются как `status: "failed"`, а не как
+        HTTP-ошибка: больше 500 000 строк → `EXPORT_TOO_LARGE`, форма удалена
+        между постановкой и выполнением → `FORM_NOT_FOUND`.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: |
+            Произвольная строка. Повторный запрос с тем же ключом вернёт **ту же**
+            задачу вместо создания новой. Полный ключ собирается как
+            `form-responses.export:<userId>:<Idempotency-Key>` и хранится в
+            `jobs.idempotency_key` (UNIQUE). Без заголовка каждый вызов создаёт
+            новую задачу.
+          schema:
+            type: string
+          example: export-2026-08-16-a1
+      responses:
+        "202":
+          description: Задача принята в очередь
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+              example:
+                id: d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70
+                type: form-responses.export
+                status: pending
+                progress: null
+                processedCount: 0
+                totalCount: null
+                result: null
+                error: null
+                createdAt: "2026-08-16T18:40:00.000Z"
+                startedAt: null
+                finishedAt: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/FormNotFound"
+        "503":
+          description: Очередь фоновых задач недоступна (Redis)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+              example:
+                code: SERVICE_UNAVAILABLE
+                message: Очередь фоновых задач недоступна, попробуйте позже
+
+  /api/jobs:
+    get:
+      tags: [Jobs]
+      operationId: listJobs
+      summary: Список фоновых задач текущего пользователя
+      description: |
+        `JobScope` ограничивает выборку `user_id = <текущий>`. Сортировка
+        `created_at DESC`.
+
+        Создать задачу напрямую нельзя: `POST /api/jobs` не существует, задачи
+        появляются только через `POST /api/forms/{formId}/export`.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - name: status
+          in: query
+          required: false
+          description: Точное совпадение статуса
+          schema:
+            $ref: "#/components/schemas/JobStatus"
+        - name: type
+          in: query
+          required: false
+          description: |
+            Точное совпадение типа. Единственный зарегистрированный обработчик —
+            `form-responses.export`.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          example: form-responses.export
+        - name: formId
+          in: query
+          required: false
+          description: Задачи по конкретной форме, `payload ->> 'formId'`
+          schema:
+            type: string
+            format: uuid
+        - name: createdFrom
+          in: query
+          required: false
+          description: "`created_at >= createdFrom`, включительно"
+          schema:
+            type: string
+            format: date-time
+        - name: createdTo
+          in: query
+          required: false
+          description: "`created_at <= createdTo`, включительно"
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Страница задач
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PaginatedResult"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Job"
+        "400":
+          $ref: "#/components/responses/InvalidQuery"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/jobs/{id}:
+    parameters:
+      - $ref: "#/components/parameters/JobId"
+    get:
+      tags: [Jobs]
+      operationId: getJob
+      summary: Состояние одной задачи
+      description: |
+        Основной эндпоинт для polling прогресса. Разумный интервал — 1–2 секунды:
+        воркер пишет прогресс в БД не чаще, чем раз в `syncIntervalMs = 1000`.
+
+        Доступ — только владельцу (`JobPolicy.view`).
+      responses:
+        "200":
+          description: Задача
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+              example:
+                id: d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70
+                type: form-responses.export
+                status: running
+                progress: 42
+                processedCount: 567
+                totalCount: 1348
+                result: null
+                error: null
+                createdAt: "2026-08-16T18:40:00.000Z"
+                startedAt: "2026-08-16T18:40:01.000Z"
+                finishedAt: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/jobs/{id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/JobId"
+    post:
+      tags: [Jobs]
+      operationId: cancelJob
+      summary: Запросить отмену задачи
+      description: |
+        Семантика зависит от текущего статуса:
+
+        - `pending` — мгновенно переводится в `cancelled`, проставляется `finishedAt`;
+        - `running` — проставляется `cancel_requested_at`; воркер увидит флаг при
+          следующем отчёте о прогрессе и прервётся через `AbortSignal`.
+          В ответе статус останется `running`;
+        - терминальный (`succeeded` / `failed` / `cancelled`) — 400.
+
+        Тело запроса не требуется.
+      responses:
+        "200":
+          description: Актуальное состояние задачи после запроса отмены
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "400":
+          description: Задача уже завершена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+              example:
+                code: BAD_REQUEST
+                message: Задача уже завершена, отменять нечего
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/jobs/{id}/download:
+    parameters:
+      - $ref: "#/components/parameters/JobId"
+    get:
+      tags: [Jobs]
+      operationId: downloadJobResultFile
+      summary: Скачать файл-результат задачи
+      description: |
+        Вызывать после того, как `GET /api/jobs/{id}` вернул `status: "succeeded"`
+        и непустой `result.file`.
+
+        Ссылку нельзя передать третьему лицу: она требует заголовка
+        `Authorization`, поэтому прямая вставка в `<a href>` или `window.open`
+        не сработает — скачивайте через `fetch` + `Blob`.
+
+        Имя файла — `export-<YYYY-MM-DD>.xlsx` по дню выполнения задачи. 
+        То же имя лежит в `result.file.name`.
+
+        Если поток оборвался **после** отправки заголовков, тело будет обрезанным,
+        а соединение разорванным — JSON-ответа об ошибке в этом случае не будет.
+      responses:
+        "200":
+          description: Бинарный поток XLSX
+          headers:
+            Content-Disposition:
+              description: |
+                `attachment; filename="export-<YYYY-MM-DD>.xlsx"`
+              schema:
+                type: string
+            Content-Length:
+              description: Размер файла в байтах, из `storage.stat()`
+              schema:
+                type: integer
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Статус задачи не `succeeded`
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+              example:
+                code: BAD_REQUEST
+                message: Результат задачи ещё не готов
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          description: |
+            Задачи нет; у задачи нет файла («У задачи нет файла-результата»);
+            файл пропал из хранилища («Файл результата отсутствует в хранилище»).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Токен из `POST /api/auth/login` (TTL 24 часа) или `POST /api/tokens`
+        (бессрочный). Заголовок разбирается буквально: строка обязана начинаться
+        с `Bearer ` (регистрозависимо). Query-параметры, cookie и `X-Api-Key`
+        не поддерживаются.
+
+        Скоупов и ролей нет: любой валидный токен даёт полный доступ ко всем
+        ресурсам своего владельца.
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Номер страницы, начиная с 1
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: |
+        Размер страницы. Значение приводится `z.coerce.number()`; нечисловое,
+        неположительное или большее `100` даёт 400.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    TokenId:
+      name: id
+      in: path
+      required: true
+      description: Идентификатор API-токена
+      schema:
+        type: string
+        format: uuid
+    FormId:
+      name: id
+      in: path
+      required: true
+      description: Идентификатор формы
+      schema:
+        type: string
+        format: uuid
+    ParentFormId:
+      name: formId
+      in: path
+      required: true
+      description: Идентификатор родительской формы
+      schema:
+        type: string
+        format: uuid
+    ResponseId:
+      name: id
+      in: path
+      required: true
+      description: Идентификатор ответа
+      schema:
+        type: string
+        format: uuid
+    JobId:
+      name: id
+      in: path
+      required: true
+      description: Идентификатор фоновой задачи
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    ValidationFailed:
+      description: |
+        Тело запроса не прошло валидацию. Список проблем лежит в `details`.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+          examples:
+            invalidField:
+              summary: Нарушено правило схемы
+              value:
+                code: BAD_REQUEST
+                message: Validation failed
+                details:
+                  - expected: string
+                    code: invalid_type
+                    path: [title]
+                    message: "Invalid input: expected string, received undefined"
+            emptyBody:
+              summary: Пустое тело запроса
+              value:
+                code: BAD_REQUEST
+                message: Validation failed
+                details:
+                  - code: custom
+                    message: >-
+                      The request body is empty or does not contain any fields
+                      allowed for this operation
+            formResponse:
+              summary: Ответы не прошли сверку со схемой формы
+              value:
+                code: BAD_REQUEST
+                message: Validation failed
+                details:
+                  - field: full_name
+                    message: This field is required
+    InvalidQuery:
+      description: |
+        Query-строка не прошла валидацию по `findSchema`: нечисловые или
+        выходящие за границы `page` / `limit`, значение вне enum, неразбираемая
+        дата.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+          example:
+            code: BAD_REQUEST
+            message: Validation failed
+            details:
+              - code: too_big
+                path: [limit]
+                message: "Too big: expected number to be <=100"
+    FormNotFound:
+      description: Формы с таким `id` не существует
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+          example:
+            code: NOT_FOUND
+            message: Resource not found
+    BadRequest:
+      description: Некорректный запрос (например, пустой path-параметр)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+          example:
+            code: BAD_REQUEST
+            message: Route parameter "id" is required
+    Unauthorized:
+      description: |
+        Нет заголовка `Authorization`, токен битый, просроченный или отозванный.
+        Тело формируется `AuthMiddleware` в обход `errorHandler`, поэтому
+        содержит только `message`.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: "#/components/schemas/AuthError"
+              - $ref: "#/components/schemas/DomainError"
+          examples:
+            missingHeader:
+              value: { message: Missing or invalid authorization header }
+            tokenNotProvided:
+              value: { message: Token not provided }
+            invalidToken:
+              value: { message: Invalid, expired or revoked API token }
+    Forbidden:
+      description: Токен валиден, но ресурс принадлежит другому пользователю
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+          example:
+            code: FORBIDDEN
+            message: You do not have permission to access this resource
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+          example:
+            code: NOT_FOUND
+            message: Resource not found
+    TooManyRequests:
+      description: |
+        Превышен лимит попыток входа: 5 запросов за 60 секунд с одного IP.
+        Тело — текст `express-rate-limit` по умолчанию.
+      headers:
+        RateLimit:
+          description: Состояние лимита (draft-8)
+          schema:
+            type: string
+        RateLimit-Policy:
+          description: Описание политики (draft-8)
+          schema:
+            type: string
+        Retry-After:
+          description: Секунды до сброса окна
+          schema:
+            type: integer
+      content:
+        text/plain:
+          schema:
+            type: string
+          example: Too many requests, please try again later.
+    AiQuotaExceeded:
+      description: Исчерпан суточный лимит запросов к ИИ
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+          example:
+            code: TOO_MANY_REQUESTS
+            message: Суточный лимит запросов к ИИ исчерпан
+            details:
+              limit: 20
+              resetAt: "2026-08-21T00:00:00.000Z"
+    AiUnavailable:
+      description: |
+        AI-сервис недоступен, ответил ошибкой или вернул неразбираемый JSON.
+        Подробности уходят в лог, наружу не отдаются.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/DomainError"
+          example:
+            code: SERVICE_UNAVAILABLE
+            message: AI-сервис временно недоступен
+
+  schemas:
+    DomainError:
+      type: object
+      description: |
+        Ошибка, прошедшая через `errorHandler` — то есть любой наследник
+        `BaseError`, брошенный контроллером или сервисом.
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - BAD_REQUEST
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - NOT_FOUND
+            - PAYLOAD_TOO_LARGE
+            - UNSUPPORTED_MEDIA_TYPE
+            - TOO_MANY_REQUESTS
+            - SERVICE_UNAVAILABLE
+            - INTERNAL_SERVER_ERROR
+        message:
+          type: string
+        details:
+          description: |
+            Присутствует у `BadRequestError` и `TooManyRequestsError`, если был
+            передан. Для ошибок валидации это `ZodError.issues` (Zod 4) как
+            есть: `path` — массив сегментов пути до поля, для вложенных схем
+            глубокий (`["schema", "pages", 0, "elements", 1, "name"]`). Для
+            ошибок сверки ответа со схемой формы — список `{ field, message }`.
+        stack:
+          type: array
+          description: Присутствует только при `DEBUG=true`
+          items:
+            type: string
+
+    AuthError:
+      type: object
+      description: Ответ `AuthMiddleware` / `OptionalAuthMiddleware`
+      required: [message]
+      properties:
+        message:
+          type: string
+          enum:
+            - Missing or invalid authorization header
+            - Token not provided
+            - Malformed authorization header
+            - Invalid, expired or revoked API token
+
+    PaginationMeta:
+      type: object
+      required: [total, page, limit, totalPages]
+      properties:
+        total:
+          type: integer
+          description: |
+            `COUNT(*)` с теми же scope и filter, что и у выборки — согласован
+            с фильтрами и не «протекает» за границы scope.
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPages:
+          type: integer
+          description: "`ceil(total / limit)`"
+      example:
+        total: 137
+        page: 2
+        limit: 20
+        totalPages: 7
+
+    PaginatedResult:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items: {}
+        meta:
+          $ref: "#/components/schemas/PaginationMeta"
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      additionalProperties: false
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+
+    User:
+      type: object
+      description: Источник — `userDto.responseSchema` + `userMapper`
+      required: [id, email, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        createdAt:
+          type: string
+          format: date-time
+      example:
+        id: 8f14e45f-ceea-467a-9c31-2b1b5f9dfc02
+        email: user@example.com
+        createdAt: "2026-07-25T10:02:25.000Z"
+
+    CreateApiTokenRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+          description: |
+            `z.coerce.date().nullable().optional()`. `null` или отсутствие поля —
+            бессрочный токен.
+
+    ApiToken:
+      type: object
+      description: |
+        Источник — `apiTokenDto.responseSchema` + `apiTokenMapper`. Ни `userId`,
+        ни `type`, ни хранимый хеш наружу не уходят; поля `token` здесь нет вовсе.
+      required: [id, name, expiresAt, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 100
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+          description: |
+            `null` — токен бессрочен. Токены из `login` живут 24 часа.
+            Проверяется на каждом запросе в `ApiTokenService.validateToken`.
+        createdAt:
+          type: string
+          format: date-time
+
+    IssuedApiToken:
+      description: |
+        Ответ на выпуск токена — `POST /api/auth/login` и `POST /api/tokens`.
+        Отдельная схема (`issuedApiTokenSchema`) и отдельный маппер
+        (`toIssuedApiTokenResponse`), потому что это единственный момент, когда
+        секрет уходит наружу.
+      allOf:
+        - $ref: "#/components/schemas/ApiToken"
+        - type: object
+          required: [token]
+          properties:
+            token:
+              type: string
+              description: |
+                **Plaintext-токен**: `randomBytes(32).toString("base64url")`,
+                43 символа `[A-Za-z0-9_-]`. Показывается ровно один раз —
+                в БД лежит только `sha256(token)`.
+              pattern: "^[A-Za-z0-9_-]+$"
+
+    FormStatus:
+      type: string
+      description: |
+        Вычисляется на лету в `form.domain.ts`, в БД не хранится:
+
+        | Значение | Условие |
+        |---|---|
+        | `archived` | `archivedAt !== null && archivedAt <= now` |
+        | `draft` | `publishedAt === null` |
+        | `published` | `publishedAt <= now` |
+        | `scheduled` | `publishedAt > now` |
+
+        Переходы: `draft`/`scheduled` → `published` через
+        `POST /api/forms/{id}/publish`, любой статус → `archived` через
+        `POST /api/forms/{id}/archive`. Оба обратимы — `unpublish` и
+        `unarchive` сбрасывают соответствующую колонку в `NULL`.
+      enum: [draft, scheduled, published, archived]
+
+    Condition:
+      description: |
+        Рекурсивное условие видимости: либо правило, либо композиция `and`/`or`.
+        Сервер хранит условия и отдаёт их вместе со схемой; вычисление видимости
+        выполняется на клиенте.
+      oneOf:
+        - type: object
+          required: [field, operator]
+          properties:
+            field:
+              type: string
+              minLength: 1
+              maxLength: 100
+              pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+            operator:
+              type: string
+              enum:
+                - equals
+                - notEquals
+                - greaterThan
+                - greaterThanOrEqual
+                - lessThan
+                - lessThanOrEqual
+                - contains
+                - notContains
+                - empty
+                - notEmpty
+            value:
+              description: Не требуется для `empty` / `notEmpty`
+              oneOf:
+                - type: string
+                - type: number
+                - type: boolean
+                - type: array
+                  items:
+                    type: string
+        - type: object
+          required: [and]
+          properties:
+            and:
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/Condition"
+        - type: object
+          required: [or]
+          properties:
+            or:
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/Condition"
+
+    FormElementBase:
+      type: object
+      required: [name, label, type]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: "^[a-zA-Z][a-zA-Z0-9_-]*$"
+          description: Ключ этого элемента в `FormResponse.answers`
+        label:
+          type: string
+          minLength: 1
+          maxLength: 500
+        required:
+          type: boolean
+          default: false
+        placeholder:
+          type: string
+        visibleIf:
+          $ref: "#/components/schemas/Condition"
+
+    ChoiceOption:
+      type: object
+      required: [value, text]
+      properties:
+        value:
+          type: string
+        text:
+          type: string
+
+    TextFormElement:
+      allOf:
+        - $ref: "#/components/schemas/FormElementBase"
+        - type: object
+          required: [type]
+          properties:
+            type:
+              type: string
+              enum: [text, email, textarea]
+            validation:
+              type: object
+              properties:
+                minLength:
+                  type: integer
+                  minimum: 0
+                maxLength:
+                  type: integer
+                  minimum: 1
+
+    NumberFormElement:
+      allOf:
+        - $ref: "#/components/schemas/FormElementBase"
+        - type: object
+          required: [type]
+          properties:
+            type:
+              type: string
+              const: number
+            validation:
+              type: object
+              properties:
+                min:
+                  type: number
+                max:
+                  type: number
+
+    ChoiceFormElement:
+      allOf:
+        - $ref: "#/components/schemas/FormElementBase"
+        - type: object
+          required: [type, choices]
+          properties:
+            type:
+              type: string
+              enum: [dropdown, radiogroup, checkbox]
+              description: |
+                `dropdown` и `radiogroup` ожидают ответ-строку, `checkbox` —
+                массив строк.
+            choices:
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/ChoiceOption"
+
+    FormElement:
+      description: Дискриминированное объединение по `type`
+      oneOf:
+        - $ref: "#/components/schemas/TextFormElement"
+        - $ref: "#/components/schemas/NumberFormElement"
+        - $ref: "#/components/schemas/ChoiceFormElement"
+      discriminator:
+        propertyName: type
+
+    FormPage:
+      type: object
+      required: [name, elements]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        title:
+          type: string
+        visibleIf:
+          $ref: "#/components/schemas/Condition"
+        elements:
+          type: array
+          items:
+            $ref: "#/components/schemas/FormElement"
+
+    FormSchema:
+      type: object
+      description: Хранится в `forms.schema` (JSONB), валидируется `formSchemaObject`
+      required: [pages]
+      properties:
+        pages:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/FormPage"
+
+    FormWriteRequest:
+      type: object
+      description: |
+        Тело `POST /api/forms` (`formDto.createSchema`).
+      required: [title, schema]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Обрезается по краям (`trim`)
+        schema:
+          $ref: "#/components/schemas/FormSchema"
+        settings:
+          type: object
+          additionalProperties: true
+          default: {}
+          description: Произвольные настройки. Содержимое не валидируется
+
+    FormUpdateRequest:
+      type: object
+      description: |
+        Тело `PATCH /api/forms/{id}` (`formDto.updateSchema`) — те же поля, что
+        и при создании, но без умолчания у `settings`: умолчание Zod при
+        обновлении затирало бы настройки пустым объектом.
+
+        `publishedAt` и `archivedAt` через этот роут не пишутся: их нет в схеме,
+        и Zod отбрасывает их ещё до репозитория.
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Обрезается по краям (`trim`)
+        schema:
+          $ref: "#/components/schemas/FormSchema"
+        settings:
+          type: object
+          additionalProperties: true
+          description: Произвольные настройки. Содержимое не валидируется
+
+    FormLifecycleRequest:
+      type: object
+      description: |
+        Тело переходов `publish` и `archive` (`formLifecycleSchema`).
+        Необязательно целиком: без него переход происходит в момент вызова.
+
+        Разбирается не миддлварой `validate`, а самим контроллером
+        (`resolveTransitionDate`) — `validate` отклоняет пустой объект,
+        из-за чего вызов без тела получал бы 400.
+      properties:
+        date:
+          type: string
+          format: date-time
+          description: |
+            Момент перехода, ISO 8601. Дата в будущем даёт отложенный переход:
+            `scheduled` для публикации, отложенную архивацию для `archive`.
+            Приводится через `z.coerce.date()`, поэтому строка принимается.
+
+    Form:
+      type: object
+      description: |
+        Источник — `formDto.responseSchema` + `formMapper`. Поле `updatedAt`
+        есть в таблице и в типе `Form`, но в response-схему не входит.
+      required:
+        - id
+        - userId
+        - title
+        - schema
+        - settings
+        - status
+        - isPublic
+        - publishedAt
+        - archivedAt
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 500
+        schema:
+          $ref: "#/components/schemas/FormSchema"
+        settings:
+          type: object
+          additionalProperties: true
+        status:
+          $ref: "#/components/schemas/FormStatus"
+        isPublic:
+          type: boolean
+          description: '`status === "published"`'
+        publishedAt:
+          type: [string, "null"]
+          format: date-time
+          description: Выставляется вызовом `POST /api/forms/{id}/publish`
+        archivedAt:
+          type: [string, "null"]
+          format: date-time
+          description: Выставляется вызовом `POST /api/forms/{id}/archive`
+        createdAt:
+          type: string
+          format: date-time
+
+    FormResponseAnswer:
+      description: Значение одного ответа
+      oneOf:
+        - type: string
+        - type: number
+        - type: boolean
+        - type: array
+          items:
+            type: string
+
+    FormResponseWriteRequest:
+      type: object
+      description: |
+        Тело `POST` (`formResponseDto.createSchema`).
+      required: [answers]
+      properties:
+        answers:
+          type: object
+          description: Плоский словарь «`name` элемента схемы → ответ»
+          additionalProperties:
+            $ref: "#/components/schemas/FormResponseAnswer"
+        metadata:
+          type: object
+          additionalProperties: true
+          default: {}
+          description: Произвольные данные клиента, не валидируются
+        submittedAt:
+          type: [string, "null"]
+          format: date-time
+          description: |
+            `z.coerce.date()` — ISO-строка принимается. `null` или отсутствие
+            трактуется как черновик ответа; сервер поле не выставляет.
+
+    FormResponseUpdateRequest:
+      type: object
+      description: |
+        Тело `PATCH` (`formResponseDto.updateSchema`) — те же поля, что и при
+        создании, но без умолчания у `metadata`: умолчание Zod при обновлении
+        затирало бы метаданные пустым объектом.
+      properties:
+        answers:
+          type: object
+          description: Плоский словарь «`name` элемента схемы → ответ»
+          additionalProperties:
+            $ref: "#/components/schemas/FormResponseAnswer"
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Произвольные данные клиента, не валидируются
+        submittedAt:
+          type: [string, "null"]
+          format: date-time
+          description: |
+            `z.coerce.date()` — ISO-строка принимается. `null` или отсутствие
+            трактуется как черновик ответа; сервер поле не выставляет.
+
+    FormResponse:
+      type: object
+      description: |
+        Источник — `formResponseDto.responseSchema` + `formResponseMapper`.
+      required:
+        - id
+        - formId
+        - answers
+        - metadata
+        - submittedAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        formId:
+          type: string
+          format: uuid
+        answers:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/FormResponseAnswer"
+        metadata:
+          type: object
+          additionalProperties: true
+        submittedAt:
+          type: [string, "null"]
+          format: date-time
+          description: |
+            `null` — черновик ответа. От этого поля зависит доступ: черновик
+            открыт всем, кому видна форма, отправленный ответ — только автору
+            формы.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+          description: Обновляется триггером БД `form_responses_set_updated_at`
+      example:
+        id: b7a3c2d1-8e4f-4a5b-9c6d-7e8f9a0b1c2d
+        formId: 3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b
+        answers:
+          full_name: Иван Иванов
+          age: 27
+          topics: [backend]
+        metadata: {}
+        submittedAt: "2026-08-16T18:30:00.000Z"
+        createdAt: "2026-08-16T18:29:41.000Z"
+        updatedAt: "2026-08-16T18:30:00.000Z"
+
+    JobStatus:
+      type: string
+      description: |
+        Ограничено CHECK-констрейнтом в БД. Терминальные статусы —
+        `succeeded`, `failed`, `cancelled`: задача в них больше не меняется.
+      enum: [pending, running, succeeded, failed, cancelled]
+
+    JobResultFile:
+      type: object
+      description: |
+        Файл-результат. Внутренний ключ хранилища (`key`) в ответ не попадает —
+        Zod-схема его отбрасывает.
+      required: [name, size, mimeType]
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+          minimum: 0
+        mimeType:
+          type: string
+
+    JobError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: |
+            Известные коды: `INVALID_PAYLOAD`, `UNKNOWN_JOB_TYPE`,
+            `ENQUEUE_FAILED`, `FORM_NOT_FOUND`, `EXPORT_TOO_LARGE`,
+            `INTERNAL_ERROR`.
+        message:
+          type: string
+        details: {}
+
+    Job:
+      type: object
+      description: |
+        Источник — `jobDto.responseSchema` + `jobMapper`. Внутренние поля
+        `payload`, `userId`, `idempotencyKey`, `cancelRequestedAt` и
+        `result.file.key` в ответ не попадают.
+      required:
+        - id
+        - type
+        - status
+        - progress
+        - processedCount
+        - totalCount
+        - result
+        - error
+        - createdAt
+        - startedAt
+        - finishedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          maxLength: 100
+          examples: [form-responses.export]
+        status:
+          $ref: "#/components/schemas/JobStatus"
+        progress:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 100
+          description: |
+            `100` при `succeeded`; `null`, пока `totalCount` неизвестен; иначе
+            `min(99, floor(processedCount / totalCount * 100))` — намеренно не
+            даёт 100 % до фактического завершения.
+        processedCount:
+          type: integer
+          minimum: 0
+        totalCount:
+          type: [integer, "null"]
+          minimum: 0
+        result:
+          type: [object, "null"]
+          properties:
+            file:
+              $ref: "#/components/schemas/JobResultFile"
+            formId:
+              type: string
+              format: uuid
+            rowCount:
+              type: integer
+              minimum: 0
+            elementsCount:
+              type: integer
+              minimum: 0
+        error:
+          oneOf:
+            - $ref: "#/components/schemas/JobError"
+            - type: "null"
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: [string, "null"]
+          format: date-time
+        finishedAt:
+          type: [string, "null"]
+          format: date-time
+      example:
+        id: d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70
+        type: form-responses.export
+        status: succeeded
+        progress: 100
+        processedCount: 1348
+        totalCount: 1348
+        result:
+          file:
+            name: export-2026-08-16.xlsx
+            size: 184320
+            mimeType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+          rowCount: 1348
+        error: null
+        createdAt: "2026-08-16T18:40:00.000Z"
+        startedAt: "2026-08-16T18:40:01.000Z"
+        finishedAt: "2026-08-16T18:40:12.000Z"
+
+    AiGenerateRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          description: Описание нужной формы или правки на естественном языке
+
+    AiGenerateResponse:
+      type: object
+      required: [status, message, schema]
+      properties:
+        status:
+          type: string
+          enum: [ok, unsupported, ambiguous]
+          description: |
+            `ok` — схема получена; `unsupported` — задача вне возможностей
+            схемы; `ambiguous` — запрос непонятен и нужен уточняющий вопрос.
+        message:
+          type: string
+          description: Текст для показа пользователю
+        schema:
+          description: |
+            Готовая схема при `status: "ok"`, иначе `null`. Проходит тот же
+            `formSchemaObject`, что и `POST /api/forms`, поэтому её можно
+            отправить в форму как есть.
+          oneOf:
+            - $ref: "#/components/schemas/FormSchema"
+            - type: "null"
+
+    AiLimit:
+      type: object
+      required: [limit, used, remaining, resetAt]
+      properties:
+        limit:
+          type: integer
+          description: Суточный лимит на пользователя (`AI_DAILY_LIMIT_PER_USER`)
+        used:
+          type: integer
+        remaining:
+          type: integer
+          description: "`max(limit - used, 0)`"
+        resetAt:
+          type: string
+          format: date-time
+          description: Ближайшая полночь — момент обнуления счётчика
