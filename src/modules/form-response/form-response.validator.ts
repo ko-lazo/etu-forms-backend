@@ -12,9 +12,26 @@ type TextElement = Extract<FormElement, { type: TextElementType }>;
 type NumberElement = Extract<FormElement, { type: "number" }>;
 type ChoiceElement = Extract<FormElement, { type: ChoiceElementType }>;
 
+export const FORM_RESPONSE_ERROR = {
+  REQUIRED: "REQUIRED",
+  UNKNOWN_FIELD: "UNKNOWN_FIELD",
+  INVALID_TYPE: "INVALID_TYPE",
+  INVALID_EMAIL: "INVALID_EMAIL",
+  TOO_SHORT: "TOO_SHORT",
+  TOO_LONG: "TOO_LONG",
+  TOO_SMALL: "TOO_SMALL",
+  TOO_LARGE: "TOO_LARGE",
+  INVALID_CHOICE: "INVALID_CHOICE",
+} as const;
+
+export type FormResponseErrorCode =
+  (typeof FORM_RESPONSE_ERROR)[keyof typeof FORM_RESPONSE_ERROR];
+
 export interface FormResponseValidationError {
   field: string;
+  code: FormResponseErrorCode;
   message: string;
+  params?: Record<string, string | number>;
 }
 
 export function validateFormResponse(
@@ -46,6 +63,7 @@ export function validateFormResponse(
       if (element.required) {
         errors.push({
           field: element.name,
+          code: FORM_RESPONSE_ERROR.REQUIRED,
           message: "This field is required",
         });
       }
@@ -60,6 +78,7 @@ export function validateFormResponse(
     if (!elementsByName.has(fieldName)) {
       errors.push({
         field: fieldName,
+        code: FORM_RESPONSE_ERROR.UNKNOWN_FIELD,
         message: `Unknown field: "${fieldName}"`,
       });
     }
@@ -108,7 +127,9 @@ function validateTextAnswer(
   if (typeof answer !== "string") {
     errors.push({
       field: element.name,
+      code: FORM_RESPONSE_ERROR.INVALID_TYPE,
       message: "Answer must be a string",
+      params: { expected: "string" },
     });
 
     return;
@@ -122,7 +143,9 @@ function validateTextAnswer(
   ) {
     errors.push({
       field: element.name,
+      code: FORM_RESPONSE_ERROR.TOO_SHORT,
       message: `Answer must contain at least ${validation.minLength} characters`,
+      params: { minLength: validation.minLength },
     });
   }
 
@@ -132,7 +155,9 @@ function validateTextAnswer(
   ) {
     errors.push({
       field: element.name,
+      code: FORM_RESPONSE_ERROR.TOO_LONG,
       message: `Answer must contain at most ${validation.maxLength} characters`,
+      params: { maxLength: validation.maxLength },
     });
   }
 
@@ -142,6 +167,7 @@ function validateTextAnswer(
     if (!emailRegex.test(answer)) {
       errors.push({
         field: element.name,
+        code: FORM_RESPONSE_ERROR.INVALID_EMAIL,
         message: "Answer must be a valid email address",
       });
     }
@@ -156,7 +182,9 @@ function validateNumberAnswer(
   if (typeof answer !== "number" || !Number.isFinite(answer)) {
     errors.push({
       field: element.name,
+      code: FORM_RESPONSE_ERROR.INVALID_TYPE,
       message: "Answer must be a number",
+      params: { expected: "number" },
     });
 
     return;
@@ -167,14 +195,18 @@ function validateNumberAnswer(
   if (validation?.min !== undefined && answer < validation.min) {
     errors.push({
       field: element.name,
+      code: FORM_RESPONSE_ERROR.TOO_SMALL,
       message: `Answer must be at least ${validation.min}`,
+      params: { min: validation.min },
     });
   }
 
   if (validation?.max !== undefined && answer > validation.max) {
     errors.push({
       field: element.name,
+      code: FORM_RESPONSE_ERROR.TOO_LARGE,
       message: `Answer must be at most ${validation.max}`,
+      params: { max: validation.max },
     });
   }
 }
@@ -187,7 +219,9 @@ function validateSingleChoiceAnswer(
   if (typeof answer !== "string") {
     errors.push({
       field: element.name,
+      code: FORM_RESPONSE_ERROR.INVALID_TYPE,
       message: "Answer must be a string",
+      params: { expected: "string" },
     });
 
     return;
@@ -198,7 +232,9 @@ function validateSingleChoiceAnswer(
   if (!allowedValues.has(answer)) {
     errors.push({
       field: element.name,
+      code: FORM_RESPONSE_ERROR.INVALID_CHOICE,
       message: `Invalid choice: "${answer}"`,
+      params: { value: answer },
     });
   }
 }
@@ -211,7 +247,9 @@ function validateCheckboxAnswer(
   if (!Array.isArray(answer)) {
     errors.push({
       field: element.name,
+      code: FORM_RESPONSE_ERROR.INVALID_TYPE,
       message: "Answer must be an array",
+      params: { expected: "array" },
     });
 
     return;
@@ -223,7 +261,9 @@ function validateCheckboxAnswer(
     if (!allowedValues.has(value)) {
       errors.push({
         field: element.name,
+        code: FORM_RESPONSE_ERROR.INVALID_CHOICE,
         message: `Invalid choice: "${value}"`,
+        params: { value },
       });
     }
   }

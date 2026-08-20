@@ -732,8 +732,6 @@ paths:
                         items:
                           $ref: "#/components/schemas/FormResponse"
         "400":
-          $ref: "#/components/responses/BadRequest"
-        "400":
           $ref: "#/components/responses/InvalidQuery"
         "401":
           $ref: "#/components/responses/Unauthorized"
@@ -758,8 +756,8 @@ paths:
         со схемой формы (`validateFormResponse`) — типы, `required`, границы
         длины и чисел, допустимые `choices`, отсутствие неизвестных полей.
 
-        Ошибки второй ступени приходят как 400 со списком `{ field, message }`
-        в поле `details`.
+        Ошибки второй ступени приходят как 400 со списком
+        `FormResponseValidationError` в поле `details`.
       security:
         - {}
         - bearerAuth: []
@@ -1535,7 +1533,8 @@ components:
             передан. Для ошибок валидации это `ZodError.issues` (Zod 4) как
             есть: `path` — массив сегментов пути до поля, для вложенных схем
             глубокий (`["schema", "pages", 0, "elements", 1, "name"]`). Для
-            ошибок сверки ответа со схемой формы — список `{ field, message }`.
+            ошибок сверки ответа со схемой формы — список
+            `FormResponseValidationError`.
         stack:
           type: array
           description: Присутствует только при `DEBUG=true`
@@ -1974,6 +1973,48 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    FormResponseValidationError:
+      type: object
+      description: |
+        Ошибка сверки ответа со схемой формы. Приходит списком в `details`
+        ответа 400 от `POST` и `PATCH` ответов формы.
+
+        Текст для пользователя клиент собирает сам по `code` и `params`;
+        `message` — подсказка для разработчика и на экран не выводится.
+      required: [field, code, message]
+      properties:
+        field:
+          type: string
+          description: Имя элемента схемы либо неизвестный ключ из `answers`
+        code:
+          type: string
+          enum:
+            - REQUIRED
+            - UNKNOWN_FIELD
+            - INVALID_TYPE
+            - INVALID_EMAIL
+            - TOO_SHORT
+            - TOO_LONG
+            - TOO_SMALL
+            - TOO_LARGE
+            - INVALID_CHOICE
+        message:
+          type: string
+        params:
+          type: object
+          description: |
+            Значения, участвующие в сообщении: `expected` у `INVALID_TYPE`,
+            `minLength` / `maxLength` у длины, `min` / `max` у числа,
+            `value` у `INVALID_CHOICE`.
+          additionalProperties:
+            type: [string, number]
+      example:
+        field: nick
+        code: TOO_SHORT
+        message: Answer must contain at least 5 characters
+        params:
+          minLength: 5
 
     FormResponseAnswer:
       description: Значение одного ответа
