@@ -55,6 +55,9 @@ export const jobDto = {
   findSchema: createFindSchema({
     status: z.enum(JOB_STATUSES).optional(),
     type: jobTypeSchema.optional(),
+    formId: z.uuid().optional(),
+    createdFrom: z.coerce.date().optional(),
+    createdTo: z.coerce.date().optional(),
   }),
 } satisfies ModuleDto<z.ZodType, z.ZodType, z.ZodType>;
 
