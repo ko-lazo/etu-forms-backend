@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createFindSchema, type ModuleDto } from "@/core/dto/dto.types.js";
-import { formSchemaObject } from "../schema/form-schema.schema.js";
+import { formSchemaObject } from "@/modules/form/index.js";
 import { FORM_STATUS } from "../form.domain.js";
 
 export const formDto = {
@@ -33,14 +33,12 @@ export const formDto = {
 
   findSchema: createFindSchema({
     title: z.string().trim().min(1).max(500).optional(),
+    status: z.enum(FORM_STATUS).optional(),
+    createdFrom: z.coerce.date().optional(),
+    createdTo: z.coerce.date().optional(),
   }),
 } satisfies ModuleDto<z.ZodType, z.ZodType, z.ZodType>;
 
-/**
- * Переходы статуса / жизненного цикла формы.
- * `date` задаёт момент публикации или архивации;
- * без него переход происходит сразу.
- */
 export const formLifecycleSchema = z.object({
   date: z.coerce.date().optional(),
 });
