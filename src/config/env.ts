@@ -10,6 +10,8 @@ const envSchema = z.object({
     .default("development"),
   PORT: z.coerce.number().int().positive().default(3000),
 
+  TRUST_PROXY: z.coerce.number().int().min(0).default(1),
+
   DEBUG: z.coerce.boolean().default(false),
 
   DB_HOST: z.string().min(1),

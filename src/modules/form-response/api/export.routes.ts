@@ -1,6 +1,7 @@
 import { Router } from "express";
 import type { ExportController } from "./export.controller.js";
 import { type AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
+import { exportRateLimit } from "@/shared/http/middleware/rate-limit.middleware.js";
 
 export function createExportRoutes(
   controller: ExportController,
@@ -8,7 +9,7 @@ export function createExportRoutes(
 ): Router {
   const router = Router({ mergeParams: true });
 
-  router.post("/", authMiddleware, controller.create);
+  router.post("/", authMiddleware, exportRateLimit, controller.create);
 
   return router;
 }

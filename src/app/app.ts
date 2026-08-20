@@ -1,10 +1,11 @@
 import express from "express";
-
 import { errorHandler } from "@/shared/errors/error-handler.js";
 import { notFoundMiddleware } from "@/shared/http/middleware/not-found.middleware.js";
+import { apiRateLimit } from "@/shared/http/middleware/rate-limit.middleware.js";
 import { container } from "@/app/app.container.js";
 import { createApiRoutes } from "@/routes/api.routes.js";
 import cors from "cors";
+import { appConfig } from "@/config/index.js";
 import { corsConfig } from "@/config/cors.config.js";
 
 export function createApp() {
@@ -13,6 +14,8 @@ export function createApp() {
   const app = express();
 
   app.set("query parser", "extended");
+
+  app.set("trust proxy", appConfig.trustProxy);
 
   app.use(cors(corsConfig));
 
@@ -25,7 +28,7 @@ export function createApp() {
   });
 
   const apiRoutes = createApiRoutes();
-  app.use("/api", apiRoutes);
+  app.use("/api", apiRateLimit, apiRoutes);
 
   app.use(notFoundMiddleware);
 

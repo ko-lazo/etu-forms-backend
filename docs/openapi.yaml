@@ -18,9 +18,16 @@ info:
     ## Форматы ошибок
 
     Основная форма — `DomainError` от обработчика `errorHandler`; в ней же
-    приходят ошибки валидации (список проблем лежит в `details`). Исключений
-    два: middleware аутентификации отвечает телом `AuthError` в обход
-    обработчика, а rate limit на входе отдаёт `text/plain`.
+    приходят ошибки валидации (список проблем лежит в `details`). Исключение
+    одно: middleware аутентификации отвечает телом `AuthError` в обход
+    обработчика.
+
+    ## Ограничение частоты
+
+    Весь `/api` закрыт общим лимитом 600 запросов в минуту с одного адреса,
+    поэтому `429` возможен на любом эндпоинте. В `responses` он указан только
+    там, где поверх общего действует отдельный, более жёсткий лимит: такой
+    запрос расходует оба счётчика сразу.
 
     ## Query-параметры
 
@@ -831,6 +838,8 @@ paths:
               example:
                 code: NOT_FOUND
                 message: Resource not found
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
     patch:
       tags: [Form responses]
@@ -880,6 +889,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /api/forms/{formId}/ai/generate:
     parameters:
@@ -1040,6 +1051,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/FormNotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
         "503":
           description: Очередь фоновых задач недоступна (Redis)
           content:
@@ -1447,8 +1460,9 @@ components:
             message: Resource not found
     TooManyRequests:
       description: |
-        Превышен лимит попыток входа: 5 запросов за 60 секунд с одного IP.
-        Тело — текст `express-rate-limit` по умолчанию.
+        Превышен лимит частоты запросов. Окно везде — 60 секунд. Общий лимит
+        `/api`, вход и работа с черновиком ответа считаются по IP, экспорт —
+        по владельцу токена.
       headers:
         RateLimit:
           description: Состояние лимита (draft-8)
@@ -1463,10 +1477,12 @@ components:
           schema:
             type: integer
       content:
-        text/plain:
+        application/json:
           schema:
-            type: string
-          example: Too many requests, please try again later.
+            $ref: "#/components/schemas/DomainError"
+          example:
+            code: TOO_MANY_REQUESTS
+            message: Too many requests
     AiQuotaExceeded:
       description: Исчерпан суточный лимит запросов к ИИ
       content:
