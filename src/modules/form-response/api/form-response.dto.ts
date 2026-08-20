@@ -21,11 +21,13 @@ export const formResponseDto = {
     submittedAt: z.coerce.date().nullable().optional(),
   }),
 
-  updateSchema: z.object({
-    answers: z.record(z.string(), answerSchema),
-    metadata: z.record(z.string(), z.unknown()),
-    submittedAt: z.coerce.date().nullable().optional(),
-  }),
+  updateSchema: z
+    .object({
+      answers: z.record(z.string(), answerSchema),
+      metadata: z.record(z.string(), z.unknown()),
+      submittedAt: z.coerce.date().nullable(),
+    })
+    .partial(),
 
   responseSchema: z.object({
     id: z.uuid(),

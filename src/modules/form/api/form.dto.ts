@@ -10,11 +10,13 @@ export const formDto = {
     settings: z.record(z.string(), z.unknown()).default({}),
   }),
 
-  updateSchema: z.object({
-    title: z.string().trim().min(1).max(500),
-    schema: formSchemaObject,
-    settings: z.record(z.string(), z.unknown()),
-  }),
+  updateSchema: z
+    .object({
+      title: z.string().trim().min(1).max(500),
+      schema: formSchemaObject,
+      settings: z.record(z.string(), z.unknown()),
+    })
+    .partial(),
 
   responseSchema: z.object({
     id: z.uuid(),
