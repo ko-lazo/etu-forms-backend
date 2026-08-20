@@ -49,7 +49,7 @@ export function createFormResponseService(
       throw new NotFoundError("Ответ не найден");
     }
 
-    await validate(response.formId, data.answers);
+    await validate(response.formId, data.answers ?? response.answers);
 
     return await repository.update(id, data);
   }
