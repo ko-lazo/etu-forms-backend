@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { conditionSchema } from "./condition.schema.js";
 
+const MAX_PAGES = 50;
+const MAX_ELEMENTS_PER_PAGE = 200;
+
 export const formElementNameSchema = z
   .string()
   .min(1)
@@ -79,11 +82,11 @@ export const formPageSchema = z.object({
   name: z.string().min(1).max(100),
   title: z.string().optional(),
   visibleIf: conditionSchema.optional(),
-  elements: z.array(formElementSchema),
+  elements: z.array(formElementSchema).max(MAX_ELEMENTS_PER_PAGE),
 });
 
 export const formSchemaObject = z.object({
-  pages: z.array(formPageSchema).min(1),
+  pages: z.array(formPageSchema).min(1).max(MAX_PAGES),
 });
 
 export type FormSchema = z.infer<typeof formSchemaObject>;
