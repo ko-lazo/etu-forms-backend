@@ -50,14 +50,15 @@ export abstract class BaseRepository<
     const dataQuery = this.queryBuilder.all(conditions, options?.pagination);
     const countQuery = this.queryBuilder.count(conditions);
 
-    const [dataResult, countResult] = await Promise.all([
-      this.db.query<TEntity>(
-        dataQuery.sql,
-        dataQuery.values,
-        this.metadata.columns,
-      ),
-      this.db.query<{ count: string }>(countQuery.sql, countQuery.values),
-    ]);
+    const dataResult = await this.db.query<TEntity>(
+      dataQuery.sql,
+      dataQuery.values,
+      this.metadata.columns,
+    );
+    const countResult = await this.db.query<{ count: string }>(
+      countQuery.sql,
+      countQuery.values,
+    );
 
     const firstRow = countResult[0];
     const totalCount = firstRow ? parseInt(firstRow.count, 10) : 0;
