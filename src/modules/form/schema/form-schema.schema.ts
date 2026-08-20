@@ -85,8 +85,33 @@ export const formPageSchema = z.object({
   elements: z.array(formElementSchema).max(MAX_ELEMENTS_PER_PAGE),
 });
 
-export const formSchemaObject = z.object({
-  pages: z.array(formPageSchema).min(1).max(MAX_PAGES),
-});
+export const formSchemaObject = z
+  .object({
+    pages: z.array(formPageSchema).min(1).max(MAX_PAGES),
+  })
+  .superRefine((schema, ctx) => {
+    validateUniqueElementNames(schema.pages, ctx);
+  });
+
+function validateUniqueElementNames(
+  pages: FormSchema["pages"],
+  ctx: z.RefinementCtx,
+) {
+  const names = new Set<string>();
+
+  pages.forEach((page, pageIndex) => {
+    page.elements.forEach((element, elementIndex) => {
+      if (names.has(element.name)) {
+        ctx.addIssue({
+          code: "custom",
+          message: `Duplicate element name: "${element.name}"`,
+          path: ["pages", pageIndex, "elements", elementIndex, "name"],
+        });
+      }
+
+      names.add(element.name);
+    });
+  });
+}
 
 export type FormSchema = z.infer<typeof formSchemaObject>;
