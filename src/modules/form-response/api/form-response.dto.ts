@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { createFindSchema, type ModuleDto } from "@/core/dto/dto.types.js";
+import { formElementNameSchema } from "@/modules/form/index.js";
 import type { FormResponseAnswer } from "../form-response.types.js";
 
 const answerSchema = z.union([
@@ -34,6 +35,14 @@ export const formResponseDto = {
 
   findSchema: createFindSchema({
     formId: z.uuid().optional(),
+
+    answer: z
+      .record(formElementNameSchema, z.string().trim().min(1).max(500))
+      .optional(),
+
+    submitted: z.stringbool().optional(),
+    submittedFrom: z.coerce.date().optional(),
+    submittedTo: z.coerce.date().optional(),
   }),
 } satisfies ModuleDto<z.ZodType, z.ZodType, z.ZodType>;
 

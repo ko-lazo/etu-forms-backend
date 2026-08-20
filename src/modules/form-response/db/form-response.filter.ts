@@ -7,12 +7,26 @@ export class FormResponseFilter extends BaseFilter<FormResponse> {
   constructor(query: FindFormResponseDto) {
     super(formResponseMetadata);
 
-    if (query.formId) {
-      this.formId(query.formId);
+    if (query.formId) this.formId(query.formId);
+
+    for (const [name, value] of Object.entries(query.answer ?? {})) {
+      this.answerContains(name, value);
     }
+
+    if (query.submitted) this.submitted(query.submitted);
+
+    this.dateRange("submittedAt", query.submittedFrom, query.submittedTo);
   }
 
   private formId(value: string): void {
     this.add(`${this.col("formId")} = ?`, value);
+  }
+
+  private answerContains(name: string, value: string): void {
+    this.add(`${this.col("answers")} ->> ? ILIKE ?`, name, `%${value}%`);
+  }
+
+  private submitted(value: boolean): void {
+    this.add(`${this.col("submittedAt")} IS ${value ? "NOT NULL" : "NULL"}`);
   }
 }

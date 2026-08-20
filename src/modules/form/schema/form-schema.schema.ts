@@ -1,12 +1,14 @@
 import { z } from "zod";
 import { conditionSchema } from "./condition.schema.js";
 
+export const formElementNameSchema = z
+  .string()
+  .min(1)
+  .max(100)
+  .regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/);
+
 const baseFieldSchema = z.object({
-  name: z
-    .string()
-    .min(1)
-    .max(100)
-    .regex(/^[a-zA-Z][a-zA-Z0-9_-]*$/),
+  name: formElementNameSchema,
 
   label: z.string().min(1).max(500),
 

@@ -1,10 +1,9 @@
 import type { Request } from "express";
-
 import { createResourceHandlers } from "@/core/controllers/resource-handlers.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
 import { requireUser } from "@/shared/http/authorize.js";
 import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
-
+import { FormResponseFilter } from "../db/form-response.filter.js";
 import { FormResponseScope } from "../db/form-response.scope.js";
 import { type FormResponsePolicy } from "../form-response.policy.js";
 import { type FormResponseService } from "../form-response.service.js";
@@ -27,12 +26,15 @@ export function createFormResponseController(
 
     belongsTo: (response, req) => response.formId === getFormId(req),
 
-    buildFindContext: (req) => ({
-      scope: new FormResponseScope(getFormId(req), requireUser(req)),
-      pagination: new BasePagination(
-        getValidatedQuery<FindFormResponseDto>(req),
-      ),
-    }),
+    buildFindContext: (req) => {
+      const query = getValidatedQuery<FindFormResponseDto>(req);
+
+      return {
+        scope: new FormResponseScope(getFormId(req), requireUser(req)),
+        filter: new FormResponseFilter(query),
+        pagination: new BasePagination(query),
+      };
+    },
 
     buildCreateContext: getFormId,
     buildCreateData: (req, parentId) => {
