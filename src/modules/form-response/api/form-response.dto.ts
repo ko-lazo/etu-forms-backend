@@ -3,6 +3,10 @@ import { createFindSchema, type ModuleDto } from "@/core/dto/dto.types.js";
 import { formElementNameSchema } from "@/modules/form/index.js";
 import type { FormResponseAnswer } from "../form-response.types.js";
 
+const elementNameListSchema = z
+  .union([formElementNameSchema, z.array(formElementNameSchema).min(1)])
+  .transform((value) => (Array.isArray(value) ? value : [value]));
+
 const answerSchema = z.union([
   z.string(),
   z.number(),
@@ -39,6 +43,7 @@ export const formResponseDto = {
     answer: z
       .record(formElementNameSchema, z.string().trim().min(1).max(500))
       .optional(),
+    answered: elementNameListSchema.optional(),
 
     submitted: z.stringbool().optional(),
     submittedFrom: z.coerce.date().optional(),

@@ -13,6 +13,8 @@ export class FormResponseFilter extends BaseFilter<FormResponse> {
       this.answerContains(name, value);
     }
 
+    if (query.answered) this.answered(query.answered);
+
     if (query.submitted) this.submitted(query.submitted);
 
     this.dateRange("submittedAt", query.submittedFrom, query.submittedTo);
@@ -20,6 +22,10 @@ export class FormResponseFilter extends BaseFilter<FormResponse> {
 
   private formId(value: string): void {
     this.add(`${this.col("formId")} = ?`, value);
+  }
+
+  private answered(names: string[]): void {
+    this.add(`jsonb_exists_all(${this.col("answers")}, ?::text[])`, names);
   }
 
   private answerContains(name: string, value: string): void {
