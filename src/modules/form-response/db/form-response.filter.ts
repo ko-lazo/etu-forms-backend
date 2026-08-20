@@ -15,7 +15,7 @@ export class FormResponseFilter extends BaseFilter<FormResponse> {
 
     if (query.answered) this.answered(query.answered);
 
-    if (query.submitted) this.submitted(query.submitted);
+    if (query.submitted !== undefined) this.submitted(query.submitted);
 
     this.dateRange("submittedAt", query.submittedFrom, query.submittedTo);
   }
