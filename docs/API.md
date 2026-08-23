@@ -60,12 +60,12 @@
 Весь `/api` закрыт лимитами. Окно везде — одна минута, каждый ответ несёт
 заголовки `RateLimit` и `RateLimit-Policy`, а при отказе — ещё и `Retry-After`.
 
-| Что                          | Лимит | Считается по       |
-| ---------------------------- | ----- | ------------------ |
-| Весь `/api`                  | 600   | адресу клиента     |
-| `POST /api/auth/login`       | 5     | адресу клиента     |
-| Заполнение формы             | 120   | токену либо адресу |
-| `POST /api/forms/:id/export` | 10    | владельцу токена   |
+| Что                                        | Лимит | Считается по       |
+| ------------------------------------------ | ----- | ------------------ |
+| Весь `/api`                                | 600   | адресу клиента     |
+| `POST /api/auth/login`                     | 5     | адресу клиента     |
+| Заполнение формы                           | 120   | токену либо адресу |
+| `POST /api/forms/:formId/responses/export` | 10    | владельцу токена   |
 
 Отдельные лимиты не заменяют общий, а складываются с ним: сохранение черновика
 расходует и свои 120, и общие 600. Такой ответ несёт по два заголовка
@@ -1827,15 +1827,15 @@ Authorization: Bearer vJ8kQ2mZ5nR7pT1wY4xA6bC9dE0fG3hJ5kL8mN1oP4q
 
 ---
 
-#### `POST /api/forms/:formId/export` — выгрузить ответы в XLSX
+#### `POST /api/forms/:formId/responses/export` — выгрузить ответы в XLSX
 
 Ставит выгрузку в очередь и сразу возвращает задачу — файл готовится в фоне.
 Сценарий целиком:
 
 ```
-POST /api/forms/{formId}/export   → 202, задача принята
-GET  /api/jobs/{id}               → опрашиваем, пока status не станет succeeded
-GET  /api/jobs/{id}/download      → забираем .xlsx
+POST /api/forms/{formId}/responses/export   → 202, задача принята
+GET  /api/jobs/{id}                         → опрашиваем, пока status не станет succeeded
+GET  /api/jobs/{id}/download                → забираем .xlsx
 ```
 
 **Доступ.** Только владелец формы — даже если форма опубликована, выгружать
@@ -1861,7 +1861,7 @@ GET  /api/jobs/{id}/download      → забираем .xlsx
 Тело запроса не требуется.
 
 ```http
-POST /api/forms/3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b/export HTTP/1.1
+POST /api/forms/3c1a7b1e-4f2d-4e8a-9c1b-0a2d3e4f5a6b/responses/export HTTP/1.1
 Host: localhost:3000
 Authorization: Bearer vJ8kQ2mZ5nR7pT1wY4xA6bC9dE0fG3hJ5kL8mN1oP4q
 Idempotency-Key: export-2026-08-16-a1

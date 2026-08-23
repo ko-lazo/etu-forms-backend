@@ -1040,7 +1040,7 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /api/forms/{formId}/export:
+  /api/forms/{formId}/responses/export:
     parameters:
       - $ref: "#/components/parameters/ParentFormId"
     post:
@@ -1051,9 +1051,9 @@ paths:
         Асинхронный эндпоинт: возвращает `Job`, а не файл. Полный сценарий:
 
         ```
-        POST /api/forms/{formId}/export   → 202 { id, status: "pending" }
-        GET  /api/jobs/{id}               → polling до status === "succeeded"
-        GET  /api/jobs/{id}/download      → сам .xlsx
+        POST /api/forms/{formId}/responses/export   → 202 { id, status: "pending" }
+        GET  /api/jobs/{id}                         → polling до status === "succeeded"
+        GET  /api/jobs/{id}/download                → сам .xlsx
         ```
 
         Доступ проверяется через `FormPolicy.update` — экспорт разрешён только
@@ -1129,7 +1129,7 @@ paths:
         `created_at DESC`.
 
         Создать задачу напрямую нельзя: `POST /api/jobs` не существует, задачи
-        появляются только через `POST /api/forms/{formId}/export`.
+        появляются только через `POST /api/forms/{formId}/responses/export`.
       parameters:
         - $ref: "#/components/parameters/Page"
         - $ref: "#/components/parameters/Limit"

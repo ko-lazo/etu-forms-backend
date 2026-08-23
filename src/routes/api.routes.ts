@@ -43,12 +43,12 @@ export function createApiRoutes(): Router {
     ),
   );
   apiRoutes.use(
-    "/forms/:formId/ai",
-    createAiConstructorRoutes(aiConstructorController, authMiddleware),
+    "/forms/:formId/responses/export",
+    createExportRoutes(exportController, authMiddleware),
   );
   apiRoutes.use(
-    "/forms/:formId/export",
-    createExportRoutes(exportController, authMiddleware),
+    "/forms/:formId/ai",
+    createAiConstructorRoutes(aiConstructorController, authMiddleware),
   );
   apiRoutes.use("/ai", createAiRoutes(aiController, authMiddleware));
   apiRoutes.use("/jobs", createJobRoutes(jobController, authMiddleware));

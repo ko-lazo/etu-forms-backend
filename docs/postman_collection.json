@@ -3,7 +3,7 @@
     "name": "etu-forms API",
     "_postman_id": "9b1d4f2a-6c3e-4a70-8d15-2f7c0e9a4b31",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "HTTP API конструктора форм.\n\nКоллекция собрана из фактических роутов проекта (`src/routes/api.routes.ts` и `src/modules/**/api/*.routes.ts`). Эндпоинтов, отсутствующих в коде, здесь нет.\n\n## Быстрый старт\n\n1. Выберите окружение или отредактируйте переменные коллекции (вкладка **Variables**): `baseUrl` по умолчанию `http://localhost:3000`.\n2. Выполните **Auth → Login**. Скрипт из вкладки Tests сам сохранит полученный токен в переменную `token` — вручную копировать ничего не нужно.\n3. Дальше работайте с любым запросом: авторизация настроена на уровне коллекции (Bearer `{{token}}`) и наследуется всеми папками.\n\nЗапросы, создающие ресурсы (форма, ответ, экспорт), сохраняют их идентификаторы в `formId`, `responseId`, `jobId`, `tokenId`. Благодаря этому папки можно прогонять сверху вниз через Collection Runner.\n\n## Аутентификация\n\nОдин механизм — bearer-токен из таблицы `api_tokens`. Токен выдаётся `POST /api/auth/login` (TTL 24 часа) либо `POST /api/tokens` (бессрочный). Скоупов и ролей нет: любой валидный токен даёт полный доступ ко всем ресурсам своего владельца.\n\n## Фильтры\n\nСписочные запросы валидируют query-строку по `findSchema`: неизвестные параметры отбрасываются, некорректные дают 400. Приложение работает с расширенным парсером query, поэтому доступны вложенные параметры (`answer[full_name]=Иван`) и массивы (`answered[]=email`). В запросах ниже такие параметры добавлены выключенными — включите нужные галочкой.\n\n## Ошибки\n\nОсновная форма ответа об ошибке — `{ code, message }` от `errorHandler`; список проблем валидации лежит в `details`. Middleware аутентификации отвечает телом `{ message }`; превышение лимита частоты приходит в основной форме с кодом `TOO_MANY_REQUESTS`.\n\n## Ограничение частоты\n\nОкно везде — одна минута, каждый ответ несёт заголовки `RateLimit` и `RateLimit-Policy`, при отказе — ещё и `Retry-After`.\n\n| Что | Лимит | Считается по |\n|---|---|---|\n| Весь `/api` | 600 | адресу клиента |\n| `POST /api/auth/login` | 5 | адресу клиента |\n| `GET`, `PATCH /api/forms/:formId/responses/:id` | 120 | адресу клиента |\n| `POST /api/forms/:formId/export` | 10 | владельцу токена |\n\nОтдельные лимиты не заменяют общий, а складываются с ним. Счётчики живут в памяти процесса и не переживают перезапуск."
+    "description": "HTTP API конструктора форм.\n\nКоллекция собрана из фактических роутов проекта (`src/routes/api.routes.ts` и `src/modules/**/api/*.routes.ts`). Эндпоинтов, отсутствующих в коде, здесь нет.\n\n## Быстрый старт\n\n1. Выберите окружение или отредактируйте переменные коллекции (вкладка **Variables**): `baseUrl` по умолчанию `http://localhost:3000`.\n2. Выполните **Auth → Login**. Скрипт из вкладки Tests сам сохранит полученный токен в переменную `token` — вручную копировать ничего не нужно.\n3. Дальше работайте с любым запросом: авторизация настроена на уровне коллекции (Bearer `{{token}}`) и наследуется всеми папками.\n\nЗапросы, создающие ресурсы (форма, ответ, экспорт), сохраняют их идентификаторы в `formId`, `responseId`, `jobId`, `tokenId`. Благодаря этому папки можно прогонять сверху вниз через Collection Runner.\n\n## Аутентификация\n\nОдин механизм — bearer-токен из таблицы `api_tokens`. Токен выдаётся `POST /api/auth/login` (TTL 24 часа) либо `POST /api/tokens` (бессрочный). Скоупов и ролей нет: любой валидный токен даёт полный доступ ко всем ресурсам своего владельца.\n\n## Фильтры\n\nСписочные запросы валидируют query-строку по `findSchema`: неизвестные параметры отбрасываются, некорректные дают 400. Приложение работает с расширенным парсером query, поэтому доступны вложенные параметры (`answer[full_name]=Иван`) и массивы (`answered[]=email`). В запросах ниже такие параметры добавлены выключенными — включите нужные галочкой.\n\n## Ошибки\n\nОсновная форма ответа об ошибке — `{ code, message }` от `errorHandler`; список проблем валидации лежит в `details`. Middleware аутентификации отвечает телом `{ message }`; превышение лимита частоты приходит в основной форме с кодом `TOO_MANY_REQUESTS`.\n\n## Ограничение частоты\n\nОкно везде — одна минута, каждый ответ несёт заголовки `RateLimit` и `RateLimit-Policy`, при отказе — ещё и `Retry-After`.\n\n| Что | Лимит | Считается по |\n|---|---|---|\n| Весь `/api` | 600 | адресу клиента |\n| `POST /api/auth/login` | 5 | адресу клиента |\n| `GET`, `PATCH /api/forms/:formId/responses/:id` | 120 | адресу клиента |\n| `POST /api/forms/:formId/responses/export` | 10 | владельцу токена |\n\nОтдельные лимиты не заменяют общий, а складываются с ним. Счётчики живут в памяти процесса и не переживают перезапуск."
   },
   "auth": {
     "type": "bearer",
@@ -1497,7 +1497,7 @@
     },
     {
       "name": "Export",
-      "description": "Асинхронная выгрузка ответов в XLSX.\n\nПолный сценарий:\n\n```\nPOST /api/forms/:formId/export   → 202 { id, status: \"pending\" }\nGET  /api/jobs/:id               → polling до status === \"succeeded\"\nGET  /api/jobs/:id/download      → сам .xlsx\n```",
+      "description": "Асинхронная выгрузка ответов в XLSX.\n\nПолный сценарий:\n\n```\nPOST /api/forms/:formId/responses/export   → 202 { id, status: \"pending\" }\nGET  /api/jobs/:id                         → polling до status === \"succeeded\"\nGET  /api/jobs/:id/download                → сам .xlsx\n```",
       "item": [
         {
           "name": "Enqueue export",
@@ -1530,9 +1530,9 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/forms/{{formId}}/export",
+              "raw": "{{baseUrl}}/api/forms/{{formId}}/responses/export",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "forms", "{{formId}}", "export"]
+              "path": ["api", "forms", "{{formId}}", "responses", "export"]
             },
             "description": "**Назначение.** Поставить в очередь выгрузку всех ответов формы в XLSX.\n\n**Когда использовать.** Кнопка «Экспорт» в таблице ответов. Эндпоинт асинхронный: возвращает `Job`, а не файл.\n\n**Авторизация.** Обязательна. Проверяется `FormPolicy.update` — экспорт доступен **только владельцу** формы, даже если форма опубликована.\n\n**Pipeline.** `authMiddleware → exportRateLimit → ExportController.create`\n\nВнутри: `formService.findById` → 404 → `formPolicy.update` → 403 → `jobService.enqueue` (запись в `jobs` + постановка в BullMQ) → 202.\n\nТело запроса не читается — `validate` на роуте не подключён.\n\n**Request headers**\n\n| Заголовок | Обязательный | Описание |\n|---|---|---|\n| `Authorization` | да | `Bearer <token>` |\n| `Idempotency-Key` | нет | Повторный запрос с тем же ключом вернёт **ту же** задачу. Полный ключ: `form-responses.export:<userId>:<Idempotency-Key>`, хранится в `jobs.idempotency_key` (UNIQUE). Без заголовка каждый вызов создаёт новую задачу |\n\nКолонки листа: `ID`, `Создан`, `Отправлен`, далее по одной на каждый элемент схемы (заголовок — `label`).\n\n**Ответы**\n\n| Код | Условие |\n|---|---|\n| 202 | Задача принята в очередь |\n| 400 | Пустой `:formId` |\n| 401 | Нет/битый токен |\n| 403 | Форма принадлежит другому пользователю |\n| 404 | Формы не существует |\n| 429 | Больше десяти выгрузок за минуту |\n| 503 | Redis недоступен — задача помечается `failed` |\n\nОграничения воркера проявляются как `status: \"failed\"`, а не как HTTP-ошибка: больше 500 000 строк → `EXPORT_TOO_LARGE`, форма удалена между постановкой и выполнением → `FORM_NOT_FOUND`."
           },
@@ -1548,9 +1548,9 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/api/forms/{{formId}}/export",
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/responses/export",
                   "host": ["{{baseUrl}}"],
-                  "path": ["api", "forms", "{{formId}}", "export"]
+                  "path": ["api", "forms", "{{formId}}", "responses", "export"]
                 }
               },
               "status": "Accepted",
@@ -1570,9 +1570,9 @@
                 "method": "POST",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/api/forms/{{formId}}/export",
+                  "raw": "{{baseUrl}}/api/forms/{{formId}}/responses/export",
                   "host": ["{{baseUrl}}"],
-                  "path": ["api", "forms", "{{formId}}", "export"]
+                  "path": ["api", "forms", "{{formId}}", "responses", "export"]
                 }
               },
               "status": "Service Unavailable",
@@ -1592,7 +1592,7 @@
     },
     {
       "name": "Jobs",
-      "description": "Фоновые задачи и их результаты.\n\nСоздать задачу напрямую нельзя: `POST /api/jobs` не существует, задачи появляются только через `POST /api/forms/:formId/export`.\n\n**Статусы**\n\n| Статус | Смысл | Терминальный |\n|---|---|---|\n| `pending` | Записана в БД и поставлена в очередь | нет |\n| `running` | Взята воркером | нет |\n| `succeeded` | Завершена, `result` заполнен | да |\n| `failed` | Завершена с ошибкой, `error` заполнен | да |\n| `cancelled` | Отменена до или во время выполнения | да |",
+      "description": "Фоновые задачи и их результаты.\n\nСоздать задачу напрямую нельзя: `POST /api/jobs` не существует, задачи появляются только через `POST /api/forms/:formId/responses/export`.\n\n**Статусы**\n\n| Статус | Смысл | Терминальный |\n|---|---|---|\n| `pending` | Записана в БД и поставлена в очередь | нет |\n| `running` | Взята воркером | нет |\n| `succeeded` | Завершена, `result` заполнен | да |\n| `failed` | Завершена с ошибкой, `error` заполнен | да |\n| `cancelled` | Отменена до или во время выполнения | да |",
       "item": [
         {
           "name": "List jobs",
