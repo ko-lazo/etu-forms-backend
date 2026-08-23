@@ -43,7 +43,7 @@ export abstract class BaseRepository<
     options?: FindContext<TEntity>,
   ): Promise<{ entities: TEntity[]; total: number }> {
     const conditions = [
-      ...(options?.scope?.apply() ?? []),
+      ...(options?.scope.apply() ?? []),
       ...(options?.filter?.apply() ?? []),
     ];
 

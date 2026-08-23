@@ -17,7 +17,7 @@ export interface Repository<TEntity extends object, TCreate, TUpdate> {
 }
 
 export interface FindContext<TEntity extends object> {
-  scope?: BaseScope<TEntity>;
+  scope: BaseScope<TEntity>;
   filter?: BaseFilter<TEntity>;
   pagination?: BasePagination;
 }
