@@ -4,6 +4,7 @@ import {
   type FormPolicy,
   type FormService,
 } from "@/modules/form/index.js";
+import { isSubmitted } from "./form-response.domain.js";
 import type { FormResponse } from "./form-response.types.js";
 export function createFormResponsePolicy(
   formService: FormService,
@@ -32,9 +33,9 @@ export function createFormResponsePolicy(
     userId: string | undefined,
     response: FormResponse,
   ): Promise<boolean> =>
-    response.submittedAt === null
-      ? canViewForm(userId, response.formId)
-      : ownsForm(userId, response.formId);
+    isSubmitted(response)
+      ? ownsForm(userId, response.formId)
+      : canViewForm(userId, response.formId);
 
   return {
     view: canAccessResponse,

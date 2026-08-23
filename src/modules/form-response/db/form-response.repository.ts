@@ -7,6 +7,7 @@ import {
 } from "../form-response.types.js";
 import type { ExportedResponseRow } from "../export/export.types.js";
 import { formResponseMetadata } from "./form-response.metadata.js";
+import { NotFoundError } from "@/shared/errors/not-found.error.js";
 
 export class FormResponseRepository extends BaseRepository<
   FormResponse,
@@ -24,6 +25,23 @@ export class FormResponseRepository extends BaseRepository<
     );
 
     return row ? Number(row.count) : 0;
+  }
+
+  async submit(id: string): Promise<FormResponse> {
+    const response = await this.db.queryOne<FormResponse>(
+      `UPDATE form_responses
+       SET submitted_at = NOW()
+       WHERE id = $1
+       RETURNING *`,
+      [id],
+      this.metadata.columns,
+    );
+
+    if (!response) {
+      throw new NotFoundError();
+    }
+
+    return response;
   }
 
   /**

@@ -27,7 +27,9 @@ info:
     Весь `/api` закрыт общим лимитом 600 запросов в минуту с одного адреса,
     поэтому `429` возможен на любом эндпоинте. В `responses` он указан только
     там, где поверх общего действует отдельный, более жёсткий лимит: такой
-    запрос расходует оба счётчика сразу.
+    запрос расходует оба счётчика сразу. Отправка ответа
+    (`POST /responses/{id}/submit`) своего лимита не имеет — она случается один
+    раз за заполнение.
 
     ## Query-параметры
 
@@ -738,11 +740,14 @@ paths:
 
     post:
       tags: [Form responses]
-      operationId: submitFormResponse
-      summary: Отправить заполненную форму
+      operationId: createFormResponse
+      summary: Начать заполнение формы
       description: |
         Точка входа публичного сценария заполнения. Токен необязателен — форму
         проходит аноним.
+
+        Ответ всегда создаётся черновиком: `submittedAt` выставляет только
+        `POST /:id/submit`, из тела запроса это поле не принимается.
 
         `FormResponsePolicy.create` проверяет, видна ли ему сама форма
         (`FormPolicy.view`): в опубликованную ответ примут у кого угодно, в
@@ -752,9 +757,17 @@ paths:
         идёт первой, поэтому анонимный запрос получает 401, а запрос с чужим
         токеном — 403.
 
-        Валидация двухступенчатая: сначала Zod-схема тела, затем сверка ответов
-        со схемой формы (`validateFormResponse`) — типы, `required`, границы
-        длины и чисел, допустимые `choices`, отсутствие неизвестных полей.
+        Валидация двухступенчатая: сначала Zod-схема тела, затем сверка
+        ответов со схемой формы (`validateFormResponse`) — типы, границы длины
+        и чисел, допустимые `choices`, отсутствие неизвестных полей.
+
+        Черновику эта сверка достаётся с `isDraft`, и тогда пропускается всё,
+        что нарушает любое незаконченное значение: `required`, нижние границы
+        (`minLength`, `min`) и формат `email`. Верхние границы (`maxLength`,
+        `max`), типы и неизвестные поля проверяются всегда.
+
+        Пустая строка и пустой список — отсутствие ответа, а не ответ, поэтому
+        очищенное поле не спорит со своим типом.
 
         Ошибки второй ступени приходят как 400 со списком
         `FormResponseValidationError` в поле `details`.
@@ -770,13 +783,10 @@ paths:
             example:
               answers:
                 full_name: Иван Иванов
-                age: 27
-                topics: [backend, frontend]
               metadata: { locale: ru-RU }
-              submittedAt: "2026-08-16T18:30:00.000Z"
       responses:
         "201":
-          description: Ответ сохранён
+          description: Черновик создан
           content:
             application/json:
               schema:
@@ -787,6 +797,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
 
   /api/forms/{formId}/responses/{id}:
     parameters:
@@ -844,9 +856,11 @@ paths:
       operationId: updateFormResponse
       summary: Изменить существующий ответ
       description: |
-        Дозаполнение черновика и его отправка: клиент шлёт `submittedAt` тем же
-        вызовом, которым сохраняет последние ответы. `updatedAt` обновляется
-        триггером БД.
+        Автосохранение черновика: клиент шлёт ответы по мере заполнения, ничего
+        не дозаполняя до конца. `updatedAt` обновляется триггером БД.
+
+        Отправить ответ этим вызовом нельзя — `submittedAt` в теле не
+        принимается, для отправки есть `POST /:id/submit`.
 
         Правила доступа те же, что у `GET /:id`: черновик правит любой, кому
         видна форма, отправленный ответ — только автор формы
@@ -856,7 +870,9 @@ paths:
         Пустое тело отклоняется миддлварой `validate` (400).
 
         `answers` сверяются со схемой формы через `validateFormResponse`; если
-        поле не передано, проверяются уже сохранённые ответы.
+        поле не передано, проверяются уже сохранённые ответы. Пока ответ
+        черновик, сверка идёт с `isDraft`; у уже отправленного ответа — полная,
+        он не должен перестать быть валидным.
       security:
         - {}
         - bearerAuth: []
@@ -871,7 +887,6 @@ paths:
                 full_name: Иван Петров
                 age: 28
                 topics: [backend]
-              submittedAt: "2026-08-16T19:00:00.000Z"
       responses:
         "200":
           description: Обновлённый ответ
@@ -889,6 +904,49 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/TooManyRequests"
+
+  /api/forms/{formId}/responses/{id}/submit:
+    parameters:
+      - $ref: "#/components/parameters/ParentFormId"
+      - $ref: "#/components/parameters/ResponseId"
+    post:
+      tags: [Form responses]
+      operationId: submitFormResponse
+      summary: Отправить заполненный ответ
+      description: |
+        Завершение публичного сценария: сохранённый черновик проверяется
+        целиком и получает `submittedAt`. Тело запроса не требуется —
+        отправляются уже сохранённые ответы, дату проставляет сервер.
+
+        Здесь и только здесь работает полная сверка со схемой формы
+        (`validateFormResponse` без `isDraft`): `required`, типы, обе границы
+        длины и чисел, формат `email`, допустимые `choices`, отсутствие
+        неизвестных полей. Ошибки приходят
+        как 400 со списком `FormResponseValidationError` в поле `details`,
+        черновик при этом остаётся нетронутым.
+
+        Права те же, что у `PATCH /:id` (`FormResponsePolicy.update`): пока
+        ответ черновик, его отправит любой, кому видна форма. Повторная
+        отправка отклоняется — уже отправленный ответ доступен только автору
+        формы, и для него это 400.
+      security:
+        - {}
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Ответ отправлен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FormResponse"
+        "400":
+          $ref: "#/components/responses/ValidationFailed"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   /api/forms/{formId}/ai/generate:
     parameters:
@@ -1459,8 +1517,9 @@ components:
     TooManyRequests:
       description: |
         Превышен лимит частоты запросов. Окно везде — 60 секунд. Общий лимит
-        `/api`, вход и работа с черновиком ответа считаются по IP, экспорт —
-        по владельцу токена.
+        `/api` и вход считаются по IP; заполнение формы (`formResponseLimit`,
+        120/мин на `POST /responses`, `GET` и `PATCH` `/responses/{id}`) — по
+        токену, а без него по IP; экспорт — по владельцу токена.
       headers:
         RateLimit:
           description: Состояние лимита (draft-8)
@@ -2042,12 +2101,6 @@ components:
           additionalProperties: true
           default: {}
           description: Произвольные данные клиента, не валидируются
-        submittedAt:
-          type: [string, "null"]
-          format: date-time
-          description: |
-            `z.coerce.date()` — ISO-строка принимается. `null` или отсутствие
-            трактуется как черновик ответа; сервер поле не выставляет.
 
     FormResponseUpdateRequest:
       type: object
@@ -2065,12 +2118,6 @@ components:
           type: object
           additionalProperties: true
           description: Произвольные данные клиента, не валидируются
-        submittedAt:
-          type: [string, "null"]
-          format: date-time
-          description: |
-            `z.coerce.date()` — ISO-строка принимается. `null` или отсутствие
-            трактуется как черновик ответа; сервер поле не выставляет.
 
     FormResponse:
       type: object

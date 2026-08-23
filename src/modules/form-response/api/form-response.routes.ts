@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { FormResponseController } from "./form-response.controller.js";
 import { validate } from "@/shared/http/middleware/validate.middleware.js";
-import { formResponseDraftRateLimit } from "@/shared/http/middleware/rate-limit.middleware.js";
+import { formResponseLimit } from "@/shared/http/middleware/rate-limit.middleware.js";
 import { formResponseDto } from "./form-response.dto.js";
 import { type AuthMiddleware } from "@/shared/http/middleware/auth.middleware.js";
 import { type OptionalAuthMiddleware } from "@/shared/http/middleware/optional-auth.middleware.js";
@@ -22,13 +22,14 @@ export function createFormResponseRoutes(
 
   router.get(
     "/:id",
-    formResponseDraftRateLimit,
+    formResponseLimit,
     optionalAuthMiddleware,
     controller.findById,
   );
 
   router.post(
     "/",
+    formResponseLimit,
     optionalAuthMiddleware,
     validate(formResponseDto.createSchema),
     controller.create,
@@ -36,11 +37,13 @@ export function createFormResponseRoutes(
 
   router.patch(
     "/:id",
-    formResponseDraftRateLimit,
+    formResponseLimit,
     optionalAuthMiddleware,
     validate(formResponseDto.updateSchema),
     controller.update,
   );
+
+  router.post("/:id/submit", optionalAuthMiddleware, controller.submit);
 
   return router;
 }

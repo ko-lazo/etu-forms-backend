@@ -34,17 +34,22 @@ export interface FormResponseValidationError {
   params?: Record<string, string | number>;
 }
 
+export type FormResponseValidationOptions = {
+  isDraft?: boolean;
+};
+
+function collectElements(schema: FormSchema): FormElement[] {
+  return schema.pages.flatMap((page) => page.elements);
+}
+
 export function validateFormResponse(
   schema: FormSchema,
   answers: Answers,
+  options: FormResponseValidationOptions = {},
 ): FormResponseValidationError[] {
+  const { isDraft = false } = options;
+  const elements = collectElements(schema);
   const errors: FormResponseValidationError[] = [];
-
-  const elements = schema.pages.flatMap((page) => page.elements);
-
-  const elementsByName = new Map(
-    elements.map((element) => [element.name, element]),
-  );
 
   for (const element of elements) {
     const answer = answers[element.name];
@@ -59,8 +64,8 @@ export function validateFormResponse(
     //   continue;
     // }
 
-    if (answer === undefined) {
-      if (element.required) {
+    if (!isAnswered(answer)) {
+      if (element.required && !isDraft) {
         errors.push({
           field: element.name,
           code: FORM_RESPONSE_ERROR.REQUIRED,
@@ -71,20 +76,35 @@ export function validateFormResponse(
       continue;
     }
 
+    if (isDraft) continue;
     validateElementAnswer(element, answer, errors);
   }
 
-  for (const fieldName of Object.keys(answers)) {
-    if (!elementsByName.has(fieldName)) {
-      errors.push({
-        field: fieldName,
-        code: FORM_RESPONSE_ERROR.UNKNOWN_FIELD,
-        message: `Unknown field: "${fieldName}"`,
-      });
-    }
-  }
+  errors.push(...validateFieldNames(elements, answers));
 
   return errors;
+}
+
+function isAnswered(answer: Answer | undefined): answer is Answer {
+  if (answer === undefined) return false;
+  if (typeof answer === "string") return answer.trim() !== "";
+
+  return Array.isArray(answer) ? answer.length > 0 : true;
+}
+
+function validateFieldNames(
+  elements: FormElement[],
+  answers: Answers,
+): FormResponseValidationError[] {
+  const elementNames = new Set(elements.map((element) => element.name));
+
+  return Object.keys(answers)
+    .filter((fieldName) => !elementNames.has(fieldName))
+    .map((fieldName) => ({
+      field: fieldName,
+      code: FORM_RESPONSE_ERROR.UNKNOWN_FIELD,
+      message: `Unknown field: "${fieldName}"`,
+    }));
 }
 
 function validateElementAnswer(

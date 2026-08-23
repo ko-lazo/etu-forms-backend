@@ -30,8 +30,7 @@ export const apiRateLimit = createRateLimit({
 
 export const loginRateLimit = createRateLimit({ limit: 5 });
 
-/** Автосохранение черновика ответа на форму */
-export const formResponseDraftRateLimit = createRateLimit({
+export const formResponseLimit = createRateLimit({
   limit: 120,
   keyGenerator: userOrIpKey,
 });

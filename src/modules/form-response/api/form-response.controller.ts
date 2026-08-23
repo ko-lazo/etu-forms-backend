@@ -1,7 +1,7 @@
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import { createResourceHandlers } from "@/core/controllers/resource-handlers.js";
 import { BasePagination } from "@/core/repositories/base.pagination.js";
-import { requireUser } from "@/shared/http/authorize.js";
+import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
 import { getRouteParam, getValidatedQuery } from "@/shared/http/http.params.js";
 import { FormResponseFilter } from "../db/form-response.filter.js";
 import { FormResponseScope } from "../db/form-response.scope.js";
@@ -19,7 +19,7 @@ export function createFormResponseController(
 ) {
   const getFormId = (req: Request): string => getRouteParam(req, "formId");
 
-  return createResourceHandlers({
+  const { findOrFail, ...crud } = createResourceHandlers({
     service,
     policy,
     mapper: formResponseMapper,
@@ -37,12 +37,23 @@ export function createFormResponseController(
     },
 
     buildCreateContext: getFormId,
-    buildCreateData: (req, parentId) => {
-      const dto = req.body as CreateFormResponseDto;
-
-      return { ...dto, formId: parentId, submittedAt: dto.submittedAt ?? null };
-    },
+    buildCreateData: (req, parentId) => ({
+      ...(req.body as CreateFormResponseDto),
+      formId: parentId,
+      submittedAt: null,
+    }),
   });
+
+  async function submit(req: Request, res: Response): Promise<void> {
+    const response = await findOrFail(req);
+    ensureAllowed(req.user?.id, await policy.update(req.user?.id, response));
+
+    const submitted = await service.submit(response);
+
+    res.status(200).json(formResponseMapper.toResponse(submitted));
+  }
+
+  return { ...crud, submit };
 }
 
 export type FormResponseController = ReturnType<
