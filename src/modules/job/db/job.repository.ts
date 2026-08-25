@@ -15,14 +15,7 @@ export type ProgressUpdate = {
   readonly totalCount?: number | null;
 };
 
-export interface IJobResultWriter {
-  saveResult(id: string, result: JobResult, db: DatabaseClient): Promise<void>;
-}
-
-export class JobRepository
-  extends BaseRepository<Job, JobCreate, JobUpdate>
-  implements IJobResultWriter
-{
+export class JobRepository extends BaseRepository<Job, JobCreate, JobUpdate> {
   constructor(db: DatabaseClient) {
     super(db, jobMetadata);
   }
@@ -66,20 +59,6 @@ export class JobRepository
       [id, JOB_STATUS.RUNNING, JOB_STATUS.PENDING],
       this.metadata.columns,
     );
-  }
-
-  /**
-   * Записывает результат работы в базу, не меняя статус самой задачи.
-   */
-  async saveResult(
-    id: string,
-    result: JobResult,
-    db: DatabaseClient = this.db,
-  ): Promise<void> {
-    await db.execute(`UPDATE jobs SET result = $2::jsonb WHERE id = $1`, [
-      id,
-      JSON.stringify(result),
-    ]);
   }
 
   /**
