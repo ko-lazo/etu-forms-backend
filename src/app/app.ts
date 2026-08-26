@@ -19,7 +19,7 @@ export function createApp() {
 
   app.use(cors(corsConfig));
 
-  app.use(express.json());
+  app.use(express.json({ limit: appConfig.jsonBodyLimit }));
 
   app.get("/health", (_request, response) => {
     response.json({

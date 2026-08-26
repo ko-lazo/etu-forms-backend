@@ -14,6 +14,8 @@ const envSchema = z.object({
 
   DEBUG: z.stringbool().default(false),
 
+  JSON_BODY_MAX_SIZE_KB: z.coerce.number().int().positive().default(1024),
+
   DB_HOST: z.string().min(1),
   DB_PORT: z.coerce.number().int().positive().default(5432),
   DB_NAME: z.string().min(1),
