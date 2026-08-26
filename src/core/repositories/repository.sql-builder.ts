@@ -62,19 +62,9 @@ export class SqlQueryBuilder<
     }
 
     const values: unknown[] = [];
-    let index = 1;
 
     const sql = conditions
-      .map((condition) => {
-        let fragment = condition.sql;
-
-        for (const value of condition.params) {
-          fragment = fragment.replace("?", `$${index++}`);
-          values.push(value);
-        }
-
-        return `(${fragment})`;
-      })
+      .map((condition) => `(${this.bindCondition(condition, values)})`)
       .join(" AND ");
 
     return {
@@ -146,6 +136,29 @@ export class SqlQueryBuilder<
       sql: `UPDATE ${this.metadata.tableName} SET ${assignments.join(", ")} WHERE ${this.getColumn(this.metadata.primaryKey)} = $${values.length + 1} RETURNING *`,
       values: [...values, id],
     };
+  }
+
+  private bindCondition(condition: SqlCondition, values: unknown[]): string {
+    let boundCount = 0;
+
+    const sql = condition.sql.replace(/\?/g, () => {
+      if (boundCount >= condition.params.length) {
+        throw new Error(
+          `SQL condition has more placeholders than parameters: ${condition.sql}`,
+        );
+      }
+
+      values.push(condition.params[boundCount++]);
+      return `$${values.length}`;
+    });
+
+    if (boundCount < condition.params.length) {
+      throw new Error(
+        `SQL condition has more parameters than placeholders: ${condition.sql}`,
+      );
+    }
+
+    return sql;
   }
 
   private getAllowedEntries(
