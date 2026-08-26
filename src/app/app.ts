@@ -7,6 +7,7 @@ import { createApiRoutes } from "@/routes/api.routes.js";
 import cors from "cors";
 import { appConfig } from "@/config/index.js";
 import { corsConfig } from "@/config/cors.config.js";
+import { noStoreMiddleware } from "@/shared/http/middleware/no-store.middleware.js";
 
 export function createApp() {
   container.init();
@@ -28,7 +29,7 @@ export function createApp() {
   });
 
   const apiRoutes = createApiRoutes();
-  app.use("/api", apiRateLimit, apiRoutes);
+  app.use("/api", apiRateLimit, noStoreMiddleware, apiRoutes);
 
   app.use(notFoundMiddleware);
 
