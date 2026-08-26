@@ -7,6 +7,7 @@ import { createApiRoutes } from "@/routes/api.routes.js";
 import cors from "cors";
 import { appConfig } from "@/config/index.js";
 import { corsConfig } from "@/config/cors.config.js";
+import helmet from "helmet";
 import { noStoreMiddleware } from "@/shared/http/middleware/no-store.middleware.js";
 
 export function createApp() {
@@ -17,6 +18,8 @@ export function createApp() {
   app.set("query parser", "extended");
 
   app.set("trust proxy", appConfig.trustProxy);
+
+  app.use(helmet({ contentSecurityPolicy: false }));
 
   app.use(cors(corsConfig));
 
