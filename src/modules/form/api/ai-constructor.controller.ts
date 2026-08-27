@@ -1,46 +1,38 @@
 import type { Request, Response } from "express";
-import { z } from "zod";
-
-import { NotFoundError } from "@/shared/errors/not-found.error.js";
-import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
+import { createFindOrFail } from "@/core/controllers/resource-handlers.js";
 import type { AiQuota } from "@/modules/ai/index.js";
-
+import { ensureAllowed, requireUser } from "@/shared/http/authorize.js";
 import { type AiConstructorService } from "../ai/ai-constructor.service.js";
 import { type FormPolicy } from "../form.policy.js";
 import { type FormService } from "../form.service.js";
 import type { Form } from "../form.types.js";
+import type { GenerateFormDto } from "./ai-constructor.dto.js";
 
-const requestSchema = z.object({
-  prompt: z.string().trim().min(1).max(5000),
-});
+export function createAiConstructorController(
+  service: AiConstructorService,
+  quota: AiQuota,
+  formService: FormService,
+  formPolicy: FormPolicy,
+) {
+  const findFormOrFail = createFindOrFail({
+    service: formService,
+    param: "formId",
+  });
 
-export const createAiConstructorController = (input: {
-  aiConstructorService: AiConstructorService;
-  aiQuota: AiQuota;
-  formService: FormService;
-  formPolicy: FormPolicy;
-}) => {
-  async function findOwnedOrFail(req: Request): Promise<Form> {
-    const form = await input.formService.findById(req.params.formId as string);
-
-    if (!form) throw new NotFoundError();
-
-    ensureAllowed(
-      req.user?.id,
-      await input.formPolicy.update(req.user?.id, form),
-    );
-
+  async function findOwnedOrFail(req: Request, userId: string): Promise<Form> {
+    const form = await findFormOrFail(req);
+    ensureAllowed(userId, await formPolicy.update(userId, form));
     return form;
   }
 
   async function generate(req: Request, res: Response): Promise<void> {
-    const { prompt } = requestSchema.parse(req.body);
-    const form = await findOwnedOrFail(req);
+    const { prompt } = req.body as GenerateFormDto;
     const userId = requireUser(req);
+    const form = await findOwnedOrFail(req, userId);
 
-    await input.aiQuota.spendOrFail(userId);
+    await quota.spendOrFail(userId);
 
-    const result = await input.aiConstructorService.generateResponse({
+    const result = await service.generateResponse({
       prompt,
       form: form.schema,
     });
@@ -55,7 +47,7 @@ export const createAiConstructorController = (input: {
   return {
     generate,
   };
-};
+}
 
 export type AiConstructorController = ReturnType<
   typeof createAiConstructorController

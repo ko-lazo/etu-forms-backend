@@ -14,12 +14,12 @@ export type AiConstructorModuleDeps = {
 export function createAiConstructorModule(deps: AiConstructorModuleDeps) {
   const service = createAiConstructorService(deps.aiService);
 
-  const controller = createAiConstructorController({
-    aiConstructorService: service,
-    aiQuota: deps.aiQuota,
-    formService: deps.formService,
-    formPolicy: deps.formPolicy,
-  });
+  const controller = createAiConstructorController(
+    service,
+    deps.aiQuota,
+    deps.formService,
+    deps.formPolicy,
+  );
 
   return { controller };
 }
