@@ -10,8 +10,7 @@ export type AiQuotaState = {
 
 export type AiQuota = {
   getState(userId: string): Promise<AiQuotaState>;
-  checkLimitOrFail(userId: string): Promise<void>;
-  spend(userId: string): Promise<void>;
+  spendOrFail(userId: string): Promise<void>;
 };
 
 export type AiQuotaConfig = {
@@ -24,28 +23,32 @@ export function createAiQuota(redis: Redis, config: AiQuotaConfig): AiQuota {
     return buildState(config.dailyLimitPerUser, used);
   }
 
-  async function checkLimitOrFail(userId: string): Promise<void> {
-    const state = await getState(userId);
-    if (state.remaining > 0) return;
-    throw new TooManyRequestsError("Суточный лимит запросов к ИИ исчерпан", {
-      limit: state.limit,
-      resetAt: state.resetAt,
-    });
-  }
-
-  async function spend(userId: string): Promise<void> {
+  async function spendOrFail(userId: string): Promise<void> {
     const key = getQuotaRedisKey(userId);
-    await redis
-      .multi()
-      .incr(key)
-      .expireat(key, Math.ceil(getQuotaResetTime(new Date()).getTime() / 1000))
-      .exec();
+    const used = await redis.incr(key);
+    const isFirstRequest = used === 1;
+
+    if (isFirstRequest) {
+      await redis.expireat(
+        key,
+        Math.ceil(getQuotaResetTime(new Date()).getTime() / 1000),
+      );
+    }
+
+    if (used > config.dailyLimitPerUser) {
+      await redis.decr(key);
+
+      const state = buildState(config.dailyLimitPerUser, used - 1);
+      throw new TooManyRequestsError("Суточный лимит запросов к ИИ исчерпан", {
+        limit: state.limit,
+        resetAt: state.resetAt,
+      });
+    }
   }
 
   return {
     getState,
-    checkLimitOrFail,
-    spend,
+    spendOrFail,
   };
 }
 
