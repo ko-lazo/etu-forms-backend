@@ -1,121 +1,155 @@
 type JsonSchema = Record<string, unknown>;
 
 /**
- * Ограничение для рекурсии. Одного уровня хватает
- * на условие вида "and: [правило, правило]"
+ * Сколько раз схеме разрешено сослаться на саму себя
+ * (ограничение для рекурсии в conditions)
  */
-const MAX_REF_DEPTH = 1;
+const MAX_REFERENCE_DEPTH = 1;
 
 /**
- * Переделывает zod схему так, чтобы её принял OpenAI.
+ * Готовит схему формы так, чтобы её принял OpenAI.
  * У OpenAI жесткие требования к JSON: нельзя присылать лишние поля, и все поля
  * обязательно должны быть заполнены (поэтому пустые поля мы превращаем в "значение ИЛИ null").
  * Также эта функция убирает бесконечные повторы (ссылки схемы на саму себя), иначе API выдаст ошибку.
  */
 export function toStrictJsonSchema(schema: JsonSchema): JsonSchema {
-  const { definitions, $defs, ...rest } = schema;
-  const defs = (definitions ?? $defs ?? {}) as Record<string, JsonSchema>;
+  const { definitions, $defs, ...root } = schema;
 
-  const converted = convert(rest, defs, 0);
+  const strictSchema = toStrictSchema(
+    root,
+    (definitions ?? $defs ?? {}) as Record<string, JsonSchema>,
+    0,
+  );
 
-  if (!converted) {
-    throw new Error("Схему невозможно развернуть: она рекурсивна целиком");
+  if (!strictSchema) {
+    throw new Error("Схему невозможно развернуть");
   }
 
-  return converted;
-}
-
-function convert(
-  node: JsonSchema,
-  defs: Record<string, JsonSchema>,
-  depth: number,
-): JsonSchema | null {
-  const unwrapped = unwrapSingleAllOf(node);
-
-  if ("$ref" in unwrapped) {
-    const target = defs[refName(unwrapped.$ref as string)];
-
-    return depth < MAX_REF_DEPTH && target
-      ? convert(target, defs, depth + 1)
-      : null;
-  }
-
-  const { default: _default, oneOf, allOf, anyOf, ...rest } = unwrapped;
-  const result: JsonSchema = { ...rest };
-
-  const branches = (oneOf ?? anyOf ?? allOf) as JsonSchema[] | undefined;
-
-  if (branches) {
-    const kept = branches
-      .map((branch) => convert(branch, defs, depth))
-      .filter((branch): branch is JsonSchema => branch !== null);
-
-    if (kept.length === 0) return null;
-
-    result.anyOf = kept;
-  }
-
-  if (rest.items) {
-    const items = convert(rest.items as JsonSchema, defs, depth);
-
-    if (!items) return null;
-
-    result.items = items;
-  }
-
-  if (rest.properties) {
-    return convertObject(result, rest.properties as JsonSchema, defs, depth);
-  }
-
-  return result;
+  return strictSchema;
 }
 
 /**
- * Делает объект строго валидируемым:
- * 1. Запрещает любые неизвестные поля.
- * 2. Заставляет перечислять все поля в блоке required.
- * 3. Те поля, которые были необязательными, переводит в формат "значение или null".
+ * Приводит любой фрагмент схемы (строку, массив, объект)
+ * к строгому виду. Управляет рекурсией и разворачивает ссылки.
  */
-function convertObject(
-  node: JsonSchema,
-  properties: JsonSchema,
-  defs: Record<string, JsonSchema>,
+function toStrictSchema(
+  original: JsonSchema,
+  definitions: Record<string, JsonSchema>,
   depth: number,
 ): JsonSchema | null {
-  const required = new Set((node.required as string[] | undefined) ?? []);
-  const converted: JsonSchema = {};
+  const schema = unwrapAllOfWrapper(original);
+
+  if ("$ref" in schema) {
+    const referenced = definitions[definitionName(schema.$ref as string)];
+
+    return depth < MAX_REFERENCE_DEPTH && referenced
+      ? toStrictSchema(referenced, definitions, depth + 1)
+      : null;
+  }
+
+  const { default: _default, oneOf, allOf, anyOf, ...rest } = schema;
+  const strictSchema: JsonSchema = { ...rest };
+
+  const variants = (oneOf ?? anyOf ?? allOf) as JsonSchema[] | undefined;
+
+  if (variants) {
+    const strictVariants = variants
+      .map((variant) => toStrictSchema(variant, definitions, depth))
+      .filter((variant): variant is JsonSchema => variant !== null);
+
+    if (strictVariants.length === 0) return null;
+
+    strictSchema.anyOf = strictVariants;
+  }
+
+  if (rest.items) {
+    const strictItems = toStrictSchema(
+      rest.items as JsonSchema,
+      definitions,
+      depth,
+    );
+
+    if (!strictItems) return null;
+
+    strictSchema.items = strictItems;
+  }
+
+  if (rest.properties) {
+    return toStrictObject(
+      strictSchema,
+      rest.properties as JsonSchema,
+      definitions,
+      depth,
+    );
+  }
+
+  return strictSchema;
+}
+
+/**
+ * Приводит отдельный объект к строгому виду:
+ *
+ * 1. Запрещает любые поля, отсутствующие в схеме (`additionalProperties: false`)
+ * 2. Переводит необязательные поля в формат "значение или null"
+ *    (так как OpenAI требует указывать все поля как обязательные)
+ *
+ * Если хотя бы одно обязательное поле не удалось обработать, функция возвращает null.
+ */
+function toStrictObject(
+  objectSchema: JsonSchema,
+  properties: JsonSchema,
+  definitions: Record<string, JsonSchema>,
+  depth: number,
+): JsonSchema | null {
+  const requiredNames = new Set(
+    (objectSchema.required as string[] | undefined) ?? [],
+  );
+  const strictProperties: JsonSchema = {};
 
   for (const [name, property] of Object.entries(properties)) {
-    const value = convert(property as JsonSchema, defs, depth);
+    const strictProperty = toStrictSchema(
+      property as JsonSchema,
+      definitions,
+      depth,
+    );
 
-    if (!value) {
-      if (required.has(name)) return null;
+    if (!strictProperty) {
+      if (requiredNames.has(name)) return null;
       continue;
     }
 
-    converted[name] = required.has(name) ? value : { anyOf: [value, nullType] };
+    strictProperties[name] = requiredNames.has(name)
+      ? strictProperty
+      : { anyOf: [strictProperty, nullSchema] };
   }
 
   return {
-    ...node,
+    ...objectSchema,
     additionalProperties: false,
-    required: Object.keys(converted),
-    properties: converted,
+    required: Object.keys(strictProperties),
+    properties: strictProperties,
   };
 }
 
-const nullType: JsonSchema = { type: "null" };
+const nullSchema: JsonSchema = { type: "null" };
 
-function unwrapSingleAllOf(node: JsonSchema): JsonSchema {
-  const allOf = node.allOf as JsonSchema[] | undefined;
+/**
+ * Извлекает чистую схему из искусственного массива `allOf`
+ */
+function unwrapAllOfWrapper(schema: JsonSchema): JsonSchema {
+  const allOf = schema.allOf as JsonSchema[] | undefined;
 
-  if (!allOf || allOf.length !== 1 || Object.keys(node).length !== 1) {
-    return node;
+  if (!allOf || allOf.length !== 1 || Object.keys(schema).length !== 1) {
+    return schema;
   }
 
   return allOf[0] as JsonSchema;
 }
 
-function refName(ref: string): string {
+/**
+ * Извлекает чистое имя схемы из её технического пути.
+ * Превращает системные ссылки вида "#/$defs/Имя" в простое "Имя".
+ */
+function definitionName(ref: string): string {
   return ref.replace(/^#\/(definitions|\$defs)\//, "");
 }
