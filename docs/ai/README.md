@@ -687,7 +687,7 @@ return {
 Сравнение по строкам:
 
 | Было (`z.toJSONSchema`)               | Стало                                      | Кто и зачем                               |
-| ------------------------------------- | ------------------------------------------ |-------------------------------------------|
+| ------------------------------------- | ------------------------------------------ | ----------------------------------------- |
 | `required: ["name","label","type"]`   | `required: [все 7 свойств]`                | `toStrictObject`, требование openAI       |
 | `placeholder: {type:"string"}`        | `anyOf: [{type:"string"}, {type:"null"}]`  | `toStrictObject`, п.3                     |
 | `required: {default:false, type:...}` | `anyOf: [{type:"boolean"}, {type:"null"}]` | `toStrictSchema` снял `default`           |
@@ -985,7 +985,7 @@ const fenced = /^\s*```(?:json)?\s*\n([\s\S]*?)\n\s*```\s*$/.exec(content);
 return JSON.parse(fenced?.[1] ?? content);
 ````
 
-Страховка на случай, когда ИИ модель всё-таки оборачивает ответ в markdown-блок ```json```.
+Страховка на случай, когда ИИ модель всё-таки оборачивает ответ в markdown-блок `json`.
 
 ### 8.3. `dropNulls` - вернуть необязательность
 
